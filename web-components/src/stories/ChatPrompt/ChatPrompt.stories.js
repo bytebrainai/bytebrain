@@ -9,7 +9,7 @@ export default {
   },
 };
 
-export const Folan = {
+export const Simple = {
   args: {
     primary: true,
     label: 'Button',

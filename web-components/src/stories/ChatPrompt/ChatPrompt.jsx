@@ -1,76 +1,71 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import './chatprompt.css';
+import ChatMessage from './ChatMessage';
 
-/**
- * Primary UI component for user interaction
- */
-export const ChatPrompt = ({ primary, backgroundColor, size, label, ...props }) => {
-  const mode = primary ? 'storybook-button--primary' : 'storybook-button--secondary';
+export const ChatPrompt = () => {
+  const [question, setQuestion] = React.useState('');
+  const [messages, setMessages] = React.useState([]);
+
+  const handleChange = (event) => {
+    setQuestion(event.target.value)
+  }
+
+  const handleClick= () => {
+    const ws = new WebSocket('ws://localhost:8081/chat')
+    ws.onopen = (event) => {
+      console.log(question)
+      setMessages(messages => messages.concat([
+        {
+          userType: "user",
+          message: question
+        }
+      ]));
+      ws.send(question);
+    };
+    ws.onmessage = function (event) {
+      const response = JSON.parse(event.data).result;
+      setMessages(messages => messages.concat([{
+        userType: "bot",
+        message: response
+      }]));
+    };
+  }
+
+
   return (
-  <div
-    class="bg-white text-black min-h-screen flex items-center justify-center"
-  >
-    <div class="lg:w-1/2 2xl:w-1/3 p-8 rounded-md bg-gray-100">
-      <h1 class="text-3xl font-bold mb-6">
-        Streaming OpenAI API Completions in JavaScript
-      </h1>
-      <div id="resultContainer" class="mt-4 h-48 overflow-y-auto">
-        <p class="text-gray-500 text-sm mb-2">Generated Text</p>
-        <p id="resultText" class="whitespace-pre-line"></p>
-      </div>
-      <input
-        type="text"
-        id="promptInput"
-        class="w-full px-4 py-2 rounded-md bg-gray-200 placeholder-gray-500 focus:outline-none mt-4"
-        placeholder="Enter prompt..."
-      />
-      <div class="flex justify-center mt-4">
-        <button
-          id="generateBtn"
-          class="w-1/2 px-4 py-2 rounded-md bg-black text-white hover:bg-gray-900 focus:outline-none mr-2 disabled:opacity-75 disabled:cursor-not-allowed"
-        >
-          Generate
-        </button>
-        <button
-          id="stopBtn"
-          disabled
-          class="w-1/2 px-4 py-2 rounded-md border border-gray-500 text-gray-500 hover:text-gray-700 hover:border-gray-700 focus:outline-none ml-2 disabled:opacity-75 disabled:cursor-not-allowed"
-        >
-          Stop
-        </button>
+    <div>
+      <div className="w-full p-5 rounded-md bg-gray-100 h-screen relative">
+        <h1 className="text-orange-600 text-3xl font-bold mb-6">
+          ZIO Chat
+        </h1>
+        <div id="resultContainer" className="mt-4 h-fit overflow-y-auto">
+          <div id="messages" className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
+            {
+              messages.map((m, id) =>
+                <ChatMessage key={id} userType={m.userType} text={m.message} />
+              )
+            }
+          </div>
+        </div>
+        <div className="flex absolute bottom-5 left-5 right-5 h-10">
+        <input
+          type="text"
+          id="promptInput"
+          value={question}
+          onChange={handleChange}
+          className="w-full px-4 rounded-md bg-gray-200 placeholder-gray-500 focus:outline-none"
+          placeholder="Write your question about ZIO"
+        />
+          <button
+            id="generateBtn"
+            className="px-6 rounded-md bg-black text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
+            onClick={handleClick}
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
-  </div>
   );
 };
 
-ChatPrompt.propTypes = {
-  /**
-   * Is this the principal call to action on the page?
-   */
-  primary: PropTypes.bool,
-  /**
-   * What background color to use
-   */
-  backgroundColor: PropTypes.string,
-  /**
-   * How large should the button be?
-   */
-  size: PropTypes.oneOf(['small', 'medium', 'large']),
-  /**
-   * Button contents
-   */
-  label: PropTypes.string.isRequired,
-  /**
-   * Optional click handler
-   */
-  onClick: PropTypes.func,
-};
-
-ChatPrompt.defaultProps = {
-  backgroundColor: null,
-  primary: false,
-  size: 'medium',
-  onClick: undefined,
-};
+export default ChatPrompt
