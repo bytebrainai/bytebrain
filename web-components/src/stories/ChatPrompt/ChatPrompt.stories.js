@@ -1,11 +1,13 @@
 import { ChatPrompt } from './ChatPrompt';
 
 export default {
-  title: 'Chat/ChatPrompt',
+  title: "Chat/ChatPrompt",
   component: ChatPrompt,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
-    backgroundColor: { control: 'color' }
+    title: { name: "Title", control: { type: "text" } },
+    defaultQuestion: { name: "Default Question", control: { type: "text" } },
+    websocketEndpoint: { name: "Websocket Endpoint", control: { type: "text" } },
   },
 };
 
