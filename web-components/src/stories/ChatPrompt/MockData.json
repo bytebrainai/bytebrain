@@ -1,0 +1,34 @@
+[
+  {
+    "userType": "user",
+    "message": "What is ZIO?"
+  },
+  {
+    "userType": "bot",
+    "message": "ZIO is a next-generation framework for building cloud-native applications on the JVM. With a beginner-friendly yet powerful functional core, ZIO lets developers quickly build best-practice applications that are highly scalable, testable, robust, resilient, resource-safe, efficient, and observable."
+  },
+  {
+    "userType": "user",
+    "message": "What is ZIO used for?"
+  },
+  {
+    "userType": "bot",
+    "message": "ZIO is used for building cloud-native applications on the JVM. It is a next-generation framework that lets developers quickly build best-practice applications that are highly scalable, testable, robust, resilient, resource-safe, efficient, and observable."
+  },
+  {
+    "userType": "user",
+    "message": "What is Referential Transparency?"
+  },
+  {
+    "userType": "bot",
+    "message": "Referential transparency is a property of functions that allows them to be replaced with their corresponding values without changing the program's behavior."
+  },
+  {
+    "userType": "user",
+    "message": "What is a pure function?"
+  },
+  {
+    "userType": "bot",
+    "message": "A pure function is a function that has no side effects and always returns the same output given the same input."
+  }
+]

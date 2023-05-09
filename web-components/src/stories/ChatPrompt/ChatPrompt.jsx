@@ -1,7 +1,8 @@
 import React from 'react';
 import ChatMessage from './ChatMessage';
 
-export const ChatPrompt = () => {
+export const ChatPrompt = (props) => {
+  const { title = 'ChatBot', defaultQuestion = 'Send your message', websocketEndpoint } = props
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState([]);
 
@@ -9,10 +10,9 @@ export const ChatPrompt = () => {
     setQuestion(event.target.value)
   }
 
-  const handleClick= () => {
-    const ws = new WebSocket('ws://localhost:8081/chat')
+  const handleClick = () => {
+    const ws = new WebSocket(websocketEndpoint)
     ws.onopen = (event) => {
-      console.log(question)
       setMessages(messages => messages.concat([
         {
           userType: "user",
@@ -30,31 +30,30 @@ export const ChatPrompt = () => {
     };
   }
 
-
   return (
     <div>
-      <div className="w-full p-5 rounded-md bg-gray-100 h-screen relative">
+      <div className="justify-between flex flex-col h-screen w-full p-5 rounded-md bg-gray-100 overflow-auto">
         <h1 className="text-orange-600 text-3xl font-bold mb-6">
-          ZIO Chat
+          {title}
         </h1>
-        <div id="resultContainer" className="mt-4 h-fit overflow-y-auto">
-          <div id="messages" className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
-            {
-              messages.map((m, id) =>
-                <ChatMessage key={id} userType={m.userType} text={m.message} />
-              )
-            }
-          </div>
+        <div
+          id="messages"
+          className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
+          {
+            messages.map((m, id) =>
+              <ChatMessage key={id} userType={m.userType} text={m.message} />
+            )
+          }
         </div>
-        <div className="flex absolute bottom-5 left-5 right-5 h-10">
-        <input
-          type="text"
-          id="promptInput"
-          value={question}
-          onChange={handleChange}
-          className="w-full px-4 rounded-md bg-gray-200 placeholder-gray-500 focus:outline-none"
-          placeholder="Write your question about ZIO"
-        />
+        <div className="flex bottom-5 left-5 right-5 h-10 mt-4">
+          <input
+            type="text"
+            id="promptInput"
+            value={question}
+            onChange={handleChange}
+            className="w-full px-4 py-2 rounded-md bg-gray-200 placeholder-gray-500 focus:outline-none"
+            placeholder={defaultQuestion}
+          />
           <button
             id="generateBtn"
             className="px-6 rounded-md bg-black text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"

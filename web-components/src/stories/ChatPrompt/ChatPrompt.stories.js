@@ -5,13 +5,14 @@ export default {
   component: ChatPrompt,
   tags: ['autodocs'],
   argTypes: {
-    backgroundColor: { control: 'color' },
+    backgroundColor: { control: 'color' }
   },
 };
 
-export const Simple = {
+export const ZIOChat =  {
   args: {
-    primary: true,
-    label: 'Button',
-  },
-};
+    title: "ZIO Chat",
+    defaultQuestion: "What are the befenits of using ZIO?",
+    websocketEndpoint: 'ws://localhost:8081/chat'
+  }
+}
