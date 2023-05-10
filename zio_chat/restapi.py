@@ -8,6 +8,8 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
+from starlette.responses import FileResponse
+from starlette.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -61,11 +63,11 @@ qa: RetrievalQA = RetrievalQA.from_chain_type(llm=OpenAI(max_tokens=500), chain_
                                                                                search_kwargs={"k": 2}))
 qa.set_verbose(verbose=True)
 
-
-@app.get("/")
+@app.get("/old")
 async def get():
     return HTMLResponse(html)
 
+app.mount("/", StaticFiles(directory="./zio_chat/static/", html = True), name="site")
 
 @app.websocket("/chat")
 async def websocket_endpoint(websocket: WebSocket):
