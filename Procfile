@@ -1,1 +1,1 @@
-web: npm --cwd ./zio-chat-client start
+web: poetry run webserver 
