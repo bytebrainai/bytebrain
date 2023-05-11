@@ -16,7 +16,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build; cp -a ./build/. ../zio_chat/static/",
+    "build": "react-scripts build; cp -p -a ./build/. ../zio_chat/static/",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "storybook": "concurrently \"yarn:watch:*\"",
