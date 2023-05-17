@@ -2,3 +2,4 @@
 .myvenv
 .direnv
 env.sh
+.env
