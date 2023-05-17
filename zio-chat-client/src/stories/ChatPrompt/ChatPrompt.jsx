@@ -2,7 +2,13 @@ import React from 'react';
 import ChatMessage from './ChatMessage';
 
 export const ChatPrompt = (props) => {
-  const { title = 'ChatBot', defaultQuestion = 'Send your message', websocketEndpoint } = props
+  const { 
+    title = 'ChatBot', 
+    defaultQuestion = 'Send your message', 
+    websocketHost,
+    websocketPort,
+    websocketEndpoint 
+  } = props
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState([]);
 
@@ -11,7 +17,7 @@ export const ChatPrompt = (props) => {
   }
 
   const handleClick = () => {
-    const ws = new WebSocket(websocketEndpoint)
+    const ws = new WebSocket("ws://" + (websocketHost || window.location.hostname) + ":" + websocketPort + websocketEndpoint)
     ws.onopen = (event) => {
       setMessages(messages => messages.concat([
         {
