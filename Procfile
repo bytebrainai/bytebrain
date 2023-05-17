@@ -1,1 +1,0 @@
-web: poetry run webserver 
