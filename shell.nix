@@ -4,6 +4,7 @@ mkShell {
   buildInputs = [
     python310Packages.virtualenv 
     python310Packages.pip 
+    docker-compose
   ];
   shellHook = ''
     # fixes libstdc++ issues and libgl.so issues
