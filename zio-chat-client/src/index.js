@@ -11,7 +11,9 @@ root.render(
     <ChatPrompt
         title="ZIO Chat"
         defaultQuestion="What are the befenits of using ZIO?"
-        websocketEndpoint="ws://localhost:8081/chat"
+        websocketHost=""
+        websocketPort="8081"
+        websocketEndpoint="/chat"
      />
   </React.StrictMode>
 );
