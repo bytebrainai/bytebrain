@@ -7,7 +7,7 @@ authors = ["Milad Khajavi"]
 [tool.poetry.dependencies]
 python = "3.10.11"
 fastapi = "^0.95.1"
-langchain = "0.0.144"
+langchain = "0.0.173"
 openai = "0.27.4"
 tiktoken = "0.3.3"
 chromadb = "0.3.21"
