@@ -15,6 +15,8 @@ export const ZIOChat =  {
   args: {
     title: "ZIO Chat",
     defaultQuestion: "What are the befenits of using ZIO?",
-    websocketEndpoint: 'ws://localhost:8081/chat'
+    websocketHost: "localhost",
+    websocketPort: "8081",
+    websocketEndpoint: '/chat'
   }
 }
