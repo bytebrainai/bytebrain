@@ -34,11 +34,22 @@ export const ChatPrompt = (props) => {
       ws.send(question);
     };
     ws.onmessage = function (event) {
-      const response = JSON.parse(event.data).result;
-      setMessages(messages => messages.concat([{
-        userType: "bot",
-        message: response
-      }]));
+      const word = JSON.parse(event.data).token;
+      setMessages(messages => {
+        if (
+          messages.length === 0 ||
+          messages[messages.length - 1].userType === "user"
+        ) {
+          return [...messages, { userType: "bot", message: word }];
+        } else {
+          const updatedMessages = [...messages];
+          updatedMessages[updatedMessages.length - 1] = {
+            ...updatedMessages[updatedMessages.length - 1],
+            message: updatedMessages[updatedMessages.length - 1].message + word
+          };
+          return updatedMessages;
+        }
+      });
     };
   }
 
