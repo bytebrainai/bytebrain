@@ -2,8 +2,17 @@ import React from 'react';
 import bot from './bot.png';
 import user from './user.png';
 import ReactMarkdown from 'react-markdown'
+import hljs from "highlight.js";
+import { useEffect } from 'react';
+import "highlight.js/styles/github.css";
 
 function ChatMessage(props) {
+  useEffect(() => {
+    if (props.highlight && props.userType === "bot") {
+      hljs.highlightAll();
+    }
+  });
+
   let chatMessage;
   if (props.userType === "user") {
     chatMessage =

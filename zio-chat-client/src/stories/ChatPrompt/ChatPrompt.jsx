@@ -28,24 +28,28 @@ export const ChatPrompt = (props) => {
       setMessages(messages => messages.concat([
         {
           userType: "user",
-          message: question
+          message: question,
+          completed: true
         }
       ]));
       ws.send(question);
     };
     ws.onmessage = function (event) {
-      const word = JSON.parse(event.data).token;
+      const result = JSON.parse(event.data)
+      const word = result.token;
+      const completed = result.completed;
       setMessages(messages => {
         if (
           messages.length === 0 ||
           messages[messages.length - 1].userType === "user"
         ) {
-          return [...messages, { userType: "bot", message: word }];
+          return [...messages, { userType: "bot", message: word, completed: completed }];
         } else {
           const updatedMessages = [...messages];
           updatedMessages[updatedMessages.length - 1] = {
             ...updatedMessages[updatedMessages.length - 1],
-            message: updatedMessages[updatedMessages.length - 1].message + word
+            message: updatedMessages[updatedMessages.length - 1].message + word,
+            completed: completed
           };
           return updatedMessages;
         }
@@ -64,7 +68,7 @@ export const ChatPrompt = (props) => {
           className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
           {
             messages.map((m, id) =>
-              <ChatMessage key={id} userType={m.userType} text={m.message} />
+              <ChatMessage key={id} userType={m.userType} text={m.message} highlight={m.completed} />
             )
           }
         </div>
