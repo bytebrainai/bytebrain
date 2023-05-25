@@ -22,6 +22,14 @@ export const ChatPrompt = (props) => {
     event.target.reset();
   }
 
+  function isButtonDisabled() {
+    if (messages.length === 0) { return false }
+    else if (messages[messages.length - 1].userType == "user") { return true }
+    else if (messages[messages.length - 1].userType == "bot"){
+      return !messages[messages.length - 1].completed ? true : false
+    }
+  }
+
   const handleClick = () => {
     const ws = new WebSocket("ws://" + (websocketHost || window.location.hostname) + ":" + websocketPort + websocketEndpoint)
     ws.onopen = (event) => {
@@ -80,7 +88,7 @@ export const ChatPrompt = (props) => {
             className="w-full px-4 py-2 rounded-md bg-gray-200 placeholder-gray-500 focus:outline-none"
             placeholder={defaultQuestion}
           />
-          <button
+          <button disabled={isButtonDisabled()}
             id="generateBtn"
             type='submit'
             className="px-6 rounded-md bg-black text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
