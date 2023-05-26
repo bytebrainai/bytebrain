@@ -9,14 +9,18 @@ import "highlight.js/styles/github.css";
 function ChatMessage(props) {
   useEffect(() => {
     if (props.highlight && props.userType === "bot") {
-      hljs.highlightAll();
+      document
+        .querySelectorAll("#" + props.id + " pre code")
+        .forEach((el) => {
+          hljs.highlightElement(el);
+        });
     }
   });
 
   let chatMessage;
   if (props.userType === "user") {
     chatMessage =
-      <div className="chat-message">
+      <div className="chat-message" id={props.id} >
         <div className="flex items-end">
           <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
             <div>
@@ -31,7 +35,7 @@ function ChatMessage(props) {
       </div>
   } else if (props.userType === "bot") {
     chatMessage =
-      <div className="chat-message">
+      <div className="chat-message" id={props.id}>
         <div className="flex items-end">
           <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
             <div>

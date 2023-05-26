@@ -76,7 +76,7 @@ export const ChatPrompt = (props) => {
           className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
           {
             messages.map((m, id) =>
-              <ChatMessage key={id} userType={m.userType} text={m.message} highlight={m.completed} />
+              <ChatMessage key={id} id={"chat" + id} userType={m.userType} text={m.message} highlight={m.completed} />
             )
           }
         </div>
