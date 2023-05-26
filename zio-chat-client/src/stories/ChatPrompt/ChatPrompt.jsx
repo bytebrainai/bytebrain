@@ -1,5 +1,6 @@
 import React from 'react';
 import ChatMessage from './ChatMessage';
+import './ChatPrompt.css'
 
 export const ChatPrompt = (props) => {
   const { 
@@ -72,13 +73,14 @@ export const ChatPrompt = (props) => {
           {title}
         </h1>
         <div
-          id="messages"
-          className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
+          id="scroller"
+          className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch scroll-smooth">
           {
             messages.map((m, id) =>
               <ChatMessage key={id} id={"chat" + id} userType={m.userType} text={m.message} highlight={m.completed} />
             )
           }
+          <div id="anchor"></div>
         </div>
         <form onSubmit={handleSubmit} className="flex bottom-5 left-5 right-5 h-10 mt-4">
           <input
