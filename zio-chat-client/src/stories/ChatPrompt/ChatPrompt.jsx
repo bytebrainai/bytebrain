@@ -41,7 +41,12 @@ export const ChatPrompt = (props) => {
           completed: true
         }
       ]));
-      ws.send(question);
+      const history = messages.map(m => m.message);
+      const data = {
+        "question": question,
+        "history": history
+      }
+      ws.send(JSON.stringify(data));
     };
     ws.onmessage = function (event) {
       const result = JSON.parse(event.data)
