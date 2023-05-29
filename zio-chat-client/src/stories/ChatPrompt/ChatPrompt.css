@@ -7,6 +7,10 @@
   height: 1px;
 }
 
+p code {
+  border-radius: 3px;
+}
+
 .bot-message p code {
   background-color: aliceblue;
 }
