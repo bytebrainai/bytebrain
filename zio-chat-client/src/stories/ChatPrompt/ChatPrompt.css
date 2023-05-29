@@ -6,3 +6,11 @@
   overflow-anchor: auto;
   height: 1px;
 }
+
+.bot-message p code {
+  background-color: aliceblue;
+}
+
+.bot-message p code {
+  background-color: cornflowerblue;
+}
