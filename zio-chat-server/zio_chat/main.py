@@ -120,4 +120,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 def start():
-    uvicorn.run("zio_chat.restapi:app", host="0.0.0.0", port=8081, reload=True)
+    uvicorn.run("zio_chat.main:app", host="0.0.0.0", port=8081, reload=True)
