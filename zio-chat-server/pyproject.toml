@@ -17,7 +17,7 @@ unstructured = "0.5.13"
 pytest = "^5.2"
 
 [tool.poetry.scripts]
-webserver = "zio_chat.restapi:start"
+webserver = "zio_chat.main:start"
 index = "zio_chat.index:index"
 
 [build-system]
