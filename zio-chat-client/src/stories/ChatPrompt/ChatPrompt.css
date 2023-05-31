@@ -18,3 +18,12 @@ p code {
 .bot-message p code {
   background-color: cornflowerblue;
 }
+
+ol {
+  list-style-type: decimal;
+  margin: 1.0em;
+}
+
+li {
+   padding: 0.2em;
+}
