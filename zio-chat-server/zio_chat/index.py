@@ -6,8 +6,12 @@ from langchain.text_splitter import MarkdownTextSplitter
 from langchain.vectorstores import Chroma
 
 
-def index():
-    directory = os.environ["ZIOCHAT_DOCS_DIR"]
+def update_vectorestore(texts: list[Document]):
+    embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+    Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
+
+
+def index_markdown_docs(directory: str):
     documents: list[Document] = []
 
     for root, dirs, files in os.walk(directory):
@@ -20,6 +24,19 @@ def index():
                 documents.extend(loader.load())
 
     texts: list[Document] = MarkdownTextSplitter().split_documents(documents)
-    embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+    return texts
 
-    Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
+
+def index_zio_project():
+    docs = index_markdown_docs(os.environ["ZIOCHAT_DOCS_DIR"])
+    update_vectorestore(docs)
+
+
+def index_zionomicon():
+    docs = index_markdown_docs(os.environ["ZIONOMICON_DOCS_DIR"])
+    update_vectorestore(docs)
+
+
+def index_all():
+    index_zio_project()
+    index_zionomicon()
