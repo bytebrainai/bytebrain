@@ -32,7 +32,9 @@ export const ChatPrompt = (props) => {
   }
 
   const handleClick = () => {
-    const ws = new WebSocket("ws://" + (websocketHost || window.location.hostname) + ":" + websocketPort + websocketEndpoint)
+    const host = websocketHost || window.location.hostname;
+    const port = websocketPort === 80 ? "" : ":" + websocketPort;
+    const ws = new WebSocket("ws://" + host+ port + websocketEndpoint)
     ws.onopen = (event) => {
       setMessages(messages => messages.concat([
         {
