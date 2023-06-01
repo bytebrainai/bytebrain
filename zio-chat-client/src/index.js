@@ -10,9 +10,9 @@ root.render(
   <React.StrictMode>
     <ChatPrompt
         title="ZIO Chat"
-        defaultQuestion="What are the befenits of using ZIO?"
+        defaultQuestion="What is ZIO?"
         websocketHost=""
-        websocketPort="8081"
+        websocketPort="80"
         websocketEndpoint="/chat"
      />
   </React.StrictMode>
