@@ -4,6 +4,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import MarkdownTextSplitter
 from langchain.vectorstores import Chroma
+from langchain.document_loaders import GitLoader
 
 
 def update_vectorestore(texts: list[Document]):
@@ -27,16 +28,29 @@ def index_markdown_docs(directory: str):
     return texts
 
 
-def index_zio_project():
+def index_zio_project_docs():
     docs = index_markdown_docs(os.environ["ZIOCHAT_DOCS_DIR"])
     update_vectorestore(docs)
 
 
-def index_zionomicon():
-    docs = index_markdown_docs(os.environ["ZIONOMICON_DOCS_DIR"])
+def index_zionomicon_book():
+    docs = index_markdown_docs(os.environ["ZIOCHAT_ZIONOMICON_DOCS_DIR"])
+    update_vectorestore(docs)
+
+
+def index_zio_project_source_code():
+    loader = GitLoader(
+        repo_path=os.environ["ZIOCHAT_ZIO_REPO_DIR"],
+        branch="series/2.x",
+        file_filter=lambda file_path: file_path.endswith(".scala")
+    )
+    docs = loader.load()
+    for doc in docs:
+        print(doc.json())
     update_vectorestore(docs)
 
 
 def index_all():
-    index_zio_project()
-    index_zionomicon()
+    index_zio_project_docs()
+    index_zionomicon_book()
+    index_zio_project_source_code()
