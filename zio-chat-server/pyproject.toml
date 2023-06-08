@@ -27,6 +27,7 @@ index_zionomicon_book = "zio_chat.index:index_zionomicon_book"
 index_zio_project_source_code = "zio_chat.index:index_zio_project_source_code"
 index_all = "zio_chat_index:index_all"
 index_youtube_video = "zio_chat.index:index_youtube_video"
+discord_bot = "zio_chat.discord:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
