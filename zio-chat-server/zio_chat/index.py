@@ -1,7 +1,11 @@
 import os
-from urllib.error import HTTPError
 import json
 import googleapiclient.discovery
+import tempfile
+from urllib.error import HTTPError
+from typing import Optional, Any
+from git import Repo
+import requests
 
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
@@ -51,6 +55,38 @@ def index_zio_project_source_code():
     docs = loader.load()
     for doc in docs:
         print(doc.json())
+    update_vectorestore(docs)
+
+
+def clone_repo(repo_url, depth=1) -> str:
+    temp_folder: str = tempfile.mkdtemp()
+    Repo.clone_from(repo_url, temp_folder, depth=depth)
+    return temp_folder
+
+
+def zio_ecosystem_clone_urls():
+    file_path = "zio-ecosystem.json"
+    try:
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+
+
+def index_zio_ecosystem_source_code():
+    for prj in zio_ecosystem_clone_urls():
+        print(prj)
+        prj_dir = clone_repo(prj['clone_url'])
+        index_source_code(prj_dir, prj['default_branch'])
+
+
+def index_source_code(repo_path: str, branch: Optional[str]):
+    loader = GitLoader(
+        repo_path=repo_path,
+        branch=branch,
+        file_filter=lambda file_path: file_path.endswith(".scala")
+    )
+    docs = loader.load()
     update_vectorestore(docs)
 
 
@@ -123,6 +159,41 @@ def index_youtube_video():
             update_vectorestore(docs)
         except Exception:
             print("Failed to index video id: " + video_id)
+
+
+def get_zio_ecosystem_repo_info():
+    base_url = f"https://api.github.com/orgs/zio/repos"
+    headers = {"Accept": "application/vnd.github.v3+json"}  # Set headers to use GitHub API v3
+
+    repo_infos = []
+    page = 1
+    per_page = 100  # Number of repositories per page
+
+    while True:
+        params = {"page": page, "per_page": per_page}
+        response = requests.get(base_url, headers=headers, params=params)
+
+        if response.status_code == 200:
+            repos = response.json()
+            if len(repos) == 0:
+                break  # No more repositories to retrieve
+
+            for repo in repos:
+                clone_url = repo["clone_url"]
+                default_branch = repo["default_branch"]
+                print(clone_url)
+                repo_infos.append({
+                    "clone_url": clone_url,
+                    "default_branch": default_branch
+                })
+
+            page += 1
+        else:
+            print(f"Failed to retrieve repositories. Error: {response.status_code} - {response.text}")
+            return []
+
+    with open("zio-ecosystem.json", 'w') as file:
+        json.dump(repo_infos, file)
 
 
 def index_all():
