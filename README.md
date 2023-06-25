@@ -2,6 +2,27 @@
 
 A Chatbot for ZIO Ecosystem
 
+## Install Development Environment
+
+### ZIO Chat Server
+
+Run the following steps:
+
+```shell
+nix-shell shell.nix
+cd zio-chat-server
+python -m venv .venv
+source .venv/bin/activate
+pip install poetry
+poetry install
+```
+
+After running these steps, we can run any task defined inside `pyproject.toml`, e.g.:
+
+```shell
+poetry run webserver
+```
+
 ## Installation
 
 1. Define following env variables
