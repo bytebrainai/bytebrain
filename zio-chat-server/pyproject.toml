@@ -22,6 +22,8 @@ pytest = "^5.2"
 
 [tool.poetry.scripts]
 webserver = "zio_chat.main:start"
+dev_three_chain_step = "zio_chat.dev.three_chain_step:run"
+dev_two_chain_step = "zio_chat.dev.two_chain_step:run"
 index_zio_project_docs = "zio_chat.index:index_zio_project_docs"
 index_zionomicon_book = "zio_chat.index:index_zionomicon_book"
 index_zio_project_source_code = "zio_chat.index:index_zio_project_source_code"
