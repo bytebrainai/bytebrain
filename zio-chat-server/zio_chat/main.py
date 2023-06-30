@@ -129,8 +129,7 @@ def refactor_prompt_template(query: str) -> str:
     REFACTOR RULES: 
     If USER asked you to write code, you shouldn't use ZIO 1.x APIs in your generated response, instead you should only 
     use ZIO 2.x APIs.
-    Because ZIO 1.x API is old and deprecated. Anyway, to make sure that your code compatible with ZIO 2.x API use the 
-    following list. This is a list of tuples of "ZIO 1.x API" and "ZIO 2.x API": 
+    To make sure that your code is compatible with ZIO 2.x API, use the following migration table from ZIO 1.x to ZIO 2.x
 
     | ZIO 1.x API | ZIO 2.x API |
     +-------------+-------------+
