@@ -9,14 +9,14 @@ from zio_chat.callbacks import StreamingLLMCallbackHandler
 from fastapi import WebSocket
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
-import os
 
-embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
 
-docsearch = Chroma(
-    persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"],
-    embedding_function=embeddings
-)
+def make_doc_search(persistent_dir: str):
+    return Chroma(
+        persist_directory=persistent_dir,
+        embedding_function=OpenAIEmbeddings()
+    )
+
 
 question_generator = LLMChain(
     llm=ChatOpenAI(
@@ -45,10 +45,10 @@ def make_combine_docs_chain(websocket: WebSocket):
     )
 
 
-def make_question_answering_chatbot(websocket: WebSocket):
+def make_question_answering_chatbot(websocket: WebSocket, persistent_dir: str):
     return ConversationalRetrievalChainWithCustomPrompt(
         combine_docs_chain=make_combine_docs_chain(websocket),
-        retriever=docsearch.as_retriever(),
+        retriever=make_doc_search(persistent_dir).as_retriever(),
         question_generator=question_generator,
         get_chat_history=get_chat_history,
         return_source_documents=False,
