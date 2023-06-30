@@ -1,22 +1,19 @@
 import json
 import os
 import pprint
-from abc import ABC
-from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from langchain.chat_models import ChatOpenAI
-from langchain.callbacks.base import AsyncCallbackHandler
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.llms import OpenAI
-from langchain.chains import RetrievalQA
 from langchain.chains.llm import LLMChain
 from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT)
 from langchain.chains.question_answering import load_qa_chain
 from zio_chat.dev.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
+from zio_chat.callbacks import StreamingLLMCallbackHandler
 
 embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
 
@@ -24,27 +21,6 @@ docsearch = Chroma(
     persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"],
     embedding_function=embeddings
 )
-
-
-class StreamingLLMCallbackHandler(AsyncCallbackHandler, ABC):
-    """Callback handler for streaming LLM responses."""
-
-    def __init__(self, websocket: WebSocket):
-        self.websocket = websocket
-
-    async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
-        """Run on new LLM token. Only available when streaming is enabled."""
-        print(token, end="")
-        resp = {"token": token, "completed": False}
-        await self.websocket.send_json(resp)
-
-    async def on_llm_end(self, response, **kwargs) -> None:
-        await self.websocket.send_json({"token": "", "completed": True})
-
-
-def get_chat_history(chat_history) -> str:
-    return "\n".join(chat_history)
-
 
 app = FastAPI()
 
@@ -151,6 +127,10 @@ def refactor_prompt_template(query: str) -> str:
     USER's QUERY: {query}
     ------
     YOUR ANSWER:"""
+
+
+def get_chat_history(chat_history) -> str:
+    return "\n".join(chat_history)
 
 
 def start():
