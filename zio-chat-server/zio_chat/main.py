@@ -25,28 +25,6 @@ docsearch = Chroma(
 app = FastAPI()
 
 
-@app.websocket("/chat_")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    streaming_handler = StreamingLLMCallbackHandler(websocket)
-    llm = ChatOpenAI(client=OpenAI, streaming=True, callbacks=[streaming_handler], temperature=0)
-    qa: RetrievalQA = \
-        RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=docsearch.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 2}
-            )
-        )
-    qa.set_verbose(verbose=True)
-    while True:
-        data = await websocket.receive_text()
-        print("Question Received: {}".format(data))
-        result = await qa.acall(data)
-        print("OpenAI Result: {}".format(result))
-
-
 @app.websocket("/chat")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
