@@ -1,3 +1,4 @@
+import os
 import json
 import pprint
 
@@ -11,7 +12,7 @@ app = FastAPI()
 @app.websocket("/chat")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    qa = make_question_answering_chatbot(websocket)
+    qa = make_question_answering_chatbot(websocket, os.environ["ZIOCHAT_CHROMA_DB_DIR"])
     while True:
         raw_data = await websocket.receive_text()
         obj = json.loads(raw_data)
