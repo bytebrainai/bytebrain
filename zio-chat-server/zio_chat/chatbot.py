@@ -51,14 +51,15 @@ def make_question_answering_chatbot(websocket: WebSocket, persistent_dir: str):
         retriever=make_doc_search(persistent_dir).as_retriever(),
         question_generator=question_generator,
         get_chat_history=get_chat_history,
-        return_source_documents=False,
+        return_source_documents=True,
         prompt_refactor_template=refactor_prompt_template
     )
 
 
 def refactor_prompt_template(query: str) -> str:
     return f"""Please refactor your answer to the User's Query based on given REFACTOR RULES. 
-    If user asked you to write a code, please explain that code also.
+    If user asked you to write a code, please explain that code also. 
+    Don't include REFACTOR RULES in your explanation, only use them to refactor your answers.
 
     ----- 
     REFACTOR RULES: 
