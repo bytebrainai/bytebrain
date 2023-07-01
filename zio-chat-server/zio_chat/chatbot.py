@@ -59,7 +59,7 @@ def make_question_answering_chatbot(websocket: WebSocket, persistent_dir: str):
 def refactor_prompt_template(query: str) -> str:
     return f"""Please refactor your answer to the User's Query based on given REFACTOR RULES. 
     If user asked you to write a code, please explain that code also. 
-    Don't include REFACTOR RULES in your explanation, only use them to refactor your answers.
+    Don't include REFACTOR RULES in your explanation, but only use them to refactor your answers.
 
     ----- 
     REFACTOR RULES: 
