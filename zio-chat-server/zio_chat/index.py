@@ -23,15 +23,19 @@ def update_vectorestore(texts: list[Document]):
 def index_markdown_docs(directory: str):
     documents: list[Document] = []
 
-    for root, dirs, files in os.walk(directory):
-        for filename in files:
-            if filename.endswith('.md'):
-                print(os.path.join(root, filename))
-                from langchain.document_loaders import UnstructuredMarkdownLoader
-
-                loader = UnstructuredMarkdownLoader(os.path.join(root, filename))
-                documents.extend(loader.load())
-
+    from langchain.document_loaders import SitemapLoader
+    loader = SitemapLoader(web_path="https://zio.dev")
+    documents.extend(loader.load())
+    # for root, dirs, files in os.walk(directory):
+    #     for filename in files:
+    #         if filename.endswith('.md'):
+    #             print(os.path.join(root, filename))
+    #             from langchain.document_loaders import UnstructuredMarkdownLoader
+    #             from langchain.document_loaders import WebBaseLoader
+    #
+    #             #l loader = UnstructuredMarkdownLoader(os.path.join(root, filename))
+    #
+    #
     texts: list[Document] = MarkdownTextSplitter().split_documents(documents)
     return texts
 
