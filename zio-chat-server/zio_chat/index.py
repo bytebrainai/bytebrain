@@ -1,7 +1,8 @@
 import json
 import os
+import pprint
 import tempfile
-from typing import Optional
+from typing import Optional, Dict
 from urllib.error import HTTPError
 
 import googleapiclient.discovery
@@ -22,7 +23,7 @@ def update_vectorestore(texts: list[Document]):
     Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
 
 
-def extract_id(md_file_path: str) -> str:
+def extract_metadata(md_file_path: str) -> Dict[str, str]:
     with open(md_file_path, 'r') as file:
         content = file.read()
 
@@ -30,9 +31,10 @@ def extract_id(md_file_path: str) -> str:
     try:
         _, yaml_content, _ = content.split('---', 2)
         metadata = yaml.safe_load(yaml_content)
-        return metadata.get('id')
+        return {"id": metadata.get('id'), "title": metadata.get("title")}
     except ValueError:
-        return os.path.basename(md_file_path)
+        file_name = os.path.basename(md_file_path)
+        return {"id": file_name, "title": file_name}
 
 
 def index_markdown_docs(directory: str):
@@ -46,12 +48,13 @@ def index_markdown_docs(directory: str):
 
                 docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
 
-                id = extract_id(md_path)
-                absolute_path = root.split("/zio/docs/")[1] + "/" + id
+                metadata: dict[str, str] = extract_metadata(md_path)
+                absolute_path = root.split("/zio/docs/")[1] + "/" + metadata["id"]
 
                 # Add url to docs metadata
                 for doc in docs:
                     doc.metadata.setdefault("url", f"https://zio.dev/{absolute_path}")
+                    doc.metadata.setdefault("title", metadata["title"])
 
                 documents.extend(docs)
 
