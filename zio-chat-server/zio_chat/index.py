@@ -1,18 +1,20 @@
-import os
 import json
-import googleapiclient.discovery
+import os
 import tempfile
+from typing import Optional
 from urllib.error import HTTPError
-from typing import Optional, Any
-from git import Repo
-import requests
 
+import googleapiclient.discovery
+import requests
+import yaml
+from git import Repo
+from langchain.document_loaders import GitLoader
+from langchain.document_loaders import UnstructuredMarkdownLoader
+from langchain.document_loaders import YoutubeLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import MarkdownTextSplitter
 from langchain.vectorstores import Chroma
-from langchain.document_loaders import GitLoader
-from langchain.document_loaders import YoutubeLoader
 
 
 def update_vectorestore(texts: list[Document]):
@@ -20,22 +22,39 @@ def update_vectorestore(texts: list[Document]):
     Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
 
 
+def extract_id(md_file_path: str) -> str:
+    with open(md_file_path, 'r') as file:
+        content = file.read()
+
+    # Parse YAML front matter
+    try:
+        _, yaml_content, _ = content.split('---', 2)
+        metadata = yaml.safe_load(yaml_content)
+        return metadata.get('id')
+    except ValueError:
+        return os.path.basename(md_file_path)
+
+
 def index_markdown_docs(directory: str):
     documents: list[Document] = []
 
-    from langchain.document_loaders import SitemapLoader
-    loader = SitemapLoader(web_path="https://zio.dev")
-    documents.extend(loader.load())
-    # for root, dirs, files in os.walk(directory):
-    #     for filename in files:
-    #         if filename.endswith('.md'):
-    #             print(os.path.join(root, filename))
-    #             from langchain.document_loaders import UnstructuredMarkdownLoader
-    #             from langchain.document_loaders import WebBaseLoader
-    #
-    #             #l loader = UnstructuredMarkdownLoader(os.path.join(root, filename))
-    #
-    #
+    for root, dirs, files in os.walk(directory):
+        for filename in files:
+            if filename.endswith('.md'):
+                md_path = os.path.join(root, filename)
+                print(md_path)
+
+                docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+
+                id = extract_id(md_path)
+                absolute_path = root.split("/zio/docs/")[1] + "/" + id
+
+                # Add url to docs metadata
+                for doc in docs:
+                    doc.metadata.setdefault("url", f"https://zio.dev/{absolute_path}")
+
+                documents.extend(docs)
+
     texts: list[Document] = MarkdownTextSplitter().split_documents(documents)
     return texts
 
