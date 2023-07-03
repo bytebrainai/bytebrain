@@ -44,7 +44,7 @@ function ChatMessage(props) {
                   <ReactMarkdown>{props.text}</ReactMarkdown>
                 </div>
 
-                {props.references !== undefined ?
+                {props.references !== undefined && props.references.length > 0 ?
                   <div className="flex flex-wrap text-xs w-full px-4 py-2 space-y-2 rounded-b-lg rounded-br-none bg-blue-500 text-white">
                     <p>You can discover more information by checking out the pages mentioned below:</p>
                     <ol className="flex flex-wrap list-inside">

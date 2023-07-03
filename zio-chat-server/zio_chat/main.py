@@ -30,9 +30,15 @@ async def websocket_endpoint(websocket: WebSocket):
             return_only_outputs=True
         )
         print("\n\n")
-        references: list[dict[str, Any]] = \
-            [{"title": metadata["title"], "url": metadata["url"]} for metadata in
-             (src_doc.metadata for src_doc in (result["source_documents"]))]
+        references: list[dict[str, Any]] = []
+
+        for src_doc in result["source_documents"]:
+            try:
+                metadata = src_doc.metadata
+                entry = {"title": metadata["title"], "url": metadata["url"]}
+                references.append(entry)
+            except (KeyError, AttributeError) as e:
+                print(f"no title and url metadata found: {str(e)}")
 
         print("OpenAI Result: {}".format(pprint.pformat(references[:3])))
         await websocket.send_json({"token": "", "completed": True, "references": references[:3]})
