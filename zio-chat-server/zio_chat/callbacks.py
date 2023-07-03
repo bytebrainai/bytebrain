@@ -15,6 +15,3 @@ class StreamingLLMCallbackHandler(AsyncCallbackHandler, ABC):
         print(token, end="")
         resp = {"token": token, "completed": False}
         await self.websocket.send_json(resp)
-
-    async def on_llm_end(self, response, **kwargs) -> None:
-        await self.websocket.send_json({"token": "", "completed": True})
