@@ -54,6 +54,7 @@ export const ChatPrompt = (props) => {
     ws.onmessage = function (event) {
       const result = JSON.parse(event.data)
       const word = result.token;
+      const references = result.references;
       const completed = result.completed;
       setMessages(messages => {
         if (
@@ -66,6 +67,7 @@ export const ChatPrompt = (props) => {
           updatedMessages[updatedMessages.length - 1] = {
             ...updatedMessages[updatedMessages.length - 1],
             message: updatedMessages[updatedMessages.length - 1].message + word,
+            references: references,
             completed: completed
           };
           return updatedMessages;
@@ -85,7 +87,7 @@ export const ChatPrompt = (props) => {
           className="flex flex-col space-y-4 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch scroll-smooth">
           {
             messages.map((m, id) =>
-              <ChatMessage key={id} id={"chat" + id} userType={m.userType} text={m.message} highlight={m.completed} />
+              <ChatMessage key={id} id={"chat" + id} userType={m.userType} text={m.message} references={m.references} highlight={m.completed} />
             )
           }
           <div id="anchor"></div>
