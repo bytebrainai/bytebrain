@@ -82,6 +82,7 @@ def refactor_prompt_template(query: str) -> str:
 
     Remove any of following packages from import section: ["zio.console.Console"] 
 
+    Before writing any code, write some introduction sentences.
     Please add backticks for inline codes and three backticks for code blocks.
     ------
     USER's QUERY: {query}
