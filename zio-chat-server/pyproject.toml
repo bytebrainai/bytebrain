@@ -18,6 +18,7 @@ google-api-python-client = "^2.88.0"
 discord = "^2.2.3"
 gitpython = "^3.1.31"
 beautifulsoup4 = "^4.12.2"
+structlog = "^23.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
