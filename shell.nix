@@ -2,16 +2,19 @@
 with pkgs;
 mkShell {
   buildInputs = [
-    python310Packages.virtualenv 
-    python310Packages.pip 
-    docker-compose
+    python310
+    python310Packages.virtualenv
+    python310Packages.pip
     stdenv.cc.cc.lib
-    pam
+    gcc-unwrapped.lib
+    zlib
+    guake
     fish
-    nodejs
-    yarn
+    vim
   ];
+
   shellHook = ''
+    LD_LIBRARY_PATH="${lib.makeLibraryPath [stdenv.cc.cc.lib zlib ] }"
     source ./env.sh
   '';
 }

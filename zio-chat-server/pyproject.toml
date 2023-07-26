@@ -5,7 +5,7 @@ description = "Chat with ZIO"
 authors = ["Milad Khajavi"]
 
 [tool.poetry.dependencies]
-python = "3.10.11"
+python = "3.10.12"
 fastapi = "^0.95.1"
 langchain = "0.0.194"
 openai = "0.27.4"
