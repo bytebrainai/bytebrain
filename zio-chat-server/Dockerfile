@@ -1,5 +1,5 @@
 # Use the Python base image
-FROM python:3.10.11-bullseye
+FROM python:3.10.12-bullseye
 
 ARG POETRY_HOME=/opt/poetry
 ARG POETRY_VERSION=1.4.2
