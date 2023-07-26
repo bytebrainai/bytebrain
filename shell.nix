@@ -7,6 +7,7 @@ mkShell {
     python310Packages.pip
     stdenv.cc.cc.lib
     gcc-unwrapped.lib
+    docker-compose
     nodejs
     yarn
     zlib
