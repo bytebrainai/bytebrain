@@ -7,6 +7,8 @@ mkShell {
     python310Packages.pip
     stdenv.cc.cc.lib
     gcc-unwrapped.lib
+    nodejs
+    yarn
     zlib
     guake
     fish
