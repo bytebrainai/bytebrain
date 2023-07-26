@@ -1,7 +1,8 @@
 import asyncio
 import json
 import os
-import pprint
+import structlog
+
 from typing import Any
 
 import uvicorn
@@ -10,7 +11,7 @@ from fastapi import FastAPI, WebSocket
 from zio_chat.chatbot import make_question_answering_chatbot
 
 app = FastAPI()
-
+log = structlog.getLogger()
 
 @app.websocket("/chat")
 async def websocket_endpoint(websocket: WebSocket):
@@ -19,8 +20,7 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         raw_data = await websocket.receive_text()
         obj = json.loads(raw_data)
-        print("Question Received: {}".format(obj))
-        print("\n\n")
+        log.info("Received a new query!", query=obj)
         result: dict[str, Any] = await qa.acall(
             {
                 "question": obj["question"],
@@ -29,18 +29,25 @@ async def websocket_endpoint(websocket: WebSocket):
             },
             return_only_outputs=True
         )
-        print("\n\n")
-        references: list[dict[str, Any]] = []
 
+        source_documents: list[dict[str, Any]] = []
         for src_doc in result["source_documents"]:
             try:
+                page_content = src_doc.page_content
                 metadata = src_doc.metadata
-                entry = {"title": metadata["title"], "url": metadata["url"]}
-                references.append(entry)
+                entry = {"title": metadata["title"], "url": metadata["url"], "page_content": page_content}
+                source_documents.append(entry)
             except (KeyError, AttributeError) as e:
                 print(f"no title and url metadata found: {str(e)}")
 
-        print("OpenAI Result: {}".format(pprint.pformat(references[:3])))
+        response = {
+            "answer": result["answer"],
+            "source_documents": source_documents
+        }
+
+        references = [{k: v for k, v in d.items() if k != "page_content"} for d in source_documents]
+
+        log.info("Response is generated!", response=response)
         await websocket.send_json({"token": "", "completed": True, "references": references[:3]})
 
 
