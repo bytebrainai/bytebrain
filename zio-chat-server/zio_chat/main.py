@@ -1,21 +1,34 @@
 import asyncio
 import json
 import os
-import structlog
-
+import time
 from typing import Any
 
+import structlog
 import uvicorn
 from fastapi import FastAPI, WebSocket
+from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
+from starlette.responses import Response
 
 from zio_chat.chatbot import make_question_answering_chatbot
 
 app = FastAPI()
 log = structlog.getLogger()
 
+registry = CollectorRegistry()
+
+# Define your metrics
+request_counter = Counter("requests_total", "Total requests", registry=registry)
+response_counter = Counter("responses_total", "Total responses", registry=registry)
+response_time_histogram = Histogram("response_latency", "Response latency (seconds)",
+                                    labelnames=["path"], registry=registry)
+
+
 @app.websocket("/chat")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    start_time = time.time()
+    request_counter.inc()
     qa = make_question_answering_chatbot(websocket, os.environ["ZIOCHAT_CHROMA_DB_DIR"])
     while True:
         raw_data = await websocket.receive_text()
@@ -49,6 +62,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
         log.info("Response is generated!", response=response)
         await websocket.send_json({"token": "", "completed": True, "references": references[:3]})
+        duration = time.time() - start_time
+        response_time_histogram.labels(path="/chat").observe(duration)
+        response_counter.inc()
 
 
 @app.websocket("/dummy_chat")
@@ -72,6 +88,11 @@ async def websocket_endpoint(websocket: WebSocket):
         for item in tokens:
             await asyncio.sleep(0.02)
             await websocket.send_json(item)
+
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(registry), media_type="text/plain")
 
 
 def start():
