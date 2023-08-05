@@ -1,18 +1,18 @@
 # Use the Python base image
 FROM python:3.10.12-bullseye
 
-ARG POETRY_HOME=/opt/poetry
 ARG POETRY_VERSION=1.5.1
-ARG POETRY_HOME
-
-RUN python3 -m venv ${POETRY_HOME} && \
-    $POETRY_HOME/bin/pip install --upgrade pip && \
-    $POETRY_HOME/bin/pip install poetry==${POETRY_VERSION}
-RUN echo "Poetry version:" && $POETRY_HOME/bin/poetry --version
 
 WORKDIR /app
+RUN python3 -m venv .venv && \
+    . .venv/bin/activate && \
+    pip install --upgrade pip && \
+    pip install poetry==${POETRY_VERSION} && \
+    echo "Poetry version:" && poetry --version
+
 COPY pyproject.toml poetry.lock /app
-RUN $POETRY_HOME/bin/poetry install --no-interaction --no-ansi
+RUN . .venv/bin/activate && poetry install --no-interaction --no-ansi
 COPY . /app
 
-ENTRYPOINT ["/opt/poetry/bin/poetry", "run", "webserver"]
+ENTRYPOINT ["/app/.venv/bin/poetry", "run", "webserver"]
+
