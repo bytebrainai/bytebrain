@@ -2,7 +2,7 @@
 FROM python:3.10.12-bullseye
 
 ARG POETRY_HOME=/opt/poetry
-ARG POETRY_VERSION=1.4.2
+ARG POETRY_VERSION=1.5.1
 ARG POETRY_HOME
 
 RUN python3 -m venv ${POETRY_HOME} && \
