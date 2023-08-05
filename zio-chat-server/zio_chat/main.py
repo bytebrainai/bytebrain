@@ -4,16 +4,16 @@ import os
 import time
 from typing import Any
 
-import structlog
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
 from starlette.responses import Response
+from structlog import getLogger
 
 from zio_chat.chatbot import make_question_answering_chatbot
 
 app = FastAPI()
-log = structlog.getLogger()
+log = getLogger()
 
 registry = CollectorRegistry()
 
