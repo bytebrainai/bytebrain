@@ -10,7 +10,7 @@ Run the following steps:
 
 ```shell
 nix-shell shell.nix
-cd zio-chat-server
+cd bytebrain-server
 python -m venv .venv
 source .venv/bin/activate
 pip install poetry
