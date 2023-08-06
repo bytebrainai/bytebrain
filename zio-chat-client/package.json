@@ -1,5 +1,5 @@
 {
-  "name": "zio-chat-client",
+  "name": "bytebrain-client",
   "version": "0.1.0",
   "engines": {
     "node": "18.x"
