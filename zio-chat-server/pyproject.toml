@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "zio-chat"
+name = "core"
 version = "0.1.0"
-description = "Chat with ZIO"
+description = "ByteBrain: Chat with Your Documents!"
 authors = ["Milad Khajavi"]
 
 [tool.poetry.dependencies]
@@ -26,20 +26,20 @@ pytest = "^5.2"
 
 [tool.poetry.scripts]
 config = "prometheus:configure"
-webserver = "zio_chat.main:start"
-dev_three_chain_step = "zio_chat.dev.three_chain_step:run"
-dev_two_chain_step = "zio_chat.dev.two_chain_step:run"
-dev_final_solution = "zio_chat.dev.final_solution:run"
-index_zio_project_docs = "zio_chat.index:index_zio_project_docs"
-index_zionomicon_book = "zio_chat.index:index_zionomicon_book"
-index_zio_project_source_code = "zio_chat.index:index_zio_project_source_code"
-index_all = "zio_chat_index:index_all"
-index_youtube_video = "zio_chat.index:index_youtube_video"
-discord_bot = "zio_chat.discord:main"
-download_discord_channel = "zio_chat.discord_history:main"
-index_zio_ecosystem_source_code = "zio_chat.index:index_zio_ecosystem_source_code"
-get_zio_ecosystem_repo_info = "zio_chat.index:get_zio_ecosystem_repo_info"
-crawl = "zio_chat.dev.crawl:main"
+webserver = "core.main:start"
+dev_three_chain_step = "core.dev.three_chain_step:run"
+dev_two_chain_step = "core.dev.two_chain_step:run"
+dev_final_solution = "core.dev.final_solution:run"
+index_zio_project_docs = "core.index:index_zio_project_docs"
+index_zionomicon_book = "core.index:index_zionomicon_book"
+index_zio_project_source_code = "core.index:index_zio_project_source_code"
+index_all = "core.index:index_all"
+index_youtube_video = "core.index:index_youtube_video"
+discord_bot = "core.discord:main"
+download_discord_channel = "core.discord_history:main"
+index_zio_ecosystem_source_code = "core.index:index_zio_ecosystem_source_code"
+get_zio_ecosystem_repo_info = "core.index:get_zio_ecosystem_repo_info"
+crawl = "core.dev.crawl:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

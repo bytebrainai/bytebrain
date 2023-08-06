@@ -10,7 +10,7 @@ from prometheus_client import Counter, Histogram, CollectorRegistry, generate_la
 from starlette.responses import Response
 from structlog import getLogger
 
-from zio_chat.chatbot import make_question_answering_chatbot
+from core.chatbot import make_question_answering_chatbot
 
 app = FastAPI()
 log = getLogger()
@@ -73,7 +73,7 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         await websocket.receive_text()
 
-        with open('zio_chat/dummy/chat.md', 'r') as file:
+        with open('core/dummy/chat.md', 'r') as file:
             response = file.read()
 
         tokens = [{"token": token + " ", "completed": False} for token in response.split(" ")]
@@ -96,4 +96,4 @@ async def metrics():
 
 
 def start():
-    uvicorn.run("zio_chat.main:app", host="0.0.0.0", port=8081, reload=True)
+    uvicorn.run("core.main:app", host="0.0.0.0", port=8081, reload=True)
