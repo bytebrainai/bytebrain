@@ -25,7 +25,8 @@ prometheus-client = "^0.17.1"
 pytest = "^5.2"
 
 [tool.poetry.scripts]
-config = "prometheus:configure"
+config = "config:configure"
+configure_prometheus = "prometheus:configure"
 webserver = "core.main:start"
 dev_three_chain_step = "core.dev.three_chain_step:run"
 dev_two_chain_step = "core.dev.two_chain_step:run"
