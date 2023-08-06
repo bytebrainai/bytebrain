@@ -1,15 +1,29 @@
 import React from 'react';
 import ChatMessage from './ChatMessage';
 import './ChatPrompt.css'
+import { useEffect } from 'react';
 
 export const ChatPrompt = (props) => {
+
   const { 
-    title = 'ChatBot', 
+    title = 'ByteBrain ChatBot', 
     defaultQuestion = 'Send your message', 
     websocketHost,
     websocketPort,
     websocketEndpoint 
   } = props
+
+  useEffect(() => {
+    // Change the title when the component mounts
+    const original_title = document.title;
+    document.title = title;
+    
+    // Optionally, you can revert the title when the component unmounts
+    return () => {
+      document.title = original_title;
+    };
+  }, []);
+
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState([]);
 
