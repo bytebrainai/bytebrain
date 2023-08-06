@@ -28,7 +28,7 @@ services:
 
   client:
     build:
-      context: ./zio-chat-client
+      context: ./bytebrain-client
       dockerfile: Dockerfile
     env_file: .env
     expose:
