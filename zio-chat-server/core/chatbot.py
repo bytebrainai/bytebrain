@@ -9,7 +9,7 @@ from langchain.llms import OpenAI
 from langchain.vectorstores import Chroma
 
 from core.callbacks import StreamingLLMCallbackHandler
-from core.dev.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
+from core.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
 
 
 def make_doc_search(persistent_dir: str):
