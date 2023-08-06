@@ -17,7 +17,7 @@ services:
 
   server:
     build:
-      context: ./zio-chat-server
+      context: ./bytebrain-server
       dockerfile: Dockerfile
     env_file: .env
     expose:
@@ -42,7 +42,7 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ./zio-chat-server/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./bytebrain-server/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
