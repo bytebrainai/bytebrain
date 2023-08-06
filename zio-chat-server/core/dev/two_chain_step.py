@@ -1,12 +1,9 @@
-from typing import Dict, Any
-
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
-from langchain.chains import LLMChain
-from langchain.chains import SequentialChain
-
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.chains import LLMChain
+from langchain.chains import SequentialChain
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
 
 llm = OpenAI(streaming=True,
              callback_manager=BaseCallbackManager([StreamingStdOutCallbackHandler()]),

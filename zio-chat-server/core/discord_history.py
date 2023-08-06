@@ -1,6 +1,6 @@
-import discord
 import os
-import asyncio
+
+import discord
 
 # Enter the channel ID of the channel you want to download the history from
 CHANNEL_ID = 0

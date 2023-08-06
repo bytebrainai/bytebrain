@@ -1,5 +1,6 @@
 import requests
-from bs4 import BeautifulSoup, SoupStrainer
+from bs4 import BeautifulSoup
+
 
 def crawl_website(url):
     visited_urls = set()

@@ -1,5 +1,5 @@
 import os
-from zio_chat.dev.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
+from core.dev.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
 from langchain.prompts import PromptTemplate
 from langchain.llms import OpenAI
 from langchain.chains import LLMChain

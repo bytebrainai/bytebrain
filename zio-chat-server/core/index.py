@@ -1,6 +1,5 @@
 import json
 import os
-import pprint
 import tempfile
 from typing import Optional, Dict
 from urllib.error import HTTPError
