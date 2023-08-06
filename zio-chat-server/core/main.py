@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 import time
 from typing import Any
 
@@ -10,10 +9,12 @@ from prometheus_client import Counter, Histogram, CollectorRegistry, generate_la
 from starlette.responses import Response
 from structlog import getLogger
 
+from config import load_config
 from core.chatbot import make_question_answering_chatbot
 
 app = FastAPI()
 log = getLogger()
+config = load_config()
 
 registry = CollectorRegistry()
 
@@ -29,7 +30,11 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     start_time = time.time()
     request_counter.inc()
-    qa = make_question_answering_chatbot(websocket, os.environ["ZIOCHAT_CHROMA_DB_DIR"])
+    qa = make_question_answering_chatbot(
+        websocket,
+        config.db_dir,
+        config.prompt_template
+    )
     while True:
         raw_data = await websocket.receive_text()
         obj = json.loads(raw_data)
@@ -37,7 +42,7 @@ async def websocket_endpoint(websocket: WebSocket):
         result: dict[str, Any] = await qa.acall(
             {
                 "question": obj["question"],
-                "project_name": "ZIO",
+                "project_name": config.project_name,
                 "chat_history": obj["history"]
             },
             return_only_outputs=True
@@ -96,4 +101,4 @@ async def metrics():
 
 
 def start():
-    uvicorn.run("core.main:app", host="0.0.0.0", port=8081, reload=True)
+    uvicorn.run("core.main:app", host=config.host, port=config.port, reload=True)
