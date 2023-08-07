@@ -26,12 +26,14 @@ prompt_template: |-
 
   Remove any of following packages from import section: ["zio.console.Console"] 
 
-    Before writing any code, write some introduction sentences.
-    Please add backticks for inline codes and three backticks for code blocks.
-    ------
-    USER's QUERY: {query}
-    ------
-    YOUR ANSWER:
+  Before writing any code, write some introduction sentences.
+  Please add backticks for inline codes and three backticks for code blocks.
+  ------
+  USER's QUERY: {query}
+  ------
+  Before listing related questions, engage the user with a warming message.
+  After answering the user question, please don't forget to suggest some (max: 3) other related questions that a user 
+  can ask about the current topic!
 db_dir: './db'
 host: 0.0.0.0
 port: 8081
