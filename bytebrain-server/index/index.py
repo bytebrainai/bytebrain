@@ -90,7 +90,7 @@ def clone_repo(repo_url, depth=1) -> str:
 
 
 def zio_ecosystem_clone_urls():
-    file_path = "zio-ecosystem.json"
+    file_path = "index/zio-ecosystem.json"
     try:
         with open(file_path, 'r') as file:
             return json.load(file)
