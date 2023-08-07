@@ -35,6 +35,7 @@ dev_final_solution = "dev.final_solution:run"
 discord_bot = "dev.discord:main"
 download_discord_channel = "dev.discord_history:main"
 crawl = "dev.crawl:main"
+chromadbtest = "dev.chromadb:run"
 
 index_zio_project_docs = "index.index:index_zio_project_docs"
 index_zionomicon_book = "index.index:index_zionomicon_book"
