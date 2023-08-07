@@ -5,62 +5,36 @@ import { useEffect } from 'react';
 
 export const ChatPrompt = (props) => {
 
-  const greetings = [
-    {
-      userType: "bot",
-      message: "🌟 Greetings from ZIO Chat! 🌟 Have questions about ZIO? Look no further! I'm here to be your ZIO guru. Whether you're a seasoned pro or just starting out, I've got answers tailored just for you. Fire away with your ZIO queries, and I'll hit you back with the best insights I've got. Let's dive into the world of ZIO together!",
-      completed: true
-    },
-    {
-      userType: "bot",
-      message: "🔥 Ignite your ZIO journey with ZIO Chat! 🔥 Ready to unravel the intricacies of ZIO? As your trusty sidekick, I'm here to light the way. No matter if you're wandering through functional forests or traversing effectful landscapes, I've got answers to keep you on track. Your ZIO adventure starts here – ask me anything and let's explore together!",
-      completed: true
-    },
-    {
-      userType: "bot",
-      message: "Hello! 😊 I'm your ZIO Chat Bot, designed to be your go-to resource for all things ZIO! Whether you're new to this powerful functional effect system or a seasoned pro, I'm here to assist you. ZIO empowers you to build concurrent and resilient applications in Scala, offering referential transparency, composable data types, type-safety, and more. So, go ahead and ask me anything about ZIO – I'm here to provide the answers you need! 🤖",
-      completed: true
-    },
-    {
-      userType: "bot",
-      message: "Hi there! 👋 I'm ZIO Chat, your friendly neighborhood ZIO expert. I'm here to help you navigate the world of ZIO. Whether you're a seasoned pro or just starting out, fire away with your ZIO questions. I will hit you back with the best insights I've got. Let's dive into the world of ZIO together!",
-      completed: true
-    },
-    {
-      userType: "bot",
-      message: "🎉 Hey there, ZIO aficionado! 🎉 Step into the ZIO wonderland with me as your guide. Whether you're a functional fanatic or just dipping your toes into the ZIO ecosystem, I'm here to make your journey smooth. Got ZIO questions? I've got answers! Let's navigate the ZIO universe together and unlock its infinite possibilities!",
-      completed: true
-    },
-    {
-      userType: "bot",
-      message: "Hi, fellow coder! 🌟 Welcome to your ZIO adventure with the ZIO Chat Bot. 🚀 Let's master functional Scala together. From referential transparency to concurrent prowess, I've got your back. Ready to dive in? Your questions, my insights – let's conquer ZIO! 💡🤖",
-      completed: true
-    }
-  ]
-
   function getRandom(arr) {
     const randomIndex = Math.floor(Math.random() * arr.length);
     return arr.splice(randomIndex, 1)[0];
   }
 
-  const { 
-    title = 'ByteBrain ChatBot', 
-    defaultQuestion = 'Send your message', 
+  const {
+    title = 'ByteBrain ChatBot',
+    defaultQuestion = 'Send your message',
     websocketHost,
     websocketPort,
-    websocketEndpoint 
+    websocketEndpoint,
+    welcomeMessages,
   } = props
 
   useEffect(() => {
     // Change the title when the component mounts
     const original_title = document.title;
     document.title = title;
-    
+
     // Optionally, you can revert the title when the component unmounts
     return () => {
       document.title = original_title;
     };
   }, []);
+
+  const greetings = welcomeMessages.map(m => ({
+    userType: "bot",
+    message: m,
+    completed: true
+  }));
 
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState([getRandom(greetings)]);
@@ -78,7 +52,7 @@ export const ChatPrompt = (props) => {
   function isButtonDisabled() {
     if (messages.length === 0) { return false }
     else if (messages[messages.length - 1].userType == "user") { return true }
-    else if (messages[messages.length - 1].userType == "bot"){
+    else if (messages[messages.length - 1].userType == "bot") {
       return !messages[messages.length - 1].completed ? true : false
     }
   }
@@ -87,7 +61,7 @@ export const ChatPrompt = (props) => {
     const host = websocketHost || window.location.hostname;
     const port = websocketPort === "80" ? "" : ":" + websocketPort;
     const protocol = websocketPort === "80" ? "wss://" : "ws://";
-    const ws = new WebSocket(protocol + host+ port + websocketEndpoint);
+    const ws = new WebSocket(protocol + host + port + websocketEndpoint);
     ws.onopen = (event) => {
       setMessages(messages => messages.concat([
         {
