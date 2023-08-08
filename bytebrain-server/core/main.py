@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from typing import Any
+from typing import Any, List
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
@@ -64,9 +64,9 @@ async def websocket_endpoint(websocket: WebSocket):
         }
 
         references = [{k: v for k, v in d.items() if k != "page_content"} for d in source_documents]
+        unique_refs = [dict(t) for t in {tuple(d.items()) for d in references}]
 
-        log.info("Response is generated!", response=response)
-        await websocket.send_json({"token": "", "completed": True, "references": references[:3]})
+        await websocket.send_json({"token": "", "completed": True, "references": unique_refs[:3]})
         duration = time.time() - start_time
         response_time_histogram.labels(path="/chat").observe(duration)
         response_counter.inc()
