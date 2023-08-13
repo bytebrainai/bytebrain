@@ -24,6 +24,7 @@ root.render(
       websocketPort="80"
       websocketEndpoint="/chat"
       welcomeMessages={welcome_messages}
+      fullscreen={true}
     />
   </React.StrictMode>
 );

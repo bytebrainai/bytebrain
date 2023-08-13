@@ -27,7 +27,8 @@ export const ZIOChat =  {
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: '/chat',
-    welcomeMessages: welcome_messages
+    welcomeMessages: welcome_messages,
+    fullScreen: true,
   }
 }
 
@@ -38,6 +39,7 @@ export const DummyZIOChat =  {
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: '/dummy_chat',
-    welcomeMessages: welcome_messages
+    welcomeMessages: welcome_messages,
+    fullScreen: true,
   }
 }
