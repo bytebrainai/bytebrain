@@ -17,6 +17,7 @@ export const ChatPrompt = (props) => {
     websocketPort,
     websocketEndpoint,
     welcomeMessages,
+    fullScreen,
   } = props
 
   useEffect(() => {
@@ -103,8 +104,8 @@ export const ChatPrompt = (props) => {
   }
 
   return (
-    <div>
-      <div className="justify-between flex flex-col h-screen w-full p-5 rounded-md bg-gray-100 overflow-auto">
+    <div id='ChatPrompt'>
+      <div className={`justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen overflow-y-auto ${fullScreen ? "h-screen" : ""}`}>
         <h1 className="text-orange-600 text-3xl font-bold mb-6">
           {title}
         </h1>
