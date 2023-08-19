@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 #scroller * {
   overflow-anchor: none;
 }
@@ -11,11 +15,19 @@ p code {
   border-radius: 3px;
 }
 
-.bot-message p code {
+.chat-message p {
+  margin: 0;
+}
+
+.user-message p code {
   background-color: aliceblue;
 }
 
 .bot-message p code {
+  background-color: cornflowerblue;
+}
+
+.bot-message li > code {
   background-color: cornflowerblue;
 }
 
@@ -29,5 +41,11 @@ li {
 }
 
 #ChatPrompt ::-webkit-scrollbar {
-  width: 0;
+  display: none;
+}
+
+pre {
+  color: black;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
