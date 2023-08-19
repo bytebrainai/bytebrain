@@ -105,7 +105,7 @@ export const ChatPrompt = (props) => {
 
   return (
     <div id='ChatPrompt'>
-      <div className={`justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen overflow-y-auto ${fullScreen ? "h-screen" : ""}`}>
+      <div className={`justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen overflow-y-auto ${fullScreen ? "h-screen" : ""} `}>
         <h1 className="text-orange-600 text-3xl font-bold mb-6">
           {title}
         </h1>
@@ -124,13 +124,13 @@ export const ChatPrompt = (props) => {
             type="text"
             id="promptInput"
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-md bg-gray-200 placeholder-gray-500 focus:outline-none"
+            className="w-full px-4 py-2 rounded-md text-base text-black bg-gray-200 placeholder-gray-500 focus:outline-none font-sans font-normal"
             placeholder={defaultQuestion}
           />
           <button disabled={isButtonDisabled()}
             id="generateBtn"
             type='submit'
-            className="px-6 rounded-md bg-black text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
+            className="px-6 rounded-md bg-black text-base text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
           >
             Send
           </button>

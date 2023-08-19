@@ -27,3 +27,7 @@ ol {
 li {
    padding: 0.2em;
 }
+
+#ChatPrompt ::-webkit-scrollbar {
+  width: 0;
+}

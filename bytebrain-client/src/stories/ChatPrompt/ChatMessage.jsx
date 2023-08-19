@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import hljs from "highlight.js";
 import { useEffect } from 'react';
 import "highlight.js/styles/github.css";
+import './ChatPrompt.css';
 
 function ChatMessage(props) {
   useEffect(() => {
@@ -46,12 +47,12 @@ function ChatMessage(props) {
 
                 {props.references !== undefined && props.references.length > 0 ?
                   <div className="flex flex-wrap text-xs w-full px-4 py-2 space-y-2 rounded-b-lg rounded-br-none bg-blue-500 text-white">
-                    <p>You can discover more information by checking out the pages mentioned below:</p>
+                    <p className='text-sm'>You can discover more information by checking out the pages mentioned below:</p>
                     <ol className="flex flex-wrap list-inside">
                       {
                         props.references.map((item, index) => (
                           <li key={index} className="mr-2">
-                            <a className="underline" href={item.url}>{item.title}</a>
+                            <a className="underline text-white text-sm" href={item.url}>{item.title}</a>
                           </li>
                         ))
 
