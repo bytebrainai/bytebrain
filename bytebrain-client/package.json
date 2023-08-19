@@ -24,9 +24,7 @@
     "storybook": "concurrently \"yarn:watch:*\"",
     "build-storybook": "concurrently \"yarn:build:*\"",
     "watch:storybook": "storybook dev -p 6006",
-    "build:storybook": "storybook build",
-    "watch:css": "npx tailwindcss -i ./src/tailwind.css -o ./src/styles/tailwind.css --watch",
-    "build:css": "npx tailwindcss -i ./src/tailwind.css -o ./src/styles/tailwind.css"
+    "build:storybook": "storybook build"
   },
   "eslintConfig": {
     "extends": [
