@@ -33,7 +33,7 @@ async def on_message(message):
         qa = make_question_answering_chatbot(
             None,
             config.db_dir,
-            config.prompt_template
+            config.discord_prompt
         )
         result: dict[str, Any] = await qa.acall(
             {

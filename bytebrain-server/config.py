@@ -7,7 +7,8 @@ import yaml
 class ByteBrainConfig:
     name: str
     project_name: str
-    prompt_template: str
+    webservice_prompt: str
+    discord_prompt: str
     db_dir: str
     host: str
     port: int

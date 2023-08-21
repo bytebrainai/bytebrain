@@ -1,11 +1,11 @@
 import multiprocessing
 import core
-from core.webserver import main
+from core.webservice import main
 from core.discord import main
 
 
 def start():
-    p1 = multiprocessing.Process(target=core.webserver.main)
+    p1 = multiprocessing.Process(target=core.webservice.main)
     p2 = multiprocessing.Process(target=core.discord.main)
 
     p1.start()

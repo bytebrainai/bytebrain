@@ -1,6 +1,6 @@
 name: ZIO CHAT
 project_name: ZIO
-prompt_template: |-
+webservice_prompt: |-
   Please refactor your answer to the User's Query based on given REFACTOR RULES. 
   If user asked you to write a code, please explain that code also. 
   Don't include REFACTOR RULES in your explanation, but only use them to refactor your answers.
@@ -34,6 +34,37 @@ prompt_template: |-
   Before listing related questions, engage the user with a warming message.
   After answering the user question, please don't forget to suggest some (max: 3) other related questions that a user 
   can ask about the current topic!
+discord_prompt: |-
+  Please refactor your answer to the User's Query based on given REFACTOR RULES.
+  If user asked you to write a code, please explain that code also. 
+  Don't include REFACTOR RULES in your explanation, but only use them to refactor your answers.
+
+  ----- 
+  REFACTOR RULES: 
+  If USER asked you to write code, you shouldn't use ZIO 1.x APIs in your generated response, instead you should only 
+  use ZIO 2.x APIs.
+  To make sure that your code is compatible with ZIO 2.x API, use the following migration table from ZIO 1.x to ZIO 2.x
+
+  | ZIO 1.x API | ZIO 2.x API |
+  +-------------+-------------+
+  | putStrLn | Console.printLine |
+  | getStrLn | Console.readLine |
+  | zio.App | zio.ZIOAppDefault |
+  | extends zio.ZIOApp | extends ZIOAppDefault |
+  | extends App | extends ZIOAppDefault |
+  | def run(args: List[String]) | def run =  |
+  | ZIO.effect | ZIO.attempt |
+  | ZIO.effectTotal | ZIO.succeed |
+  | console.putStrLn | Console.printLine |
+  | override def run(args: List[String]) | def run =  |
+
+  Remove any of following packages from import section: ["zio.console.Console"] 
+
+  Before writing any code, write some introduction sentences.
+  Please add backticks for inline codes and three backticks for code blocks.
+  ------
+  USER's QUERY: {query}
+  Your answer must less than 1000 characters:
 db_dir: './db'
 host: 0.0.0.0
 port: 8081
