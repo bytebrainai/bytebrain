@@ -14,5 +14,5 @@ COPY pyproject.toml poetry.lock /app
 RUN . .venv/bin/activate && poetry install --no-interaction --no-ansi
 COPY . /app
 
-ENTRYPOINT ["/app/.venv/bin/poetry", "run", "webserver"]
+ENTRYPOINT ["/app/.venv/bin/poetry", "run", "main"]
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import WebSocket
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT)
@@ -32,12 +34,12 @@ question_generator = LLMChain(
 )
 
 
-def make_combine_docs_chain(websocket: WebSocket):
+def make_combine_docs_chain(websocket: Optional[WebSocket]):
     return load_qa_chain(
         ChatOpenAI(
             client=OpenAI,
             streaming=True,
-            callbacks=[(StreamingLLMCallbackHandler(websocket))],
+            callbacks=[(StreamingLLMCallbackHandler(websocket))] if websocket is not None else [],
             temperature=0,
             verbose=False
         ),
@@ -46,7 +48,7 @@ def make_combine_docs_chain(websocket: WebSocket):
     )
 
 
-def make_question_answering_chatbot(websocket: WebSocket, persistent_dir: str, prompt_template: str):
+def make_question_answering_chatbot(websocket: Optional[WebSocket], persistent_dir: str, prompt_template: str):
     return ConversationalRetrievalChainWithCustomPrompt(
         combine_docs_chain=make_combine_docs_chain(websocket),
         retriever=make_doc_search(persistent_dir).as_retriever(),
