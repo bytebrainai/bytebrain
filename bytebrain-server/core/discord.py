@@ -4,8 +4,8 @@ from typing import Any
 import discord
 from structlog import getLogger
 
-from chatbot import make_question_answering_chatbot
 from config import load_config
+from core.chatbot import make_question_answering_chatbot
 
 logger = getLogger()
 config = load_config()
