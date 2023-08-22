@@ -1,7 +1,8 @@
 import os
-from typing import Any
+from typing import Any, List
 
 import discord
+from discord.message import MessageReference
 from structlog import getLogger
 
 from config import load_config
@@ -29,7 +30,32 @@ async def on_message(message):
     def is_mentioned():
         return any([user.id == client.user.id for user in message.mentions])
 
+    async def message_history(reference: MessageReference) -> List[str]:
+        if reference is None:
+            return []
+        referenced_message = await client.get_channel(reference.channel_id).fetch_message(reference.message_id)
+        parent_reference = referenced_message.reference
+        parent_messages = await message_history(parent_reference) if parent_reference else []
+        message_content: list[str] = [referenced_message.content]
+        return parent_messages + message_content
+
     if is_mentioned():
+        def add_metadata_to_history(history: List[str]):
+            def turn_generator():
+                while True:
+                    yield "User"
+                    yield "Bot"
+
+            turn_gen = turn_generator()
+            history_with_metadata = []
+
+            for index, m in enumerate(history, start=1):
+                turn = next(turn_gen)
+                history_with_metadata.append(f"{index}. {turn}: {m}")
+
+            return history_with_metadata
+
+        chat_history = ["CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
         qa = make_question_answering_chatbot(
             None,
             config.db_dir,
@@ -39,7 +65,7 @@ async def on_message(message):
             {
                 "question": message.content,
                 "project_name": config.project_name,
-                "chat_history": []
+                "chat_history": chat_history
             },
             return_only_outputs=True
         )
@@ -47,7 +73,7 @@ async def on_message(message):
             "question": message.content,
             "result": result['answer']
         })
-        await message.channel.send(result['answer'])
+        await message.reply(result['answer'])
 
 
 def main():
