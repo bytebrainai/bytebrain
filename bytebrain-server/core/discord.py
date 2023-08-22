@@ -56,24 +56,26 @@ async def on_message(message):
             return history_with_metadata
 
         chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
-        qa = make_question_answering_chatbot(
-            None,
-            config.db_dir,
-            config.discord_prompt
-        )
-        result: dict[str, Any] = await qa.acall(
-            {
+
+        async with message.channel.typing():
+            qa = make_question_answering_chatbot(
+                None,
+                config.db_dir,
+                config.discord_prompt
+            )
+            result: dict[str, Any] = await qa.acall(
+                {
+                    "question": message.content,
+                    "project_name": config.project_name,
+                    "chat_history": chat_history
+                },
+                return_only_outputs=True
+            )
+            logger.info("response for discord is ready", response={
                 "question": message.content,
-                "project_name": config.project_name,
-                "chat_history": chat_history
-            },
-            return_only_outputs=True
-        )
-        logger.info("response for discord is ready", response={
-            "question": message.content,
-            "result": result['answer']
-        })
-        await message.reply(result['answer'])
+                "result": result['answer']
+            })
+            await message.reply(result['answer'])
 
 
 def main():
