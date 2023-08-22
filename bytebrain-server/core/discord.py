@@ -55,7 +55,7 @@ async def on_message(message):
 
             return history_with_metadata
 
-        chat_history = ["CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
+        chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
         qa = make_question_answering_chatbot(
             None,
             config.db_dir,
