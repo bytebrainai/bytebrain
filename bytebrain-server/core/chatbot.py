@@ -64,4 +64,4 @@ def generate_prompt(prompt_template: str, query: str) -> str:
 
 
 def get_chat_history(chat_history) -> str:
-    return "\n".join(chat_history)
+    return "\n\n".join(chat_history)
