@@ -55,7 +55,8 @@ def make_question_answering_chatbot(websocket: Optional[WebSocket], persistent_d
         question_generator=question_generator,
         get_chat_history=get_chat_history,
         return_source_documents=True,
-        prompt_refactor_template=lambda query: generate_prompt(prompt_template, query)
+        prompt_refactor_template=lambda query: generate_prompt(prompt_template, query),
+        max_tokens_limit=3700
     )
 
 

@@ -20,6 +20,7 @@ gitpython = "^3.1.31"
 beautifulsoup4 = "^4.12.2"
 structlog = "^23.1.0"
 prometheus-client = "^0.17.1"
+chat-exporter = "^2.6.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -30,6 +31,7 @@ configure_prometheus = "prometheus:configure"
 webserver = "core.webservice:main"
 discord = "core.discord:main"
 main = "core.main:start"
+export = "core.export_discord:main"
 
 dev_three_chain_step = "dev.three_chain_step:run"
 dev_two_chain_step = "dev.two_chain_step:run"

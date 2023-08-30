@@ -50,8 +50,8 @@ def index_markdown_docs(directory: str):
                 metadata: dict[str, str] = extract_metadata(md_path)
                 absolute_path = root.split("/zio/docs/")[1] + "/" + metadata["id"]
 
-                # Add url to docs metadata
                 for doc in docs:
+                    doc.metadata.setdefault("source_doc", "zio.dev")
                     doc.metadata.setdefault("url", f"https://zio.dev/{absolute_path}")
                     doc.metadata.setdefault("title", metadata["title"])
 

@@ -1,34 +1,28 @@
 import datetime
 import json
 import os
-import re
 from datetime import datetime
 from datetime import timedelta
-from typing import Any
 from typing import List, Optional
 
 import chat_exporter
 import discord
 from discord.ext import commands
 from discord.guild import Guild
-from discord.message import MessageReference
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from structlog import getLogger
 
-from config import load_config
-from core.chatbot import make_question_answering_chatbot
-
-config = load_config()
-
 intents = discord.Intents.default()
-intents.message_content = True
 intents.members = True
 
-# client = discord.Client(intents=intents)
+# Enable message content intents
+intents.message_content = True
+
+client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix="!", intents=intents)
-log = getLogger()
+logger = getLogger()
 
 
 class Message:
@@ -94,11 +88,6 @@ class ChannelHistory:
         return cls(data["guild_id"], data["guild_name"], data["channel_id"], data["channel_name"], history)
 
 
-@bot.event
-async def on_ready():
-    log.info("Hello! I'm Chat Bot and ready to receive commands!")
-
-
 @bot.command()
 async def export(ctx: commands.Context):
     transcript = await chat_exporter.export(
@@ -116,7 +105,7 @@ async def export(ctx: commands.Context):
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(transcript)
 
-    log.info(f"Transcript has been written to '{file_path}'.")
+    logger.info(f"Transcript has been written to '{file_path}'.")
 
 
 def get_guild_by_channel(channel_id: int) -> Optional[Guild]:
@@ -135,7 +124,7 @@ async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[s
 
     response_msg = f"Started to dump channel {channel_name}" if after is None \
         else f"Started to dump channel {channel_name} after {after}"
-    log.info(response_msg)
+    logger.info(response_msg)
     await ctx.send(response_msg)
 
     channel_history = await download_channel_history(int(channel_id), after_datetime)
@@ -143,7 +132,7 @@ async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[s
     dump_channel_history(channel_history, file_name)
 
     response_msg = f"Channel {channel_id} dumped in {file_name}!"
-    log.info(response_msg)
+    logger.info(response_msg)
     await ctx.send(response_msg)
 
 
@@ -173,7 +162,7 @@ async def server_info(ctx):
 
     # Ignore messages from users that are not admin
     if not any(role.name == "admin" for role in ctx.author.roles):
-        log.error("you are not admin")
+        logger.error("you are not admin")
         return
 
     channels = bot.get_all_channels()
@@ -189,7 +178,7 @@ async def server_info(ctx):
         channels_info = channels_info + f"\nguild: {channel.guild}, name: {channel.name} id: {channel.id}"
 
     info = guild_info + "\n" + channels_info
-    log.info(info)
+    logger.info(info)
 
     for chunk in split_string(info, 2000):
         await ctx.send(chunk)
@@ -229,7 +218,7 @@ async def fetch_channel_history(channel_name: str,
     return channel_history
 
 
-@bot.command("index_channel")
+@bot.command()
 async def index_channel(ctx, channel_id: str,
                         after: Optional[str] = None,
                         window_size: Optional[int] = 10,
@@ -239,7 +228,7 @@ async def index_channel(ctx, channel_id: str,
 
     started_msg = f"started indexing channel {channel_name}" if after is None \
         else f"started indexing channel {channel_name} after {after}"
-    log.info(started_msg)
+    logger.info(started_msg)
     await ctx.send(started_msg)
 
     channel_history: ChannelHistory = await fetch_channel_history(channel_name, channel_id, after_datetime)
@@ -253,9 +242,18 @@ async def index_channel(ctx, channel_id: str,
         "guild_id": f"{channel_history.guild_id}",
         "guild_name": channel_history.guild_name
     }) for page in pages]
-    log.info(f"Number of pages: {len(pages)}")
+    logger.info(f"Number of pages: {len(pages)}")
     update_vectorestore(documents)
-    log.info("Index process done!")
+    logger.info("Index process done!")
+
+
+@bot.event
+async def on_ready():
+    logger.info("Hello! I'm ready to receive commands!")
+
+
+def main():
+    bot.run(token=os.environ['DISCORD_BOT_TOKEN'])
 
 
 def split_string(long_string, chunk_size):
@@ -322,102 +320,3 @@ def convert_messages_to_transcript(messages: List[Message]) -> (id, str):
 def update_vectorestore(texts: List[Document]):
     embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
     Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
-
-
-def add_metadata_to_history(history: List[str]):
-    def turn_generator():
-        while True:
-            yield "User"
-            yield "Bot"
-
-    turn_gen = turn_generator()
-    history_with_metadata = []
-
-    for index, m in enumerate(history, start=1):
-        turn = next(turn_gen)
-        history_with_metadata.append(f"{index}. {turn}: {m}")
-
-    return history_with_metadata
-
-
-def remove_discord_mention(msg: str) -> str:
-    """removes any mention inside the meessage like <@234123495>"""
-    return re.sub(r"<@.*?>", "", msg)
-
-
-async def message_history(reference: MessageReference) -> List[str]:
-    if reference is None:
-        return []
-    referenced_message = await bot.get_channel(reference.channel_id).fetch_message(reference.message_id)
-    parent_reference = referenced_message.reference
-    parent_messages = await message_history(parent_reference) if parent_reference else []
-    message_content: list[str] = [referenced_message.content]
-    return parent_messages + message_content
-
-
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-    if bot.user.mentioned_in(message):
-        chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
-
-        async with message.channel.typing():
-            log.info(f"received message from {message.channel} channel")
-            qa = make_question_answering_chatbot(
-                None,
-                config.db_dir,
-                config.discord_prompt
-            )
-
-            result: dict[str, Any] = await qa.acall(
-                {
-                    "question": remove_discord_mention(message.content),
-                    "project_name": config.project_name,
-                    "chat_history": chat_history
-                },
-                return_only_outputs=True
-            )
-            log.info("response for discord is ready", response={
-                "question": message.content,
-                "result": result['answer']
-            })
-
-            source_documents: list[dict[str, Any]] = []
-            for src_doc in result["source_documents"]:
-                metadata = src_doc.metadata
-                if "source_doc" in metadata:
-                    source_doc = metadata["source_doc"]
-                    if source_doc == "zio.dev":
-                        entry = {
-                            "title": metadata["title"],
-                            "url": metadata["url"],
-                            "page_content": src_doc.page_content
-                        }
-                        # log.info(entry)
-                        source_documents.append(entry)
-                    elif source_doc == "discord":
-                        metadata = src_doc.metadata
-                        entry = {
-                            "message_id": metadata["message_id"],
-                            "channel_id": metadata["channel_id"],
-                            "channel_name": metadata["channel_name"],
-                            "guild_id": metadata["guild_id"],
-                            "guild_name": metadata["guild_name"],
-                            "page_content": src_doc.page_content
-                        }
-                        # log.info(entry)
-                        source_documents.append(entry)
-                    else:
-                        log.warning(f"source_doc {source_doc} was not supported")
-                else:
-                    log.warning("source_doc is not exist in metadata")
-
-            await message.reply(result['answer'])
-    else:
-        await bot.process_commands(message)
-
-
-def main():
-    bot.run(token=os.environ['DISCORD_BOT_TOKEN'])
