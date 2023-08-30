@@ -64,7 +64,7 @@ discord_prompt: |-
   Before writing any code, write some introduction sentences.
   Please add backticks for inline codes and three backticks for code blocks.
   ------
-  USER'S QUESTION: {query}
+  USER'S QUESTION (max 1500 character): {query}
 db_dir: './db'
 host: 0.0.0.0
 port: 8081

@@ -49,18 +49,33 @@ async def websocket_endpoint(websocket: WebSocket):
 
         source_documents: list[dict[str, Any]] = []
         for src_doc in result["source_documents"]:
-            try:
-                page_content = src_doc.page_content
-                metadata = src_doc.metadata
-                entry = {"title": metadata["title"], "url": metadata["url"], "page_content": page_content}
-                source_documents.append(entry)
-            except (KeyError, AttributeError) as e:
-                print(f"no title and url metadata found: {str(e)}")
-
-        response = {
-            "answer": result["answer"],
-            "source_documents": source_documents
-        }
+            metadata = src_doc.metadata
+            if "source_doc" in metadata:
+                source_doc = metadata["source_doc"]
+                if source_doc == "zio.dev":
+                    entry = {
+                        "title": metadata["title"],
+                        "url": metadata["url"],
+                        "page_content": src_doc.page_content
+                    }
+                    # log.info(entry)
+                    source_documents.append(entry)
+                elif source_doc == "discord":
+                    metadata = src_doc.metadata
+                    entry = {
+                        "message_id": metadata["message_id"],
+                        "channel_id": metadata["channel_id"],
+                        "channel_name": metadata["channel_name"],
+                        "guild_id": metadata["guild_id"],
+                        "guild_name": metadata["guild_name"],
+                        "page_content": src_doc.page_content
+                    }
+                    # log.info(entry)
+                    source_documents.append(entry)
+                else:
+                    log.warning(f"source_doc {source_doc} was not supported")
+            else:
+                log.warning("source_doc is not exist in metadata")
 
         references = [{k: v for k, v in d.items() if k != "page_content"} for d in source_documents]
         unique_refs = [dict(t) for t in {tuple(d.items()) for d in references}]
