@@ -58,7 +58,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "url": metadata["url"],
                         "page_content": src_doc.page_content
                     }
-                    # log.info(entry)
+                    log.info(entry)
                     source_documents.append(entry)
                 elif source_doc == "discord":
                     metadata = src_doc.metadata
@@ -70,7 +70,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "guild_name": metadata["guild_name"],
                         "page_content": src_doc.page_content
                     }
-                    # log.info(entry)
+                    log.info(entry)
                     source_documents.append(entry)
                 else:
                     log.warning(f"source_doc {source_doc} was not supported")

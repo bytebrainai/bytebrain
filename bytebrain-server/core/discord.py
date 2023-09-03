@@ -195,17 +195,17 @@ async def server_info(ctx):
         await ctx.send(chunk)
 
 
-def filter_messages(channelhistory: ChannelHistory, after: Optional[datetime]) -> ChannelHistory:
+def filter_messages(channel_history: ChannelHistory, after: Optional[datetime]) -> ChannelHistory:
     filtered_messages = []
     if after is not None:
-        for message in channelhistory.history:
+        for message in channel_history.history:
             if message.created_at.replace(tzinfo=None) >= after:
                 filtered_messages.append(message)
     else:
-        filtered_messages = channelhistory
+        filtered_messages = channel_history.history
 
-    channelhistory.history = filtered_messages
-    return channelhistory
+    channel_history.history = filtered_messages
+    return channel_history
 
 
 def read_from_cache(file_path: str, after: Optional[datetime]) -> ChannelHistory:
@@ -234,7 +234,8 @@ async def index_channel(ctx, channel_id: str,
                         after: Optional[str] = None,
                         window_size: Optional[int] = 10,
                         common_length: Optional[int] = 5):
-    channel_name = bot.get_channel(int(channel_id)).name
+    channel = bot.get_channel(int(channel_id))
+    channel_name = channel.name
     after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
 
     started_msg = f"started indexing channel {channel_name}" if after is None \
@@ -244,7 +245,8 @@ async def index_channel(ctx, channel_id: str,
 
     channel_history: ChannelHistory = await fetch_channel_history(channel_name, channel_id, after_datetime)
     batched_messages = sliding_window_with_common_length(channel_history.history, window_size, common_length)
-    pages = [convert_messages_to_transcript(i) for i in batched_messages]
+    pages = [(x[0], add_header(channel_name=channel_name, chat_history=x[1])) for x in
+             [convert_messages_to_transcript(i) for i in batched_messages]]
     documents = [Document(page_content=page[1], metadata={
         "source_doc": "discord",
         "message_id": f"{page[0]}",
@@ -278,11 +280,14 @@ def sliding_window_with_common_length(my_list, window_size, common_length):
     result = []
     i = 0
 
-    while i + window_size <= len(my_list):
+    while True:
         window = my_list[i:i + window_size]
 
         result.append(window)
         i += window_size - common_length
+
+        if i + window_size > len(my_list):
+            break
 
     return result
 
@@ -319,9 +324,13 @@ def convert_messages_to_transcript(messages: List[Message]) -> (id, str):
     return messages[0].id, transcript
 
 
+def add_header(channel_name: str, chat_history: str) -> str:
+    return f"# Chat History for {channel_name}\n\n{chat_history}"
+
+
 def update_vectorestore(texts: List[Document]):
     embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-    Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
+    Chroma.from_documents(texts, embeddings, persist_directory=config.db_dir)
 
 
 def add_metadata_to_history(history: List[str]):
@@ -395,7 +404,7 @@ async def on_message(message):
                             "url": metadata["url"],
                             "page_content": src_doc.page_content
                         }
-                        # log.info(entry)
+                        log.info(entry)
                         source_documents.append(entry)
                     elif source_doc == "discord":
                         metadata = src_doc.metadata
@@ -407,7 +416,7 @@ async def on_message(message):
                             "guild_name": metadata["guild_name"],
                             "page_content": src_doc.page_content
                         }
-                        # log.info(entry)
+                        log.info(entry)
                         source_documents.append(entry)
                     else:
                         log.warning(f"source_doc {source_doc} was not supported")
