@@ -50,17 +50,17 @@ async def websocket_endpoint(websocket: WebSocket):
         source_documents: list[dict[str, Any]] = []
         for src_doc in result["source_documents"]:
             metadata = src_doc.metadata
-            if "source_doc" in metadata:
-                source_doc = metadata["source_doc"]
-                if source_doc == "zio.dev":
+            if "doc_source" in metadata:
+                doc_source = metadata["doc_source"]
+                if doc_source == "zio.dev":
                     entry = {
-                        "title": metadata["title"],
-                        "url": metadata["url"],
+                        "page_title": metadata["doc_title"],
+                        "page_url": f"https://zio.dev/{metadata['doc_id']}",
                         "page_content": src_doc.page_content
                     }
                     log.info(entry)
                     source_documents.append(entry)
-                elif source_doc == "discord":
+                elif doc_source == "discord":
                     metadata = src_doc.metadata
                     entry = {
                         "message_id": metadata["message_id"],
@@ -71,11 +71,12 @@ async def websocket_endpoint(websocket: WebSocket):
                         "page_content": src_doc.page_content
                     }
                     log.info(entry)
-                    source_documents.append(entry)
+                    # source_documents.append(entry)
                 else:
-                    log.warning(f"source_doc {source_doc} was not supported")
+                    #TODO: Add support for zionomicon book
+                    log.warning(f"doc_source {doc_source} was not supported")
             else:
-                log.warning("source_doc is not exist in metadata")
+                log.warning("The doc_source is not exists in metadata")
 
         references = [{k: v for k, v in d.items() if k != "page_content"} for d in source_documents]
         unique_refs = [dict(t) for t in {tuple(d.items()) for d in references}]
