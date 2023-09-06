@@ -54,13 +54,16 @@ def load_zio_website_docs(directory: str) -> List[Document]:
                 docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
                 metadata: dict[str, str] = extract_metadata(md_path)
                 for index, doc in enumerate(docs):
-                    doc.metadata["doc_path"] = doc.metadata.pop("source").split("/zio/docs/")[1]
+                    doc.metadata["doc_path"] = doc.metadata.pop("source").split("/zio/website/docs/")[1]
                     doc.metadata.setdefault("doc_source", "zio.dev")
-                    doc.metadata.setdefault("doc_id", root.split("/zio/docs/")[1] + '/' + metadata["id"])
+                    doc.metadata.setdefault("doc_id", root.split("/zio/website/docs/")[1] + '/' + metadata["id"])
                     doc.metadata.setdefault("doc_title", metadata["title"])
                 documents.extend(docs)
 
-    return MarkdownTextSplitter().split_documents(documents)
+    log.info(f"Number of original docs: {len(documents)}")
+    fragmented_docs = MarkdownTextSplitter().split_documents(documents)
+    log.info(f"Number of docs after split phase: {len(fragmented_docs)}")
+    return fragmented_docs
 
 
 def generate_ids_for_zionomicon_docs(docs: List[Document]) -> List[str]:
@@ -104,7 +107,7 @@ def generate_ids_for_website_docs(docs: List[Document]) -> List[str]:
 
 
 def index_zio_project_docs():
-    docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])[1:10]
+    docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
     ids = generate_ids_for_website_docs(docs)
     update_db(docs, ids)
 
@@ -224,10 +227,12 @@ def load_source_code(repo_path: str, branch: Optional[str]) -> (List[str], List[
 
     ids: List[str] = []
     for doc in docs:
+        # TODO: add prefix for source code ids e.g. project name
         id = doc.metadata['file_path']
         ids.append(id)
 
     assert (len(ids) == len(docs))
+    # TODO: fragment large source codes
     return ids, docs
 
 
