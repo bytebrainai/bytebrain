@@ -17,6 +17,7 @@ from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from structlog import getLogger
 
+import index.index as index
 from config import load_config
 from core.chatbot import make_question_answering_chatbot
 
@@ -163,6 +164,39 @@ async def download_channel_history(channel_id: int, after: Optional[datetime] = 
 def dump_channel_history(channel_history: ChannelHistory, file_name: str):
     with open(file_name, 'w') as file:
         file.write(channel_history.to_json())
+
+
+async def send_and_log(ctx, message: str):
+    await ctx.send(message)
+    log.info(message)
+
+
+@bot.command()
+async def index_zio_docs(ctx):
+    await send_and_log(ctx, "Started indexing ZIO docs on zio.dev")
+    index.index_zio_project_docs()
+    await send_and_log(ctx, "Finished indexing zio project docs!")
+
+
+@bot.command()
+async def index_zionomicon(ctx):
+    await send_and_log(ctx, "Started indexing Zionomicon book")
+    index.index_zionomicon_book()
+    await send_and_log(ctx, "Finished indexing zionomicon book!")
+
+
+@bot.command()
+async def index_zio_source(ctx):
+    await send_and_log(ctx, "Started indexing ZIO's source code")
+    index.index_zio_project_source_code()
+    await send_and_log(ctx, "Finished indexing zio's source codes!")
+
+
+@bot.command()
+async def index_zio_ecosystem_source(ctx):
+    await send_and_log(ctx, "Started indexing ZIO's")
+    index.index_zio_ecosystem_source_code()
+    await send_and_log(ctx, "Started indexing ZIO's")
 
 
 @bot.command()
@@ -337,96 +371,96 @@ def update_db(texts: List[Document], ids=Optional[List[str]]):
     embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
     Chroma.from_documents(texts, embeddings, ids=ids, persist_directory=config.db_dir)
 
-    def add_metadata_to_history(history: List[str]):
-        def turn_generator():
-            while True:
-                yield "User"
-                yield "Bot"
+def add_metadata_to_history(history: List[str]):
+    def turn_generator():
+        while True:
+            yield "User"
+            yield "Bot"
 
-        turn_gen = turn_generator()
-        history_with_metadata = []
+    turn_gen = turn_generator()
+    history_with_metadata = []
 
-        for index, m in enumerate(history, start=1):
-            turn = next(turn_gen)
-            history_with_metadata.append(f"{index}. {turn}: {m}")
+    for index, m in enumerate(history, start=1):
+        turn = next(turn_gen)
+        history_with_metadata.append(f"{index}. {turn}: {m}")
 
-        return history_with_metadata
+    return history_with_metadata
 
-    def remove_discord_mention(msg: str) -> str:
-        """removes any mention inside the meessage like <@234123495>"""
-        return re.sub(r"<@.*?>", "", msg)
+def remove_discord_mention(msg: str) -> str:
+    """removes any mention inside the meessage like <@234123495>"""
+    return re.sub(r"<@.*?>", "", msg)
 
-    async def message_history(reference: MessageReference) -> List[str]:
-        if reference is None:
-            return []
-        referenced_message = await bot.get_channel(reference.channel_id).fetch_message(reference.message_id)
-        parent_reference = referenced_message.reference
-        parent_messages = await message_history(parent_reference) if parent_reference else []
-        message_content: list[str] = [referenced_message.content]
-        return parent_messages + message_content
+async def message_history(reference: MessageReference) -> List[str]:
+    if reference is None:
+        return []
+    referenced_message = await bot.get_channel(reference.channel_id).fetch_message(reference.message_id)
+    parent_reference = referenced_message.reference
+    parent_messages = await message_history(parent_reference) if parent_reference else []
+    message_content: list[str] = [referenced_message.content]
+    return parent_messages + message_content
 
-    @bot.event
-    async def on_message(message):
-        if message.author == bot.user:
-            return
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
 
-        if bot.user.mentioned_in(message):
-            chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
+    if bot.user.mentioned_in(message):
+        chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
 
-            async with message.channel.typing():
-                log.info(f"received message from {message.channel} channel")
-                qa = make_question_answering_chatbot(
-                    None,
-                    config.db_dir,
-                    config.discord_prompt
-                )
+        async with message.channel.typing():
+            log.info(f"received message from {message.channel} channel")
+            qa = make_question_answering_chatbot(
+                None,
+                config.db_dir,
+                config.discord_prompt
+            )
 
-                result: dict[str, Any] = await qa.acall(
-                    {
-                        "question": remove_discord_mention(message.content),
-                        "project_name": config.project_name,
-                        "chat_history": chat_history
-                    },
-                    return_only_outputs=True
-                )
-                log.info("response for discord is ready", response={
-                    "question": message.content,
-                    "result": result['answer']
-                })
+            result: dict[str, Any] = await qa.acall(
+                {
+                    "question": remove_discord_mention(message.content),
+                    "project_name": config.project_name,
+                    "chat_history": chat_history
+                },
+                return_only_outputs=True
+            )
+            log.info("response for discord is ready", response={
+                "question": message.content,
+                "result": result['answer']
+            })
 
-                source_documents: list[dict[str, Any]] = []
-                for doc_source in result["source_documents"]:
-                    metadata = doc_source.metadata
-                    if "doc_source" in metadata:
-                        source_doc = metadata["doc_source"]
-                        if source_doc == "zio.dev":
-                            entry = {
-                                "title": metadata["doc_title"],
-                                "url": f"{metadata['doc_id']}",
-                                "page_content": doc_source.page_content
-                            }
-                            log.info(entry)
-                            source_documents.append(entry)
-                        elif source_doc == "discord":
-                            metadata = doc_source.metadata
-                            entry = {
-                                "message_id": metadata["message_id"],
-                                "channel_id": metadata["channel_id"],
-                                "channel_name": metadata["channel_name"],
-                                "guild_id": metadata["guild_id"],
-                                "guild_name": metadata["guild_name"],
-                                "page_content": doc_source.page_content
-                            }
-                            log.info(entry)
-                            source_documents.append(entry)
-                        else:
-                            log.warning(f"source_doc {source_doc} was not supported")
+            source_documents: list[dict[str, Any]] = []
+            for doc_source in result["source_documents"]:
+                metadata = doc_source.metadata
+                if "doc_source" in metadata:
+                    source_doc = metadata["doc_source"]
+                    if source_doc == "zio.dev":
+                        entry = {
+                            "title": metadata["doc_title"],
+                            "url": f"{metadata['doc_id']}",
+                            "page_content": doc_source.page_content
+                        }
+                        log.info(entry)
+                        source_documents.append(entry)
+                    elif source_doc == "discord":
+                        metadata = doc_source.metadata
+                        entry = {
+                            "message_id": metadata["message_id"],
+                            "channel_id": metadata["channel_id"],
+                            "channel_name": metadata["channel_name"],
+                            "guild_id": metadata["guild_id"],
+                            "guild_name": metadata["guild_name"],
+                            "page_content": doc_source.page_content
+                        }
+                        log.info(entry)
+                        source_documents.append(entry)
                     else:
-                        log.warning("source_doc is not exist in metadata")
+                        log.warning(f"source_doc {source_doc} was not supported")
+                else:
+                    log.warning("source_doc is not exist in metadata")
 
-                await message.reply(result['answer'])
-        else:
-            await bot.process_commands(message)
+            await message.reply(result['answer'])
+    else:
+        await bot.process_commands(message)
 
 
 def main():
