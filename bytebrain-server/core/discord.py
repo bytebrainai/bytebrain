@@ -101,6 +101,7 @@ async def on_ready():
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def export(ctx: commands.Context):
     transcript = await chat_exporter.export(
         ctx.channel,
@@ -129,6 +130,7 @@ def get_guild_by_channel(channel_id: int) -> Optional[Guild]:
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[str] = None):
     channel_name = bot.get_channel(int(channel_id)).name
     file_name = f"channel_{channel_name}_{channel_id}.json"
@@ -172,6 +174,7 @@ async def send_and_log(ctx, message: str):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def index_zio_docs(ctx):
     await send_and_log(ctx, "Started indexing ZIO docs on zio.dev")
     index.index_zio_project_docs()
@@ -179,6 +182,7 @@ async def index_zio_docs(ctx):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def index_zionomicon(ctx):
     await send_and_log(ctx, "Started indexing Zionomicon book")
     index.index_zionomicon_book()
@@ -186,6 +190,7 @@ async def index_zionomicon(ctx):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def index_zio_source(ctx):
     await send_and_log(ctx, "Started indexing ZIO's source code")
     index.index_zio_project_source_code()
@@ -193,6 +198,7 @@ async def index_zio_source(ctx):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def index_zio_ecosystem_source(ctx):
     await send_and_log(ctx, "Started indexing ZIO's")
     index.index_zio_ecosystem_source_code()
@@ -200,6 +206,7 @@ async def index_zio_ecosystem_source(ctx):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def server_info(ctx):
     # Ignore messages from bots
     if ctx.author.bot:
@@ -264,6 +271,7 @@ async def fetch_channel_history(channel_name: str,
 
 
 @bot.command("index_channel")
+@commands.has_permissions(administrator=True)
 async def index_channel(ctx, channel_id: str,
                         after: Optional[str] = None,
                         window_size: Optional[int] = 10,
@@ -386,9 +394,11 @@ def add_metadata_to_history(history: List[str]):
 
     return history_with_metadata
 
+
 def remove_discord_mention(msg: str) -> str:
     """removes any mention inside the meessage like <@234123495>"""
     return re.sub(r"<@.*?>", "", msg)
+
 
 async def message_history(reference: MessageReference) -> List[str]:
     if reference is None:
@@ -398,6 +408,7 @@ async def message_history(reference: MessageReference) -> List[str]:
     parent_messages = await message_history(parent_reference) if parent_reference else []
     message_content: list[str] = [referenced_message.content]
     return parent_messages + message_content
+
 
 @bot.event
 async def on_message(message):
