@@ -48,6 +48,9 @@ index_youtube_video = "index.index:index_youtube_video"
 index_zio_ecosystem_source_code = "index.index:index_zio_ecosystem_source_code"
 get_zio_ecosystem_repo_info = "index.index:get_zio_ecosystem_repo_info"
 
+[tool.poetry.group.dev.dependencies]
+deptry = "^0.12.0"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
