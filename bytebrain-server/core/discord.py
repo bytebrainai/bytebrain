@@ -17,9 +17,9 @@ from langchain.vectorstores import Chroma
 from structlog import getLogger
 
 import index.index as index
+from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
-from config import load_config
 from core.chatbot import make_question_answering_chatbot
 
 config = load_config()
@@ -59,14 +59,6 @@ async def export(ctx: commands.Context):
     log.info(f"Transcript has been written to '{file_path}'.")
 
 
-def get_guild_by_channel(channel_id: int) -> Optional[Guild]:
-    for guild in bot.guilds:
-        channel = guild.get_channel(channel_id)
-        if channel:
-            return guild
-    return None
-
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[str] = None):
@@ -83,30 +75,6 @@ async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[s
     response_msg = f"Channel {channel_id} was dumped!"
     log.info(response_msg)
     await ctx.send(response_msg)
-
-
-async def download_channel_history(channel_id: int, after: Optional[datetime] = None) -> List[DiscordMessage]:
-    messages = [
-        DiscordMessage(
-            m.id,
-            m.author.name,
-            m.created_at,
-            m.content
-        ) async for m in
-        bot.get_channel(channel_id).history(limit=None, oldest_first=True, after=after)
-    ]
-
-    return messages
-
-
-def dump_channel_history(channel_history: ChannelHistory, file_name: str):
-    with open(file_name, 'w') as file:
-        file.write(channel_history.to_json())
-
-
-async def send_and_log(ctx, message: str):
-    await ctx.send(message)
-    log.info(message)
 
 
 @bot.command()
@@ -172,6 +140,183 @@ async def server_info(ctx):
         await ctx.send(chunk)
 
 
+@bot.command("index_channel")
+@commands.has_permissions(administrator=True)
+async def index_channel(ctx, channel_id: str,
+                        after: Optional[str] = None,
+                        window_size: Optional[int] = config.discord_messages_window_size,
+                        common_length: Optional[int] = config.discord_messages_common_length):
+    channel = bot.get_channel(int(channel_id))
+    channel_name = channel.name
+    after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
+
+    started_msg = f"started indexing channel {channel_name}" if after is None \
+        else f"started indexing channel {channel_name} after {after}"
+    log.info(started_msg)
+    await ctx.send(started_msg)
+
+    await index_channel_raw(channel_id=int(channel_id), after_datetime=after_datetime,
+                            window_size=window_size, common_length=common_length)
+
+    done_msg = f"Index process for {channel_name} done!"
+    log.info(done_msg)
+    await ctx.send(done_msg)
+
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+
+    if bot.user.mentioned_in(message):
+        chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
+
+        async with message.channel.typing():
+            log.info(f"received message from {message.channel} channel")
+            qa = make_question_answering_chatbot(
+                None,
+                config.db_dir,
+                config.discord_prompt
+            )
+
+            result: dict[str, Any] = await qa.acall(
+                {
+                    "question": remove_discord_mention(message.content),
+                    "project_name": config.project_name,
+                    "chat_history": chat_history
+                },
+                return_only_outputs=True
+            )
+            log.info("response for discord is ready", response={
+                "question": message.content,
+                "result": result['answer']
+            })
+
+            source_documents: list[dict[str, Any]] = []
+            for doc_source in result["source_documents"]:
+                metadata = doc_source.metadata
+                if "doc_source" in metadata:
+                    source_doc = metadata["doc_source"]
+                    if source_doc == "zio.dev":
+                        entry = {
+                            "title": metadata["doc_title"],
+                            "url": f"{metadata['doc_id']}",
+                            "page_content": doc_source.page_content
+                        }
+                        log.info(entry)
+                        source_documents.append(entry)
+                    elif source_doc == "discord":
+                        metadata = doc_source.metadata
+                        entry = {
+                            "message_id": metadata["message_id"],
+                            "channel_id": metadata["channel_id"],
+                            "channel_name": metadata["channel_name"],
+                            "guild_id": metadata["guild_id"],
+                            "guild_name": metadata["guild_name"],
+                            "page_content": doc_source.page_content
+                        }
+                        log.info(entry)
+                        source_documents.append(entry)
+                    else:
+                        log.warning(f"source_doc {source_doc} was not supported")
+                else:
+                    log.warning("source_doc is not exist in metadata")
+
+            await message.reply(result['answer'])
+    else:
+        await bot.process_commands(message)
+
+
+@bot.command()
+async def update_discord_channels(ctx, guild_id: int):
+    guild_name = bot.get_guild(guild_id).name
+    await ctx.send(f"Started updating channels inside {guild_name} guild!")
+    update_discord_channels_periodically.start(ctx, guild_id)
+
+
+@tasks.loop(seconds=3600 * 24 * 15)
+async def update_discord_channels_periodically(ctx, guild_id: int):
+    channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
+
+    for ch, ch_name in channels:
+        last: DiscordMessage | None = await last_indexed_page(channel_id=ch)
+        last_created_at = last.created_at if last is not None else None
+        await send_and_log(ctx, f"Started updating {ch_name} channel.")
+        try:
+            await index_channel_raw(
+                channel_id=ch,
+                after_datetime=last_created_at,
+                last_indexed_message=last
+            )
+        except Exception as e:
+            log.error(f"Exception occured during updating {ch_name} channel!")
+
+        await send_and_log(ctx, f"The {ch_name} channel updated!")
+    await send_and_log(ctx, "All channels were updated!")
+
+
+async def last_indexed_page(channel_id: int) -> Optional[DiscordMessage]:
+    guild_id = get_guild_by_channel(channel_id).id
+    import sqlite3
+    con = sqlite3.connect(config.db_dir + "/chroma.sqlite3")
+    cur = con.cursor()
+    sql_query = f"""
+      SELECT embedding_id
+      FROM embeddings e 
+      WHERE embedding_id LIKE 'discord.com/channels/{guild_id}/{channel_id}/%'
+      ORDER BY id Desc 
+      LIMIT 1
+      """
+    try:
+        cur.execute(sql_query)
+        result = cur.fetchone()
+        if result:
+            id_parts = result[0].split("/")
+            msg_id = int(id_parts[-1])
+            channel_id = int(id_parts[-2])
+            guild_id = int(id_parts[-3])
+
+            discord_msg: Message = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
+            msg = DiscordMessage(discord_msg.id, discord_msg.author.name, discord_msg.created_at, discord_msg.content)
+            return msg
+        else:
+            return None
+    except sqlite3.Error as e:
+        log.error("sqlite error: ", e)
+
+
+def get_guild_by_channel(channel_id: int) -> Optional[Guild]:
+    for guild in bot.guilds:
+        channel = guild.get_channel(channel_id)
+        if channel:
+            return guild
+    return None
+
+
+async def download_channel_history(channel_id: int, after: Optional[datetime] = None) -> List[DiscordMessage]:
+    messages = [
+        DiscordMessage(
+            m.id,
+            m.author.name,
+            m.created_at,
+            m.content
+        ) async for m in
+        bot.get_channel(channel_id).history(limit=None, oldest_first=True, after=after)
+    ]
+
+    return messages
+
+
+def dump_channel_history(channel_history: ChannelHistory, file_name: str):
+    with open(file_name, 'w') as file:
+        file.write(channel_history.to_json())
+
+
+async def send_and_log(ctx, message: str):
+    await ctx.send(message)
+    log.info(message)
+
+
 def filter_messages(history: List[DiscordMessage], after: Optional[datetime]) -> List[DiscordMessage]:
     filtered_messages = []
     if after is not None:
@@ -225,29 +370,6 @@ async def fetch_channel_history(channel_name: str,
         dump_channel_history(channel_history, file_path)
 
     return channel_history
-
-
-@bot.command("index_channel")
-@commands.has_permissions(administrator=True)
-async def index_channel(ctx, channel_id: str,
-                        after: Optional[str] = None,
-                        window_size: Optional[int] = config.discord_messages_window_size,
-                        common_length: Optional[int] = config.discord_messages_common_length):
-    channel = bot.get_channel(int(channel_id))
-    channel_name = channel.name
-    after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
-
-    started_msg = f"started indexing channel {channel_name}" if after is None \
-        else f"started indexing channel {channel_name} after {after}"
-    log.info(started_msg)
-    await ctx.send(started_msg)
-
-    await index_channel_raw(channel_id=int(channel_id), after_datetime=after_datetime,
-                            window_size=window_size, common_length=common_length)
-
-    done_msg = f"Index process for {channel_name} done!"
-    log.info(done_msg)
-    await ctx.send(done_msg)
 
 
 async def index_channel_raw(
@@ -379,128 +501,6 @@ async def message_history(reference: MessageReference) -> List[str]:
     parent_messages = await message_history(parent_reference) if parent_reference else []
     message_content: list[str] = [referenced_message.content]
     return parent_messages + message_content
-
-
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-    if bot.user.mentioned_in(message):
-        chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
-
-        async with message.channel.typing():
-            log.info(f"received message from {message.channel} channel")
-            qa = make_question_answering_chatbot(
-                None,
-                config.db_dir,
-                config.discord_prompt
-            )
-
-            result: dict[str, Any] = await qa.acall(
-                {
-                    "question": remove_discord_mention(message.content),
-                    "project_name": config.project_name,
-                    "chat_history": chat_history
-                },
-                return_only_outputs=True
-            )
-            log.info("response for discord is ready", response={
-                "question": message.content,
-                "result": result['answer']
-            })
-
-            source_documents: list[dict[str, Any]] = []
-            for doc_source in result["source_documents"]:
-                metadata = doc_source.metadata
-                if "doc_source" in metadata:
-                    source_doc = metadata["doc_source"]
-                    if source_doc == "zio.dev":
-                        entry = {
-                            "title": metadata["doc_title"],
-                            "url": f"{metadata['doc_id']}",
-                            "page_content": doc_source.page_content
-                        }
-                        log.info(entry)
-                        source_documents.append(entry)
-                    elif source_doc == "discord":
-                        metadata = doc_source.metadata
-                        entry = {
-                            "message_id": metadata["message_id"],
-                            "channel_id": metadata["channel_id"],
-                            "channel_name": metadata["channel_name"],
-                            "guild_id": metadata["guild_id"],
-                            "guild_name": metadata["guild_name"],
-                            "page_content": doc_source.page_content
-                        }
-                        log.info(entry)
-                        source_documents.append(entry)
-                    else:
-                        log.warning(f"source_doc {source_doc} was not supported")
-                else:
-                    log.warning("source_doc is not exist in metadata")
-
-            await message.reply(result['answer'])
-    else:
-        await bot.process_commands(message)
-
-
-@bot.command()
-async def update_discord_channels(ctx, guild_id: int):
-    guild_name = bot.get_guild(guild_id).name
-    await ctx.send(f"Started updating channels inside {guild_name} guild!")
-    update_discord_channels_periodically.start(ctx, guild_id)
-
-
-@tasks.loop(seconds=3600 * 24 * 15)
-async def update_discord_channels_periodically(ctx, guild_id: int):
-    channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
-
-    for ch, ch_name in channels:
-        last: DiscordMessage | None = await last_indexed_page(channel_id=ch)
-        last_created_at = last.created_at if last is not None else None
-        await send_and_log(ctx, f"Started updating {ch_name} channel.")
-        try:
-            await index_channel_raw(
-                channel_id=ch,
-                after_datetime=last_created_at,
-                last_indexed_message=last
-            )
-        except Exception as e:
-            log.error(f"Exception occured during updating {ch_name} channel!")
-
-        await send_and_log(ctx, f"The {ch_name} channel updated!")
-    await send_and_log(ctx, "All channels were updated!")
-
-
-async def last_indexed_page(channel_id: int) -> Optional[DiscordMessage]:
-    guild_id = get_guild_by_channel(channel_id).id
-    import sqlite3
-    con = sqlite3.connect(config.db_dir + "/chroma.sqlite3")
-    cur = con.cursor()
-    sql_query = f"""
-      SELECT embedding_id
-      FROM embeddings e 
-      WHERE embedding_id LIKE 'discord.com/channels/{guild_id}/{channel_id}/%'
-      ORDER BY id Desc 
-      LIMIT 1
-      """
-    try:
-        cur.execute(sql_query)
-        result = cur.fetchone()
-        if result:
-            id_parts = result[0].split("/")
-            msg_id = int(id_parts[-1])
-            channel_id = int(id_parts[-2])
-            guild_id = int(id_parts[-3])
-
-            discord_msg: Message = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
-            msg = DiscordMessage(discord_msg.id, discord_msg.author.name, discord_msg.created_at, discord_msg.content)
-            return msg
-        else:
-            return None
-    except sqlite3.Error as e:
-        log.error("sqlite error: ", e)
 
 
 def main():
