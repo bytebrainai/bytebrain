@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 import re
 from datetime import datetime
@@ -11,13 +10,15 @@ import chat_exporter
 import discord
 from discord.ext import commands, tasks
 from discord.guild import Guild
-from discord.message import MessageReference
+from discord.message import MessageReference, Message
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from structlog import getLogger
 
 import index.index as index
+from ChannelHistory import ChannelHistory
+from DiscordMessage import DiscordMessage
 from config import load_config
 from core.chatbot import make_question_answering_chatbot
 
@@ -30,69 +31,6 @@ intents.members = True
 client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix="!", intents=intents)
 log = getLogger()
-
-
-class Message:
-    def __init__(self, id: int, user: str, created_at: datetime, content):
-        self.id = id
-        self.user = user
-        self.created_at = created_at
-        self.content = content
-
-    def __str__(self):
-        return f"Message(is: {self.id}, user: {self.user}, created_at: {self.created_at}, content: '{self.content}')"
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "user": self.user,
-            "created_at": self.created_at.isoformat(),
-            "content": self.content
-        }
-
-    def to_json(self):
-        return json.dumps(self.to_dict(), indent=2)
-
-    @classmethod
-    def from_json(cls, json_str):
-        data = json.loads(json_str)
-        created_at = datetime.fromisoformat(data["created_at"])
-        return cls(data["id"], data["user"], created_at, data["content"])
-
-
-class ChannelHistory:
-    def __init__(self,
-                 guild_id: int,
-                 guild_name: str,
-                 channel_id: int,
-                 channel_name: str,
-                 history: List[Message]):
-        self.guild_id = guild_id
-        self.guild_name = guild_name
-        self.channel_id = channel_id
-        self.channel_name = channel_name
-        self.history = history
-
-    def __str__(self):
-        return f"ChannelHistory"
-
-    def to_dict(self):
-        return {
-            "guild_id": self.guild_id,
-            "guild_name": self.guild_name,
-            "channel_id": self.channel_id,
-            "channel_name": self.channel_name,
-            "history": [message.to_dict() for message in self.history]
-        }
-
-    def to_json(self):
-        return json.dumps(self.to_dict(), indent=2)
-
-    @classmethod
-    def from_json(cls, json_str):
-        data = json.loads(json_str)
-        history = [Message.from_json(json.dumps(message_json)) for message_json in data["history"]]
-        return cls(data["guild_id"], data["guild_name"], data["channel_id"], data["channel_name"], history)
 
 
 @bot.event
@@ -147,9 +85,9 @@ async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[s
     await ctx.send(response_msg)
 
 
-async def download_channel_history(channel_id: int, after: Optional[datetime] = None) -> List[Message]:
+async def download_channel_history(channel_id: int, after: Optional[datetime] = None) -> List[DiscordMessage]:
     messages = [
-        Message(
+        DiscordMessage(
             m.id,
             m.author.name,
             m.created_at,
@@ -234,7 +172,7 @@ async def server_info(ctx):
         await ctx.send(chunk)
 
 
-def filter_messages(history: List[Message], after: Optional[datetime]) -> List[Message]:
+def filter_messages(history: List[DiscordMessage], after: Optional[datetime]) -> List[DiscordMessage]:
     filtered_messages = []
     if after is not None:
         for message in history:
@@ -255,7 +193,7 @@ def read_from_cache(file_path: str, after: Optional[datetime]) -> ChannelHistory
 async def fetch_channel_history(channel_name: str,
                                 channel_id: str,
                                 after_datetime: Optional[datetime],
-                                last_indexed_message: Optional[Message]) -> ChannelHistory:
+                                last_indexed_message: Optional[DiscordMessage]) -> ChannelHistory:
     file_path = f"channel_{channel_name}_{channel_id}.json"
     two_week_ago = datetime.now() - timedelta(days=14)
 
@@ -276,7 +214,7 @@ async def fetch_channel_history(channel_name: str,
         if last_indexed_message is not None:
             history.insert(0, last_indexed_message)
 
-        combined_messages: List[Message] = combine_user_messages(history, time_threshold=4)
+        combined_messages: List[DiscordMessage] = combine_user_messages(history, time_threshold=4)
 
         channel_name = bot.get_channel(int(channel_id)).name
         guild = get_guild_by_channel(int(channel_id))
@@ -315,7 +253,7 @@ async def index_channel(ctx, channel_id: str,
 async def index_channel_raw(
         channel_id: int,
         after_datetime: Optional[datetime] = None,
-        last_indexed_message: Optional[Message] = None,
+        last_indexed_message: Optional[DiscordMessage] = None,
         window_size: Optional[int] = 10,
         common_length: Optional[int] = 5):
     channel_name = bot.get_channel(channel_id).name
@@ -372,8 +310,8 @@ def sliding_window_with_common_length(my_list, window_size, common_length):
 
 
 def combine_user_messages(messages, time_threshold):
-    result: List[Message] = []
-    current_message: Message = messages[0]
+    result: List[DiscordMessage] = []
+    current_message: DiscordMessage = messages[0]
 
     for i in range(1, len(messages)):
         time_difference = messages[i].created_at - messages[i - 1].created_at
@@ -395,7 +333,7 @@ def serialize_datetime(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def convert_messages_to_transcript(messages: List[Message]) -> (id, str):
+def convert_messages_to_transcript(messages: List[DiscordMessage]) -> (id, str):
     transcript = ""
     for m in messages:
         transcript = transcript + f"{m.created_at.strftime('%Y-%m-%d %H:%M:%S')} - {m.user} said: {m.content}\n\n"
@@ -519,7 +457,7 @@ async def update_discord_channels_periodically(ctx, guild_id: int):
     channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
 
     for ch, ch_name in channels:
-        last: Message | None = await last_indexed_page(channel_id=ch)
+        last: DiscordMessage | None = await last_indexed_page(channel_id=ch)
         last_created_at = last.created_at if last is not None else None
         await send_and_log(ctx, f"Started updating {ch_name} channel.")
         try:
@@ -535,7 +473,7 @@ async def update_discord_channels_periodically(ctx, guild_id: int):
     await send_and_log(ctx, "All channels were updated!")
 
 
-async def last_indexed_page(channel_id: int) -> Optional[Message]:
+async def last_indexed_page(channel_id: int) -> Optional[DiscordMessage]:
     guild_id = get_guild_by_channel(channel_id).id
     import sqlite3
     con = sqlite3.connect(config.db_dir + "/chroma.sqlite3")
@@ -556,7 +494,8 @@ async def last_indexed_page(channel_id: int) -> Optional[Message]:
             channel_id = int(id_parts[-2])
             guild_id = int(id_parts[-3])
 
-            msg: Message = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
+            discord_msg: Message = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
+            msg = DiscordMessage(discord_msg.id, discord_msg.author.name, discord_msg.created_at, discord_msg.content)
             return msg
         else:
             return None
