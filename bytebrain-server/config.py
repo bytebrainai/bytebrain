@@ -12,6 +12,8 @@ class ByteBrainConfig:
     db_dir: str
     host: str
     port: int
+    discord_messages_window_size: int
+    discord_messages_common_length: int
 
 
 def load_config() -> ByteBrainConfig:
