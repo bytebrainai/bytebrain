@@ -227,7 +227,7 @@ async def update_discord_channels_periodically(ctx, guild_id: int):
                 last_indexed_message=last
             )
         except Exception as e:
-            log.error(f"Exception occured during updating {ch_name} channel!")
+            log.error(f"Exception occurred during updating {ch_name} channel!")
 
         await send_and_log(ctx, f"The {ch_name} channel updated!")
     await send_and_log(ctx, "All channels were updated!")
@@ -361,7 +361,7 @@ async def index_channel_raw(
                                                                   last_indexed_message)
     batched_messages = sliding_window_with_common_length(channel_history.history, window_size, common_length)
     pages = [(x[0], add_header(channel_name=channel_name, chat_history=x[1])) for x in
-             [convert_messages_to_transcript(i) for i in batched_messages]]
+             [generate_chat_transcript(i) for i in batched_messages]]
     documents = [Document(page_content=page[1], metadata={
         "doc_source": "discord",
         "message_id": f"{page[0]}",
@@ -377,7 +377,32 @@ async def index_channel_raw(
     update_db(documents, ids)
 
 
-def split_string(long_string, chunk_size):
+def split_string_preserve_lines(long_string: str, chunk_size: int):
+    """
+    Split a long string into smaller chunks, trying to keep whole lines within each chunk.
+
+    This function takes a long string as input and divides it into smaller chunks,
+    attempting to maintain line integrity within each chunk. The splitting is done
+    based on the specified `chunk_size`.
+
+    Args:
+        long_string (str): The input long string to be split.
+        chunk_size (int): The maximum size of each chunk.
+
+    Returns:
+        list: A list of smaller string chunks, preserving line breaks.
+
+    Example:
+        >>> long_text = "This is a long text with\nmultiple lines\nthat needs to be split."
+        >>> chunk_size = 20
+        >>> split_string_preserve_lines(long_text, chunk_size)
+        ['This is a long text', 'with\nmultiple lines', 'that needs to be', ' split.']
+
+    Note:
+        - If a single line in the input string is longer than the `chunk_size`, it
+          will be split across multiple chunks.
+        - Line breaks ('\n') are preserved within chunks to maintain line integrity.
+    """
     chunks = []
     current_chunk = ""
 
@@ -394,6 +419,24 @@ def split_string(long_string, chunk_size):
 
 
 def sliding_window_with_common_length(my_list, window_size, common_length):
+    """
+    Generate a list of sliding windows over the input list with a common overlap.
+
+    Args:
+        my_list (list): The input list to create sliding windows from.
+        window_size (int): The size of each sliding window.
+        common_length (int): The common length of overlap between adjacent windows.
+
+    Returns:
+        list: A list of sliding windows (lists) with the specified window size and overlap.
+
+    Example:
+        >>> input_list = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> window_size = 3
+        >>> common_length = 1
+        >>> sliding_window_with_common_length(input_list, window_size, common_length)
+        [[1, 2, 3], [3, 4, 5], [5, 6, 7], [7, 8, 9]]
+    """
     result = []
     i = 0
 
@@ -409,7 +452,24 @@ def sliding_window_with_common_length(my_list, window_size, common_length):
     return result
 
 
-def combine_user_messages(messages, time_threshold):
+def combine_user_messages(messages: List[DiscordMessage], time_threshold: int) -> List[DiscordMessage]:
+    """
+     Combines consecutive user messages that are sent within a specified time threshold.
+
+     Parameters:
+     - messages (List[DiscordMessage]): A list of DiscordMessage objects representing user messages.
+     - time_threshold (int): The time threshold (in minutes) within which consecutive messages will be combined.
+
+     Returns:
+     - combined_messages (List[DiscordMessage]): A list of combined DiscordMessage objects.
+
+     Example Usage:
+     >>> messages = [...]  # List of DiscordMessage objects
+     >>> threshold = 5  # Time threshold of 5 minutes
+     >>> combined = combine_user_messages(messages, threshold)
+     >>> print(combined)
+     [Combined DiscordMessage 1, Combined DiscordMessage 2, ...]
+    """
     result: List[DiscordMessage] = []
     current_message: DiscordMessage = messages[0]
 
@@ -433,7 +493,29 @@ def serialize_datetime(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def convert_messages_to_transcript(messages: List[DiscordMessage]) -> (id, str):
+def generate_chat_transcript(messages: List[DiscordMessage]) -> (id, str):
+    """
+    Convert a list of Discord messages into a transcript with timestamps and user information.
+
+    This function takes a list of Discord messages and creates a human-readable transcript.
+    Each message is formatted with a timestamp, the user who sent it, and the message content.
+    The resulting transcript is a string.
+
+    Args:
+        messages (List[DiscordMessage]): A list of DiscordMessage objects representing chat messages.
+
+    Returns:
+        Tuple[id, str]: A tuple containing the ID of the first message in the list and the transcript string.
+
+    Example:
+        >>> from core.DiscordMessage import DiscordMessage
+        >>> messages = [
+        ...     DiscordMessage(1,"User1", datetime(2023, 9, 11, 10, 0, 0), "Hello!"),
+        ...     DiscordMessage(2,"User2", datetime(2023, 9, 11, 10, 5, 0), "Hi there!"),
+        ... ]
+        >>> generate_chat_transcript(messages)
+        (1, '2023-09-11 10:00:00 - User1 said: Hello!\n\n2023-09-11 10:05:00 - User2 said: Hi there!\n\n')
+    """
     transcript = ""
     for m in messages:
         transcript = transcript + f"{m.created_at.strftime('%Y-%m-%d %H:%M:%S')} - {m.user} said: {m.content}\n\n"
@@ -482,7 +564,7 @@ async def message_history(reference: MessageReference) -> List[str]:
 
 
 async def send_chunked(ctx, msg: str, chunk_size: int = 2000):
-    for chunk in split_string(msg, chunk_size):
+    for chunk in split_string_preserve_lines(msg, chunk_size):
         await ctx.send(chunk)
 
 
