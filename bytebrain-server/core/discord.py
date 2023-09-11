@@ -112,32 +112,9 @@ async def index_zio_ecosystem_source(ctx):
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def server_info(ctx):
-    # Ignore messages from bots
-    if ctx.author.bot:
-        return
-
-    # Ignore messages from users that are not admin
-    if not any(role.name == "admin" for role in ctx.author.roles):
-        log.error("you are not admin")
-        return
-
-    channels = bot.get_all_channels()
-    guilds = set([(ch.guild.name, ch.guild.id) for ch in channels])
-
-    guild_info = """===== Guild Info ====="""
-    for guild in guilds:
-        guild_info = guild_info + f"""\nguild name: {guild[0]}\nguild id: {guild[1]}\n"""
-
-    channels = bot.get_all_channels()
-    channels_info = "====== Channels ======="
-    for channel in channels:
-        channels_info = channels_info + f"\nguild: {channel.guild}, name: {channel.name} id: {channel.id}"
-
-    info = guild_info + "\n" + channels_info
+    info = _server_info()
     log.info(info)
-
-    for chunk in split_string(info, 2000):
-        await ctx.send(chunk)
+    await send_chunked(ctx, info)
 
 
 @bot.command("index_channel")
@@ -150,17 +127,19 @@ async def index_channel(ctx, channel_id: str,
     channel_name = channel.name
     after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
 
-    started_msg = f"started indexing channel {channel_name}" if after is None \
+    await send_and_log(
+        ctx,
+        f"started indexing channel {channel_name}" if after is None
         else f"started indexing channel {channel_name} after {after}"
-    log.info(started_msg)
-    await ctx.send(started_msg)
+    )
 
     await index_channel_raw(channel_id=int(channel_id), after_datetime=after_datetime,
                             window_size=window_size, common_length=common_length)
 
-    done_msg = f"Index process for {channel_name} done!"
-    log.info(done_msg)
-    await ctx.send(done_msg)
+    await send_and_log(
+        ctx,
+        f"Index process for {channel_name} done!"
+    )
 
 
 @bot.event
@@ -169,8 +148,6 @@ async def on_message(message):
         return
 
     if bot.user.mentioned_in(message):
-        chat_history = ["FULL CHAT HISTORY:"] + add_metadata_to_history(await message_history(message.reference))
-
         async with message.channel.typing():
             log.info(f"received message from {message.channel} channel")
             qa = make_question_answering_chatbot(
@@ -183,7 +160,8 @@ async def on_message(message):
                 {
                     "question": remove_discord_mention(message.content),
                     "project_name": config.project_name,
-                    "chat_history": chat_history
+                    "chat_history": ["FULL CHAT HISTORY:"] + add_metadata_to_history(
+                        await message_history(message.reference))
                 },
                 return_only_outputs=True
             )
@@ -351,7 +329,7 @@ async def fetch_channel_history(channel_name: str,
     else:
         if os.path.exists(file_path):
             os.remove(file_path)
-            log.info("Remove the old cached file!")
+            log.info("Removed the old cached file!")
 
         log.info(f"Started to download channel history for {channel_name}")
         history = await download_channel_history(int(channel_id), after=after_datetime)
@@ -472,7 +450,7 @@ def update_db(texts: List[Document], ids=Optional[List[str]]):
     Chroma.from_documents(texts, embeddings, ids=ids, persist_directory=config.db_dir)
 
 
-def add_metadata_to_history(history: List[str]):
+def add_metadata_to_history(history: List[str]) -> List[str]:
     def turn_generator():
         while True:
             yield "User"
@@ -501,6 +479,28 @@ async def message_history(reference: MessageReference) -> List[str]:
     parent_messages = await message_history(parent_reference) if parent_reference else []
     message_content: list[str] = [referenced_message.content]
     return parent_messages + message_content
+
+
+async def send_chunked(ctx, msg: str, chunk_size: int = 2000):
+    for chunk in split_string(msg, chunk_size):
+        await ctx.send(chunk)
+
+
+def _server_info() -> str:
+    channels = bot.get_all_channels()
+    guilds = set([(ch.guild.name, ch.guild.id) for ch in channels])
+
+    guild_info = """===== Guild Info ====="""
+    for guild in guilds:
+        guild_info = guild_info + f"""\nguild name: {guild[0]}\nguild id: {guild[1]}\n"""
+
+    channels = bot.get_all_channels()
+    channels_info = "====== Channels ======="
+    for channel in channels:
+        channels_info = channels_info + f"\nguild: {channel.guild}, name: {channel.name} id: {channel.id}"
+
+    info = guild_info + "\n" + channels_info
+    return info
 
 
 def main():
