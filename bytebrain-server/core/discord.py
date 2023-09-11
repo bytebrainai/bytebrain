@@ -17,8 +17,8 @@ from langchain.vectorstores import Chroma
 from structlog import getLogger
 
 import index.index as index
-from ChannelHistory import ChannelHistory
-from DiscordMessage import DiscordMessage
+from core.ChannelHistory import ChannelHistory
+from core.DiscordMessage import DiscordMessage
 from config import load_config
 from core.chatbot import make_question_answering_chatbot
 
@@ -231,8 +231,8 @@ async def fetch_channel_history(channel_name: str,
 @commands.has_permissions(administrator=True)
 async def index_channel(ctx, channel_id: str,
                         after: Optional[str] = None,
-                        window_size: Optional[int] = 10,
-                        common_length: Optional[int] = 5):
+                        window_size: Optional[int] = config.discord_messages_window_size,
+                        common_length: Optional[int] = config.discord_messages_common_length):
     channel = bot.get_channel(int(channel_id))
     channel_name = channel.name
     after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
@@ -254,8 +254,8 @@ async def index_channel_raw(
         channel_id: int,
         after_datetime: Optional[datetime] = None,
         last_indexed_message: Optional[DiscordMessage] = None,
-        window_size: Optional[int] = 10,
-        common_length: Optional[int] = 5):
+        window_size: Optional[int] = config.discord_messages_window_size,
+        common_length: Optional[int] = config.discord_messages_common_length):
     channel_name = bot.get_channel(channel_id).name
     channel_history: ChannelHistory = await fetch_channel_history(channel_name, str(channel_id), after_datetime,
                                                                   last_indexed_message)
