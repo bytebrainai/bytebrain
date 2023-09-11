@@ -9,7 +9,7 @@ from typing import List, Optional
 
 import chat_exporter
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.guild import Guild
 from discord.message import MessageReference
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -27,7 +27,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-# client = discord.Client(intents=intents)
+client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix="!", intents=intents)
 log = getLogger()
 
@@ -133,7 +133,6 @@ def get_guild_by_channel(channel_id: int) -> Optional[Guild]:
 @commands.has_permissions(administrator=True)
 async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[str] = None):
     channel_name = bot.get_channel(int(channel_id)).name
-    file_name = f"channel_{channel_name}_{channel_id}.json"
     after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
 
     response_msg = f"Started to dump channel {channel_name}" if after is None \
@@ -141,26 +140,25 @@ async def dump_channel(ctx: commands.Context, channel_id: str, after: Optional[s
     log.info(response_msg)
     await ctx.send(response_msg)
 
-    channel_history = await download_channel_history(int(channel_id), after_datetime)
-    file_name = f"channel_{channel_name}_{channel_id}.json"
-    dump_channel_history(channel_history, file_name)
+    await fetch_channel_history(channel_name, channel_id, after_datetime)
 
-    response_msg = f"Channel {channel_id} dumped in {file_name}!"
+    response_msg = f"Channel {channel_id} was dumped!"
     log.info(response_msg)
     await ctx.send(response_msg)
 
 
-async def download_channel_history(channel_id: int, after: Optional[datetime] = None) -> ChannelHistory:
-    channel_name = bot.get_channel(int(channel_id)).name
-    guild = get_guild_by_channel(int(channel_id))
+async def download_channel_history(channel_id: int, after: Optional[datetime] = None) -> List[Message]:
+    messages = [
+        Message(
+            m.id,
+            m.author.name,
+            m.created_at,
+            m.content
+        ) async for m in
+        bot.get_channel(channel_id).history(limit=None, oldest_first=True, after=after)
+    ]
 
-    messages: list[Message] = [Message(m.id, m.author.name, m.created_at, m.content) async for m in
-                               bot.get_channel(channel_id).history(limit=None, oldest_first=True, after=after)]
-    combined_messages: list[Message] = combine_user_messages(messages, time_threshold=4)
-
-    channel_history = ChannelHistory(guild_id=guild.id, guild_name=guild.name, channel_id=int(channel_id),
-                                     channel_name=channel_name, history=combined_messages)
-    return channel_history
+    return messages
 
 
 def dump_channel_history(channel_history: ChannelHistory, file_name: str):
@@ -236,36 +234,57 @@ async def server_info(ctx):
         await ctx.send(chunk)
 
 
-def filter_messages(channel_history: ChannelHistory, after: Optional[datetime]) -> ChannelHistory:
+def filter_messages(history: List[Message], after: Optional[datetime]) -> List[Message]:
     filtered_messages = []
     if after is not None:
-        for message in channel_history.history:
-            if message.created_at.replace(tzinfo=None) >= after:
+        for message in history:
+            if message.created_at >= after:
                 filtered_messages.append(message)
     else:
-        filtered_messages = channel_history.history
-
-    channel_history.history = filtered_messages
-    return channel_history
+        filtered_messages = history
+    return filtered_messages
 
 
 def read_from_cache(file_path: str, after: Optional[datetime]) -> ChannelHistory:
     with open(file_path, 'r') as file:
         messages: ChannelHistory = ChannelHistory.from_json(file.read())
-    return filter_messages(messages, after)
+        messages.history = filter_messages(messages.history, after)
+    return messages
 
 
 async def fetch_channel_history(channel_name: str,
                                 channel_id: str,
-                                after_datetime: Optional[datetime]) -> ChannelHistory:
+                                after_datetime: Optional[datetime],
+                                last_indexed_message: Optional[Message]) -> ChannelHistory:
     file_path = f"channel_{channel_name}_{channel_id}.json"
+    two_week_ago = datetime.now() - timedelta(days=14)
 
-    if os.path.exists(file_path):
+    def is_older_than_two_week(file: str) -> bool:
+        return os.path.getmtime(file) < two_week_ago.timestamp()
+
+    if os.path.exists(file_path) and not is_older_than_two_week(file_path):
+        log.info(f"Cached data found for channel {channel_name}")
         channel_history = read_from_cache(file_path, after_datetime)
     else:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            log.info("Remove the old cached file!")
+
+        log.info(f"Started to download channel history for {channel_name}")
         history = await download_channel_history(int(channel_id), after=after_datetime)
-        dump_channel_history(history, file_path)
-        channel_history = history
+
+        if last_indexed_message is not None:
+            history.insert(0, last_indexed_message)
+
+        combined_messages: List[Message] = combine_user_messages(history, time_threshold=4)
+
+        channel_name = bot.get_channel(int(channel_id)).name
+        guild = get_guild_by_channel(int(channel_id))
+
+        channel_history = ChannelHistory(guild_id=guild.id, guild_name=guild.name, channel_id=int(channel_id),
+                                         channel_name=channel_name, history=combined_messages)
+
+        dump_channel_history(channel_history, file_path)
 
     return channel_history
 
@@ -285,7 +304,23 @@ async def index_channel(ctx, channel_id: str,
     log.info(started_msg)
     await ctx.send(started_msg)
 
-    channel_history: ChannelHistory = await fetch_channel_history(channel_name, channel_id, after_datetime)
+    await index_channel_raw(channel_id=int(channel_id), after_datetime=after_datetime,
+                            window_size=window_size, common_length=common_length)
+
+    done_msg = f"Index process for {channel_name} done!"
+    log.info(done_msg)
+    await ctx.send(done_msg)
+
+
+async def index_channel_raw(
+        channel_id: int,
+        after_datetime: Optional[datetime] = None,
+        last_indexed_message: Optional[Message] = None,
+        window_size: Optional[int] = 10,
+        common_length: Optional[int] = 5):
+    channel_name = bot.get_channel(channel_id).name
+    channel_history: ChannelHistory = await fetch_channel_history(channel_name, str(channel_id), after_datetime,
+                                                                  last_indexed_message)
     batched_messages = sliding_window_with_common_length(channel_history.history, window_size, common_length)
     pages = [(x[0], add_header(channel_name=channel_name, chat_history=x[1])) for x in
              [convert_messages_to_transcript(i) for i in batched_messages]]
@@ -302,9 +337,6 @@ async def index_channel(ctx, channel_id: str,
         'message_id'] for doc in documents]
     assert (len(ids) == len(documents))
     update_db(documents, ids)
-    done_msg = f"Index process for {channel_name} done!"
-    log.info(done_msg)
-    await ctx.send(done_msg)
 
 
 def split_string(long_string, chunk_size):
@@ -378,6 +410,7 @@ def add_header(channel_name: str, chat_history: str) -> str:
 def update_db(texts: List[Document], ids=Optional[List[str]]):
     embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
     Chroma.from_documents(texts, embeddings, ids=ids, persist_directory=config.db_dir)
+
 
 def add_metadata_to_history(history: List[str]):
     def turn_generator():
@@ -472,6 +505,63 @@ async def on_message(message):
             await message.reply(result['answer'])
     else:
         await bot.process_commands(message)
+
+
+@bot.command()
+async def update_discord_channels(ctx, guild_id: int):
+    guild_name = bot.get_guild(guild_id).name
+    await ctx.send(f"Started updating channels inside {guild_name} guild!")
+    update_discord_channels_periodically.start(ctx, guild_id)
+
+
+@tasks.loop(seconds=3600 * 24 * 15)
+async def update_discord_channels_periodically(ctx, guild_id: int):
+    channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
+
+    for ch, ch_name in channels:
+        last: Message | None = await last_indexed_page(channel_id=ch)
+        last_created_at = last.created_at if last is not None else None
+        await send_and_log(ctx, f"Started updating {ch_name} channel.")
+        try:
+            await index_channel_raw(
+                channel_id=ch,
+                after_datetime=last_created_at,
+                last_indexed_message=last
+            )
+        except Exception as e:
+            log.error(f"Exception occured during updating {ch_name} channel!")
+
+        await send_and_log(ctx, f"The {ch_name} channel updated!")
+    await send_and_log(ctx, "All channels were updated!")
+
+
+async def last_indexed_page(channel_id: int) -> Optional[Message]:
+    guild_id = get_guild_by_channel(channel_id).id
+    import sqlite3
+    con = sqlite3.connect(config.db_dir + "/chroma.sqlite3")
+    cur = con.cursor()
+    sql_query = f"""
+      SELECT embedding_id
+      FROM embeddings e 
+      WHERE embedding_id LIKE 'discord.com/channels/{guild_id}/{channel_id}/%'
+      ORDER BY id Desc 
+      LIMIT 1
+      """
+    try:
+        cur.execute(sql_query)
+        result = cur.fetchone()
+        if result:
+            id_parts = result[0].split("/")
+            msg_id = int(id_parts[-1])
+            channel_id = int(id_parts[-2])
+            guild_id = int(id_parts[-3])
+
+            msg: Message = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
+            return msg
+        else:
+            return None
+    except sqlite3.Error as e:
+        log.error("sqlite error: ", e)
 
 
 def main():
