@@ -19,6 +19,8 @@ services:
     build:
       context: ./bytebrain-server
       dockerfile: Dockerfile
+    volumes:
+      - ./db:./db-2023-09-06
     env_file: .env
     expose:
       - 8081
