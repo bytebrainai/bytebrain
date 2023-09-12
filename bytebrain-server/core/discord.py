@@ -218,7 +218,7 @@ async def update_discord_channels(ctx, guild_id: int):
     update_discord_channels_periodically.start(ctx, guild_id)
 
 
-@tasks.loop(seconds=3600 * 24 * 15)
+@tasks.loop(hours=config.discord_update_interval)
 async def update_discord_channels_periodically(ctx, guild_id: int):
     channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
 

@@ -70,3 +70,4 @@ host: 0.0.0.0
 port: 8081
 discord_messages_window_size: 10
 discord_messages_common_length: 5
+discord_update_interval: 360 # 15 days in hours
