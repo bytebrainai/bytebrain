@@ -32,7 +32,7 @@ async def websocket_endpoint(websocket: WebSocket):
     qa = make_question_answering_chatbot(
         websocket,
         config.db_dir,
-        config.webservice_prompt
+        config.webservice.prompt
     )
     while True:
         raw_data = await websocket.receive_text()
@@ -116,4 +116,4 @@ async def metrics():
 
 
 def main():
-    uvicorn.run("core.webservice:app", host=config.host, port=config.port, reload=True)
+    uvicorn.run("core.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=True)
