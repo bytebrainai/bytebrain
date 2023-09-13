@@ -14,6 +14,7 @@ class ByteBrainConfig:
     port: int
     discord_messages_window_size: int
     discord_messages_common_length: int
+    discord_update_interval: int
 
 
 def load_config() -> ByteBrainConfig:
