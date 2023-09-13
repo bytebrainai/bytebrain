@@ -123,8 +123,8 @@ async def server_info(ctx):
 @commands.has_permissions(administrator=True)
 async def index_channel(ctx, channel_id: int,
                         after: Optional[str] = None,
-                        window_size: Optional[int] = config.discord_messages_window_size,
-                        common_length: Optional[int] = config.discord_messages_common_length):
+                        window_size: Optional[int] = config.discord.messages_window_size,
+                        common_length: Optional[int] = config.discord.messages_common_length):
     channel = bot.get_channel(channel_id)
     channel_name = channel.name
     after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
@@ -159,7 +159,7 @@ async def on_message(message):
             qa = make_question_answering_chatbot(
                 None,
                 config.db_dir,
-                config.discord_prompt
+                config.discord.prompt
             )
 
             result: dict[str, Any] = await qa.acall(
@@ -218,7 +218,7 @@ async def update_discord_channels(ctx, guild_id: int):
     update_discord_channels_periodically.start(ctx, guild_id)
 
 
-@tasks.loop(hours=config.discord_update_interval)
+@tasks.loop(hours=config.discord.update_interval)
 async def update_discord_channels_periodically(ctx, guild_id: int):
     channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
 
@@ -233,8 +233,8 @@ async def update_discord_channels_periodically(ctx, guild_id: int):
                 channel_history.history.insert(0, last)
             await index_channel_history(
                 channel_history,
-                config.discord_messages_window_size,
-                config.discord_messages_common_length
+                config.discord.messages_window_size,
+                config.discord.messages_common_length
             )
         except Exception as e:
             log.error(f"Exception occurred during updating {ch_name} channel!")
