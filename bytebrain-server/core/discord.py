@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 import re
@@ -212,6 +213,29 @@ async def on_message(message):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
+async def update_discord_channel(ctx, channel_id: int):
+    last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id=channel_id)
+    channel_name = bot.get_channel(channel_id).name
+    last_created_at = last.created_at if last is not None else None
+    await send_and_log(ctx, f"Started updating {channel_name} channel.")
+    try:
+        channel_history: ChannelHistory = await fetch_channel_history(channel_id, last_created_at)
+        if last is not None:
+            # Add the first messaged of last indexed page
+            channel_history.history.insert(0, last)
+        await index_channel_history(
+            channel_history,
+            config.discord.messages_window_size,
+            config.discord.messages_common_length
+        )
+    except Exception as e:
+        log.error(f"Exception occurred during updating {channel_name} channel! + {str(e)}")
+
+    await send_and_log(ctx, f"The {channel_name} channel updated!")
+
+
+@bot.command()
 async def update_discord_channels(ctx, guild_id: int):
     guild_name = bot.get_guild(guild_id).name
     await ctx.send(f"Started updating channels inside {guild_name} guild!")
@@ -220,26 +244,8 @@ async def update_discord_channels(ctx, guild_id: int):
 
 @tasks.loop(hours=config.discord.update_interval)
 async def update_discord_channels_periodically(ctx, guild_id: int):
-    channels: List[tuple[int, str]] = [(ch.id, ch.name) for ch in bot.get_guild(guild_id).channels]
-
-    for ch, ch_name in channels:
-        last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id=ch)
-        last_created_at = last.created_at if last is not None else None
-        await send_and_log(ctx, f"Started updating {ch_name} channel.")
-        try:
-            channel_history: ChannelHistory = await fetch_channel_history(ch, last_created_at)
-            if last is not None:
-                # Add the first messaged of last indexed page
-                channel_history.history.insert(0, last)
-            await index_channel_history(
-                channel_history,
-                config.discord.messages_window_size,
-                config.discord.messages_common_length
-            )
-        except Exception as e:
-            log.error(f"Exception occurred during updating {ch_name} channel!")
-
-        await send_and_log(ctx, f"The {ch_name} channel updated!")
+    for ch in bot.get_guild(guild_id).channels:
+        await update_discord_channel(ctx, ch.id)
     await send_and_log(ctx, "All channels were updated!")
 
 
@@ -371,11 +377,10 @@ async def fetch_channel_history(channel_id: int, after: Optional[datetime]) -> C
             log.info("Removed the old cached file!")
 
         log.info(f"Started to download channel history for {channel_name}")
-        history = await download_channel_history(channel_id, after=after)
+        history = await asyncio.wait_for(download_channel_history(channel_id, after=after), 360)
         combined_messages: List[DiscordMessage] = combine_user_messages(history, time_threshold=4)
         channel_history = ChannelHistory(guild_id=guild.id, guild_name=guild.name, channel_id=channel_id,
                                          channel_name=channel_name, history=combined_messages)
-
         dump_channel_history(channel_history, file_path)
 
     return channel_history
