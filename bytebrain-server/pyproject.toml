@@ -21,6 +21,7 @@ beautifulsoup4 = "^4.12.2"
 structlog = "^23.1.0"
 prometheus-client = "^0.17.1"
 chat-exporter = "^2.6.1"
+pysqlite3-binary = "^0.5.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
