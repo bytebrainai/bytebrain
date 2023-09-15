@@ -5,7 +5,7 @@ from core.discord import main
 
 
 def start():
-    load_sqlite3()
+    upgrade_sqlite_version()
     p1 = multiprocessing.Process(target=core.webservice.main)
     p2 = multiprocessing.Process(target=core.discord.main)
 
@@ -16,12 +16,14 @@ def start():
     p2.join()
 
 
-def load_sqlite3():
-    import subprocess
-    import sys
+def upgrade_sqlite_version():
+    import sqlite3
+    if sqlite3.sqlite_version_info < (3, 35, 0):
+        import subprocess
+        import sys
 
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "pysqlite3-binary"]
-    )
-    __import__("pysqlite3")
-    sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "pysqlite3-binary"]
+        )
+        __import__("pysqlite3")
+        sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
