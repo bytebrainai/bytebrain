@@ -20,7 +20,7 @@ services:
       context: ./bytebrain-server
       dockerfile: Dockerfile
     volumes:
-      - ./db:./db-2023-09-06
+      - ./db:./db
     env_file: .env
     expose:
       - 8081
