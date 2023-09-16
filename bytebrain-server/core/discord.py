@@ -150,6 +150,10 @@ async def index_channel(ctx, channel_id: int,
     )
 
 
+def is_private_message(message):
+    return isinstance(message.channel, discord.DMChannel)
+
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -159,7 +163,7 @@ async def on_message(message):
     if message.mention_everyone:
         return
 
-    if bot.user.mentioned_in(message):
+    if bot.user.mentioned_in(message) or is_private_message(message):
         async with message.channel.typing():
             log.info(f"received message from {message.channel} channel")
             qa = make_question_answering_chatbot(
