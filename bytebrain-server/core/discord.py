@@ -722,4 +722,6 @@ def _server_info() -> str:
 
 
 def main():
+    import sqlite3
+    log.info(f"started with sqlite version: ${sqlite3.sqlite_version}")
     bot.run(token=os.environ['DISCORD_BOT_TOKEN'])
