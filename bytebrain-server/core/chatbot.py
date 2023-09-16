@@ -15,6 +15,12 @@ from core.custom_conversational_chain import ConversationalRetrievalChainWithCus
 
 
 def make_doc_search(persistent_dir: str):
+    import sqlite3
+    if sqlite3.sqlite_version_info < (3, 35, 0):
+        import sys
+
+        __import__("pysqlite3")
+        sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
     return Chroma(
         persist_directory=persistent_dir,
         embedding_function=OpenAIEmbeddings()
