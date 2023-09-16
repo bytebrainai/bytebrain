@@ -24,7 +24,6 @@ from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
 from core.chatbot import make_question_answering_chatbot
-from core.upgrade_sqlite import upgrade_sqlite_version
 
 config = load_config()
 
@@ -723,5 +722,4 @@ def _server_info() -> str:
 
 
 def main():
-    upgrade_sqlite_version()
     bot.run(token=os.environ['DISCORD_BOT_TOKEN'])
