@@ -11,7 +11,6 @@ from structlog import getLogger
 
 from config import load_config
 from core.chatbot import make_question_answering_chatbot
-from core.upgrade_sqlite import upgrade_sqlite_version
 
 app = FastAPI()
 log = getLogger()
@@ -117,5 +116,4 @@ async def metrics():
 
 
 def main():
-    upgrade_sqlite_version()
     uvicorn.run("core.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=True)
