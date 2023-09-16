@@ -116,4 +116,6 @@ async def metrics():
 
 
 def main():
+    import sqlite3
+    log.info(f"started with sqlite version: ${sqlite3.sqlite_version}")
     uvicorn.run("core.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=True)
