@@ -14,6 +14,8 @@ from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from structlog import getLogger
 
+from core.upgrade_sqlite import upgrade_sqlite_version
+
 intents = discord.Intents.default()
 intents.members = True
 
@@ -318,5 +320,6 @@ def convert_messages_to_transcript(messages: List[Message]) -> (id, str):
 
 
 def update_vectorestore(texts: List[Document]):
+    upgrade_sqlite_version()
     embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
     Chroma.from_documents(texts, embeddings, persist_directory=os.environ["ZIOCHAT_CHROMA_DB_DIR"])
