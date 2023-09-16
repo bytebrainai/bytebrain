@@ -155,6 +155,10 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    # Do not respond to messages containing @here and @everyone
+    if message.mention_everyone:
+        return
+
     if bot.user.mentioned_in(message):
         async with message.channel.typing():
             log.info(f"received message from {message.channel} channel")
