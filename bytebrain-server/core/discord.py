@@ -13,7 +13,7 @@ from discord import Client
 from discord.ext import commands, tasks
 from discord.ext.commands import Bot
 from discord.guild import Guild
-from discord.message import MessageReference, Message
+from discord.message import Message
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.vectorstores import Chroma
@@ -24,6 +24,7 @@ from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
 from core.chatbot import make_question_answering_chatbot
+from core.upgrade_sqlite import upgrade_sqlite_version
 
 config = load_config()
 
@@ -597,6 +598,7 @@ def update_db(docs: List[Document], ids: Optional[List[str]] = None, persist_dir
         ids (Optional[List[str]]): A list of unique identifiers for the documents (optional).
         persist_directory (str): A database directory path
     """
+    upgrade_sqlite_version()
     embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
     Chroma.from_documents(docs, embeddings, ids=ids, persist_directory=persist_directory)
 
