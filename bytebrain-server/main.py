@@ -13,5 +13,3 @@ def start():
 
     p1.join()
     p2.join()
-
-
