@@ -13,3 +13,7 @@ def start():
 
     p1.join()
     p2.join()
+
+
+if __name__ == "__main__":
+    start()
