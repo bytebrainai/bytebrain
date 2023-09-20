@@ -156,6 +156,7 @@ def is_private_message(message):
 
 @bot.event
 async def on_message(message):
+    ctx = await bot.get_context(message)
     if message.author == bot.user:
         return
 
@@ -177,7 +178,7 @@ async def on_message(message):
                     "question": remove_discord_mention(message.content),
                     "project_name": config.project_name,
                     "chat_history": ["FULL CHAT HISTORY:"] + annotate_history_with_turns(
-                        await fetch_message_thread(bot, message.reference))
+                        await fetch_message_thread(ctx, message.reference))
                 },
                 return_only_outputs=True
             )
@@ -669,7 +670,9 @@ def remove_discord_mention(msg: str) -> str:
     return re.sub(r"<@.*?>", "", msg)
 
 
-async def fetch_message_thread(bot: discord.ext.commands.Bot, reference: discord.message.MessageReference) -> List[str]:
+async def fetch_message_thread(
+        ctx: discord.ext.commands.Context,
+        reference: discord.message.MessageReference) -> List[str]:
     """
     Retrieve a message thread including the referenced message.
 
@@ -679,7 +682,7 @@ async def fetch_message_thread(bot: discord.ext.commands.Bot, reference: discord
     as a list in chronological order, with the referenced message first.
 
     Args:
-        bot (discord.ext.commands.Bot): The Discord bot instance.
+        ctx (discord.ext.commands.Context): The Discord Message's Context.
         reference (discord.message.MessageReference): A `MessageReference` object containing
             information about the referenced message.
 
@@ -688,9 +691,9 @@ async def fetch_message_thread(bot: discord.ext.commands.Bot, reference: discord
     """
     if reference is None:
         return []
-    referenced_message = await bot.get_channel(reference.channel_id).fetch_message(reference.message_id)
+    referenced_message = await ctx.fetch_message(reference.message_id)
     parent_reference = referenced_message.reference
-    parent_messages = await fetch_message_thread(parent_reference) if parent_reference else []
+    parent_messages = await fetch_message_thread(ctx, parent_reference) if parent_reference else []
     message_content: list[str] = [referenced_message.content]
     return parent_messages + message_content
 
