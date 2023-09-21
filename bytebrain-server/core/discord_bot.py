@@ -24,6 +24,7 @@ from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
 from core.chatbot import make_question_answering_chatbot
 from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils import split_string_preserve_suprimum_number_of_lines
 
 config = load_config()
 
@@ -215,7 +216,10 @@ async def on_message(message):
                 else:
                     log.warning("source_doc is not exist in metadata")
 
-            await message.reply(result['answer'])
+            chunks = split_string_preserve_suprimum_number_of_lines(result['answer'], chunk_size=2000)
+            await message.reply(chunks[0])
+            for chunk in chunks[1:]:
+                await ctx.send(chunk)
     else:
         await bot.process_commands(message)
 
@@ -432,47 +436,6 @@ async def index_channel_history(
 
     assert (len(ids) == len(documents))
     update_db(documents, ids, config.db_dir)
-
-
-def split_string_preserve_lines(long_string: str, chunk_size: int):
-    """
-    Split a long string into smaller chunks, trying to keep whole lines within each chunk.
-
-    This function takes a long string as input and divides it into smaller chunks,
-    attempting to maintain line integrity within each chunk. The splitting is done
-    based on the specified `chunk_size`.
-
-    Args:
-        long_string (str): The input long string to be split.
-        chunk_size (int): The maximum size of each chunk.
-
-    Returns:
-        list: A list of smaller string chunks, preserving line breaks.
-
-    Example:
-        >>> long_text = "This is a long text with\nmultiple lines\nthat needs to be split."
-        >>> chunk_size = 20
-        >>> split_string_preserve_lines(long_text, chunk_size)
-        ['This is a long text', 'with\nmultiple lines', 'that needs to be', ' split.']
-
-    Note:
-        - If a single line in the input string is longer than the `chunk_size`, it
-          will be split across multiple chunks.
-        - Line breaks ('\n') are preserved within chunks to maintain line integrity.
-    """
-    chunks = []
-    current_chunk = ""
-
-    for line in long_string.splitlines():
-        if len(current_chunk) + len(line) + 1 > chunk_size:
-            chunks.append(current_chunk)
-            current_chunk = ""
-        current_chunk += line + "\n"
-
-    if current_chunk:
-        chunks.append(current_chunk)
-
-    return chunks
 
 
 def sliding_window_with_common_length(my_list, window_size, common_length):
@@ -711,7 +674,7 @@ async def send_message_in_chunks(ctx, msg: str, chunk_size: int = 2000):
         chunk_size (int, optional): The maximum character limit for each message chunk.
             Default is 2000 characters.
     """
-    for chunk in split_string_preserve_lines(msg, chunk_size):
+    for chunk in split_string_preserve_suprimum_number_of_lines(msg, chunk_size):
         await ctx.send(chunk)
 
 
