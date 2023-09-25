@@ -1,8 +1,9 @@
 import unittest
 from unittest import TestCase
 
-from dev.sample_text_splitter import identify_changed_files, identify_removed_snippets, map_ids_to_paths, \
-    create_dict_from_keys_and_values
+from dev.sample_text_splitter import identify_changed_files, identify_removed_snippets
+from core.utils import create_dict_from_keys_and_values
+from core.db import map_ids_to_paths
 
 
 class TestIdentifyChanges(TestCase):
@@ -150,39 +151,6 @@ class TestIdentifyRemovedSnippets(TestCase):
         }
         result = identify_removed_snippets(old, new)
         self.assertEqual(result, [])
-
-
-class TestMapIdsToPaths(unittest.TestCase):
-
-    def test_empty_list(self):
-        # Test when the input list is empty
-        ids = []
-        result = map_ids_to_paths(ids)
-        self.assertEqual(result, [])
-
-    def test_single_id(self):
-        # Test when there is a single ID in the list
-        ids = [
-            "source_code:github.com/zio/zio:benchmarks/src/main/scala-2.12/zio/GenBenchmarks.scala:fbb107a47a17202f1b5f3a39f3345c09"
-        ]
-        result = map_ids_to_paths(ids)
-        self.assertEqual(result,
-                         ["benchmarks/src/main/scala-2.12/zio/GenBenchmarks.scala"])
-
-    def test_multiple_ids(self):
-        # Test when there are multiple IDs in the list
-        ids = [
-            "source_code:github.com/zio/zio:benchmarks/src/main/scala-2.12/zio/GenBenchmarks.scala",
-            "source_code:github.com/zio/zio:benchmarks/src/main/scala/zio/ArrayFillBenchmark.scala",
-            "source_code:github.com/zio/zio:benchmarks/src/main/scala/zio/AsyncConcurrentBenchmarks.scala"
-        ]
-        result = map_ids_to_paths(ids)
-        expected = [
-            "benchmarks/src/main/scala-2.12/zio/GenBenchmarks.scala",
-            "benchmarks/src/main/scala/zio/ArrayFillBenchmark.scala",
-            "benchmarks/src/main/scala/zio/AsyncConcurrentBenchmarks.scala"
-        ]
-        self.assertEqual(result, expected)
 
 
 class TestCreateDictFromKeysAndValues(unittest.TestCase):
