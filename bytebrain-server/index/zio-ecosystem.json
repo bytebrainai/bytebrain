@@ -1,325 +1,406 @@
 [
   {
+    "id": "github.com/zio/zio-quill",
     "clone_url": "https://github.com/zio/zio-quill.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-actors",
     "clone_url": "https://github.com/zio/zio-actors.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-keeper",
     "clone_url": "https://github.com/zio/zio-keeper.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-kafka",
     "clone_url": "https://github.com/zio/zio-kafka.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-sqs",
     "clone_url": "https://github.com/zio/zio-sqs.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-shield",
     "clone_url": "https://github.com/zio/zio-shield.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-cats",
     "clone_url": "https://github.com/zio/interop-cats.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/interop-monix",
     "clone_url": "https://github.com/zio/interop-monix.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-java",
     "clone_url": "https://github.com/zio/interop-java.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-future",
     "clone_url": "https://github.com/zio/interop-future.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-scalaz",
     "clone_url": "https://github.com/zio/interop-scalaz.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-reactive-streams",
     "clone_url": "https://github.com/zio/interop-reactive-streams.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-twitter",
     "clone_url": "https://github.com/zio/interop-twitter.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-akka-cluster",
     "clone_url": "https://github.com/zio/zio-akka-cluster.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-metrics-legacy",
     "clone_url": "https://github.com/zio/zio-metrics-legacy.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-nio",
     "clone_url": "https://github.com/zio/zio-nio.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/interop-guava",
     "clone_url": "https://github.com/zio/interop-guava.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-delegate",
     "clone_url": "https://github.com/zio/zio-delegate.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-logging",
     "clone_url": "https://github.com/zio/zio-logging.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-macros",
     "clone_url": "https://github.com/zio/zio-macros.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-config",
     "clone_url": "https://github.com/zio/zio-config.git",
     "default_branch": "series/4.x"
   },
   {
+    "id": "github.com/zio/zio-analytics",
     "clone_url": "https://github.com/zio/zio-analytics.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-telemetry",
     "clone_url": "https://github.com/zio/zio-telemetry.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-intellij",
     "clone_url": "https://github.com/zio/zio-intellij.git",
     "default_branch": "idea231.x"
   },
   {
+    "id": "github.com/zio/zio-ftp",
     "clone_url": "https://github.com/zio/zio-ftp.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-sql",
     "clone_url": "https://github.com/zio/zio-sql.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-rocksdb",
     "clone_url": "https://github.com/zio/zio-rocksdb.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-s3",
     "clone_url": "https://github.com/zio/zio-s3.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-redis",
     "clone_url": "https://github.com/zio/zio-redis.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-project-seed.g8",
     "clone_url": "https://github.com/zio/zio-project-seed.g8.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-process",
     "clone_url": "https://github.com/zio/zio-process.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-gcp",
     "clone_url": "https://github.com/zio/zio-gcp.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-codec",
     "clone_url": "https://github.com/zio/zio-codec.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-concurrent",
     "clone_url": "https://github.com/zio/zio-concurrent.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/izumi-reflect",
     "clone_url": "https://github.com/zio/izumi-reflect.git",
     "default_branch": "develop"
   },
   {
+    "id": "github.com/zio/zio-zmx",
     "clone_url": "https://github.com/zio/zio-zmx.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-prelude",
     "clone_url": "https://github.com/zio/zio-prelude.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-test-intellij",
     "clone_url": "https://github.com/zio/zio-test-intellij.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-cli",
     "clone_url": "https://github.com/zio/zio-cli.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-distributed",
     "clone_url": "https://github.com/zio/zio-distributed.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-query",
     "clone_url": "https://github.com/zio/zio-query.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-dynamodb",
     "clone_url": "https://github.com/zio/zio-dynamodb.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-connect",
     "clone_url": "https://github.com/zio/zio-connect.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-columnar",
     "clone_url": "https://github.com/zio/zio-columnar.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-json",
     "clone_url": "https://github.com/zio/zio-json.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-memberlist",
     "clone_url": "https://github.com/zio/zio-memberlist.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-aws",
     "clone_url": "https://github.com/zio/zio-aws.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-cache",
     "clone_url": "https://github.com/zio/zio-cache.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-schema",
     "clone_url": "https://github.com/zio/zio-schema.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-flow",
     "clone_url": "https://github.com/zio/zio-flow.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-crypto",
     "clone_url": "https://github.com/zio/zio-crypto.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-http",
     "clone_url": "https://github.com/zio/zio-http.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-protoquill",
     "clone_url": "https://github.com/zio/zio-protoquill.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-simple-seed.g8",
     "clone_url": "https://github.com/zio/zio-simple-seed.g8.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-spark",
     "clone_url": "https://github.com/zio/zio-spark.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-webhooks",
     "clone_url": "https://github.com/zio/zio-webhooks.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-optics",
     "clone_url": "https://github.com/zio/zio-optics.git",
     "default_branch": "series/2.x"
   },
   {
+    "id": "github.com/zio/zio-lambda",
     "clone_url": "https://github.com/zio/zio-lambda.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/caliban-deriving",
     "clone_url": "https://github.com/zio/caliban-deriving.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-parser",
     "clone_url": "https://github.com/zio/zio-parser.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-uring",
     "clone_url": "https://github.com/zio/zio-uring.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-meta",
     "clone_url": "https://github.com/zio/zio-meta.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-profiling",
     "clone_url": "https://github.com/zio/zio-profiling.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-insight",
     "clone_url": "https://github.com/zio/zio-insight.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-morphir",
     "clone_url": "https://github.com/zio/zio-morphir.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-mock",
     "clone_url": "https://github.com/zio/zio-mock.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-jdbc",
     "clone_url": "https://github.com/zio/zio-jdbc.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-petclinic",
     "clone_url": "https://github.com/zio/zio-petclinic.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-deriving",
     "clone_url": "https://github.com/zio/zio-deriving.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-quickstart-hello-world",
     "clone_url": "https://github.com/zio/zio-quickstart-hello-world.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-quickstarts",
     "clone_url": "https://github.com/zio/zio-quickstarts.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-quickstart-graphql-webservice",
     "clone_url": "https://github.com/zio/zio-quickstart-graphql-webservice.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-constraintless",
     "clone_url": "https://github.com/zio/zio-constraintless.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-metrics-connectors",
     "clone_url": "https://github.com/zio/zio-metrics-connectors.git",
     "default_branch": "zio/series2.x"
   },
   {
+    "id": "github.com/zio/zio-direct",
     "clone_url": "https://github.com/zio/zio-direct.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-sbt",
     "clone_url": "https://github.com/zio/zio-sbt.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-insight-server",
     "clone_url": "https://github.com/zio/zio-insight-server.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-direct-intellij",
     "clone_url": "https://github.com/zio/zio-direct-intellij.git",
     "default_branch": "master"
   },
   {
+    "id": "github.com/zio/zio-openai",
     "clone_url": "https://github.com/zio/zio-openai.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-wasm",
     "clone_url": "https://github.com/zio/zio-wasm.git",
     "default_branch": "main"
   },
   {
+    "id": "github.com/zio/zio-bson",
     "clone_url": "https://github.com/zio/zio-bson.git",
     "default_branch": "main"
   }

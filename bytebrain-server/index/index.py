@@ -8,16 +8,17 @@ import googleapiclient.discovery
 import requests
 import yaml
 from git import Repo
-from langchain.document_loaders import GitLoader
 from langchain.document_loaders import UnstructuredMarkdownLoader
 from langchain.document_loaders import YoutubeLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import MarkdownTextSplitter
 from langchain.vectorstores import Chroma
+from structlog import getLogger
 
 from config import load_config
-from structlog import getLogger
+from core.db import upsert_docs
+from core.document_loader import load_source_code
 
 config = load_config()
 
@@ -190,8 +191,19 @@ def index_zionomicon_book():
 
 
 def index_zio_project_source_code():
-    ids, docs = load_source_code(repo_path=os.environ["ZIOCHAT_ZIO_REPO_DIR"], branch="series/2.x")
-    update_db(docs, ids)
+    source_identifier = "github.com/zio/zio"
+    ids, docs = load_source_code(
+        repo_path=os.environ["ZIOCHAT_ZIO_REPO_DIR"],
+        branch="series/2.x",
+        source_identifier=source_identifier
+    )
+    upsert_docs(
+        ids=ids,
+        docs=docs,
+        db_dir=config.db_dir,
+        doc_type="source_code",
+        source_identifier=source_identifier
+    )
 
 
 def clone_repo(repo_url, depth=1) -> str:
@@ -200,7 +212,7 @@ def clone_repo(repo_url, depth=1) -> str:
     return temp_folder
 
 
-def zio_ecosystem_clone_urls():
+def zio_ecosystem_projects():
     file_path = "index/zio-ecosystem.json"
     try:
         with open(file_path, 'r') as file:
@@ -210,30 +222,14 @@ def zio_ecosystem_clone_urls():
 
 
 def index_zio_ecosystem_source_code():
-    for prj in zio_ecosystem_clone_urls():
-        print(prj)
-        prj_dir = clone_repo(prj['clone_url'])
-        ids, docs = load_source_code(prj_dir, prj['default_branch'])
+    for p in zio_ecosystem_projects():
+        project_dir = clone_repo(p['clone_url'])
+        ids, docs = load_source_code(
+            repo_path=project_dir,
+            branch=p['default_branch'],
+            source_identifier=p['id']
+        )
         update_db(docs, ids)
-
-
-def load_source_code(repo_path: str, branch: Optional[str]) -> (List[str], List[Document]):
-    loader = GitLoader(
-        repo_path=repo_path,
-        branch=branch,
-        file_filter=lambda file_path: file_path.endswith(".scala")
-    )
-    docs = loader.load()
-
-    ids: List[str] = []
-    for doc in docs:
-        # TODO: add prefix for source code ids e.g. project name
-        id = doc.metadata['file_path']
-        ids.append(id)
-
-    assert (len(ids) == len(docs))
-    # TODO: fragment large source codes
-    return ids, docs
 
 
 def list_of_channel_videos():
@@ -346,3 +342,5 @@ def index_all():
     index_zio_project_docs()
     index_zionomicon_book()
     index_zio_project_source_code()
+    index_zio_ecosystem_source_code()
+
