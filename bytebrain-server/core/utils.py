@@ -1,4 +1,59 @@
-from typing import List
+from typing import Dict, List, TypeVar
+
+import hashlib
+
+T = TypeVar('T')
+
+
+def calculate_md5_checksum(text):
+    data = text.encode('utf-8')
+    md5_hash = hashlib.md5()
+    md5_hash.update(data)
+    md5_checksum = md5_hash.hexdigest()
+    return md5_checksum
+
+
+def identify_removed_snippets(
+        old: Dict[str, List[str]],
+        new: Dict[str, List[str]]
+) -> List[str]:
+    removed_files: List[str] = []
+    for key, values in old.items():
+        if key not in new:
+            removed_files.append(key)
+    return removed_files
+
+
+def identify_changed_files(
+        original: Dict[str, List[str]],
+        new: Dict[str, List[str]]) -> List[str]:
+    changed_files: List[str] = []
+    for file_path, hashes in new.items():
+        if file_path not in original:
+            changed_files.append(file_path)
+        else:
+            original_hashes = original[file_path]
+            if len(hashes) != len(original_hashes):
+                changed_files.append(file_path)
+            elif set(hashes) != set(original_hashes):
+                changed_files.append(file_path)
+    return changed_files
+
+
+def create_dict_from_keys_and_values(keys: List[str], values: List[T]) -> Dict[str, List[T]]:
+    assert (len(keys) == len(values))
+
+    id_doc_dict = {}
+
+    if len(keys) == 0:
+        return id_doc_dict
+
+    for i, file_path in enumerate(keys):
+        if file_path in id_doc_dict:
+            id_doc_dict[file_path].append(values[i])
+        else:
+            id_doc_dict[file_path] = [values[i]]
+    return id_doc_dict
 
 
 def split_string_preserve_suprimum_number_of_lines(input_string: str, chunk_size: int) -> List[str]:
