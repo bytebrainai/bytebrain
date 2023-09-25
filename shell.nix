@@ -3,6 +3,7 @@ with pkgs;
 mkShell {
   buildInputs = [
     python310
+    python310Packages.ipython
     python310Packages.virtualenv
     python310Packages.pip
     stdenv.cc.cc.lib
