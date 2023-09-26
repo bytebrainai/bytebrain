@@ -50,8 +50,11 @@ def index_docs(ids: List[str], docs: List[Document], db_dir: str):
     )
 
 
-def upsert_docs(ids: List[str], docs: List[Document], db_dir: str, doc_type: str, source_identifier: str):
+def upsert_docs(ids: List[str], docs: List[Document], db_dir: str):
     assert (len(ids) == len(docs))
+    parts = ids[0].split(':')
+    doc_type = parts[0]
+    source_identifier = parts[1]
 
     new_paths: List[str] = map_ids_to_paths(ids)
     new_hashes: List[str] = map_ids_to_hashes(ids)

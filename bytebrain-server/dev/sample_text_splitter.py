@@ -12,7 +12,7 @@ def load_saved_ids():
 
 def start():
     ids, docs = load_source_code("/home/milad/sources/scala/zio", "series/2.x", "github.com/zio/zio")
-    upsert_docs(ids[0:9], docs[0:9], "./mynewdb", "source_code", "github.com/zio/zio")
+    upsert_docs(ids[0:9], docs[0:9], "./mynewdb")
 
 
 if __name__ == "__main__":

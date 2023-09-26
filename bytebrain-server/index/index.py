@@ -19,6 +19,7 @@ from structlog import getLogger
 from config import load_config
 from core.db import upsert_docs
 from core.document_loader import load_source_code
+from core.utils import calculate_md5_checksum
 
 config = load_config()
 
@@ -44,9 +45,8 @@ def extract_metadata(md_file_path: str) -> Dict[str, str]:
         return {"id": file_name, "title": file_name}
 
 
-def load_zio_website_docs(directory: str) -> List[Document]:
+def load_zio_website_docs(directory: str) -> (List[str], List[Document]):
     documents: list[Document] = []
-
     for root, dirs, files in os.walk(directory):
         for filename in files:
             if filename.endswith('.md'):
@@ -64,56 +64,25 @@ def load_zio_website_docs(directory: str) -> List[Document]:
     log.info(f"Number of original docs: {len(documents)}")
     fragmented_docs = MarkdownTextSplitter().split_documents(documents)
     log.info(f"Number of docs after split phase: {len(fragmented_docs)}")
-    return fragmented_docs
 
-
-def generate_ids_for_zionomicon_docs(docs: List[Document]) -> List[str]:
     ids: List[str] = []
+    for d in fragmented_docs:
+        hash = calculate_md5_checksum(d.page_content)
+        doc_type = "documentation"
+        source_identifier = "github.com/zio/zio"
+        id = f"{doc_type}:{source_identifier}:{d.metadata['doc_path']}:{hash}"
+        ids.append(id)
 
-    current_file_name = None
-    index = 0
-
-    for i, current in enumerate(docs):
-        doc_path = current.metadata['doc_path']
-
-        if doc_path != current_file_name:
-            current_file_name = doc_path
-            index = 0
-
-        ids.append(f"zionomicon/{doc_path}/{index}")
-        index += 1
-
-    assert (len(ids) == len(docs))
-    return ids
-
-
-def generate_ids_for_website_docs(docs: List[Document]) -> List[str]:
-    ids: List[str] = []
-
-    current_page_id = None
-    index = 0
-
-    for i, current in enumerate(docs):
-        doc_id = current.metadata['doc_id']
-
-        if doc_id != current_page_id:
-            current_page_id = doc_id
-            index = 0
-
-        ids.append(f"zio.dev/{doc_id}/{index}")
-        index += 1
-
-    assert (len(ids) == len(docs))
-    return ids
+    assert (len(ids) == len(fragmented_docs))
+    return ids, fragmented_docs
 
 
 def index_zio_project_docs():
-    docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
-    ids = generate_ids_for_website_docs(docs)
-    update_db(docs, ids)
+    ids, docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
+    upsert_docs(ids, docs, config.db_dir)
 
 
-def load_zionomicon_docs(directory: str) -> List[Document]:
+def load_zionomicon_docs(directory: str) -> (List[str], List[Document]):
     documents: list[Document] = []
 
     chapters = {
@@ -181,29 +150,29 @@ def load_zionomicon_docs(directory: str) -> List[Document]:
                     doc.metadata.setdefault("doc_chapter", chapters[file_name])
                 documents.extend(docs)
 
-    return MarkdownTextSplitter().split_documents(documents)
+    fragmented_docs = MarkdownTextSplitter().split_documents(documents)
+
+    ids: List[str] = []
+    for d in fragmented_docs:
+        hash = calculate_md5_checksum(d.page_content)
+        doc_type = "documentation"
+        source_identifier = "github.com/zivergetech/zionomicon"
+        id = f"{doc_type}:{source_identifier}:{d.metadata['doc_path']}:{hash}"
+        ids.append(id)
+
+    assert (len(ids) == len(fragmented_docs))
+    return ids, fragmented_docs
 
 
 def index_zionomicon_book():
-    docs = load_zionomicon_docs(os.environ["ZIOCHAT_ZIONOMICON_DOCS_DIR"])
-    ids = generate_ids_for_zionomicon_docs(docs)
-    update_db(docs, ids)
+    ids, docs = load_zionomicon_docs(os.environ["ZIOCHAT_ZIONOMICON_DOCS_DIR"])
+    upsert_docs(ids, docs, config.db_dir)
 
 
 def index_zio_project_source_code():
     source_identifier = "github.com/zio/zio"
-    ids, docs = load_source_code(
-        repo_path=os.environ["ZIOCHAT_ZIO_REPO_DIR"],
-        branch="series/2.x",
-        source_identifier=source_identifier
-    )
-    upsert_docs(
-        ids=ids,
-        docs=docs,
-        db_dir=config.db_dir,
-        doc_type="source_code",
-        source_identifier=source_identifier
-    )
+    ids, docs = load_source_code(os.environ["ZIOCHAT_ZIO_REPO_DIR"], "series/2.x", source_identifier)
+    upsert_docs(ids, docs, config.db_dir)
 
 
 def clone_repo(repo_url, depth=1) -> str:
@@ -229,7 +198,7 @@ def index_zio_ecosystem_source_code():
             branch=p['default_branch'],
             source_identifier=p['id']
         )
-        update_db(docs, ids)
+        upsert_docs(ids, docs, config.db_dir)
 
 
 def list_of_channel_videos():
@@ -324,7 +293,7 @@ def get_zio_ecosystem_repo_info():
                 clone_url = repo["clone_url"]
                 default_branch = repo["default_branch"]
                 print(clone_url)
-                repo_infos.append({
+                repo_infos.append({  # TODO: Add id field for each entry
                     "clone_url": clone_url,
                     "default_branch": default_branch
                 })
