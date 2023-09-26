@@ -29,7 +29,6 @@ def load_zio_website_docs(directory: str) -> (List[str], List[Document]):
         for filename in files:
             if filename.endswith('.md'):
                 md_path = os.path.join(root, filename)
-                log.info(md_path)
                 docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
                 metadata: dict[str, str] = extract_metadata(md_path)
                 for index, doc in enumerate(docs):

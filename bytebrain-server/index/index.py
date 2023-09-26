@@ -11,28 +11,29 @@ from langchain.schema import Document
 from structlog import getLogger
 
 from config import load_config
-from core.db import upsert_docs, update_db
+from core.db import Database
 from core.document_loader import load_source_code, load_zionomicon_docs, load_zio_website_docs
 from core.utils import calculate_md5_checksum
 
 config = load_config()
 log = getLogger()
+db = Database(config.db_dir)
 
 
 def index_zio_project_docs():
     ids, docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
-    upsert_docs(ids, docs, config.db_dir)
+    db.upsert_docs(ids, docs)
 
 
 def index_zionomicon_book():
     ids, docs = load_zionomicon_docs(os.environ["ZIOCHAT_ZIONOMICON_DOCS_DIR"])
-    upsert_docs(ids, docs, config.db_dir)
+    db.upsert_docs(ids, docs)
 
 
 def index_zio_project_source_code():
     source_identifier = "github.com/zio/zio"
     ids, docs = load_source_code(os.environ["ZIOCHAT_ZIO_REPO_DIR"], "series/2.x", source_identifier)
-    upsert_docs(ids, docs, config.db_dir)
+    db.upsert_docs(ids, docs)
 
 
 def clone_repo(repo_url, depth=1) -> str:
@@ -58,7 +59,7 @@ def index_zio_ecosystem_source_code():
             branch=p['default_branch'],
             source_identifier=p['id']
         )
-        upsert_docs(ids, docs, config.db_dir)
+        db.upsert_docs(ids, docs)
 
 
 def list_of_channel_videos():
@@ -129,7 +130,7 @@ def index_youtube_video():
             #       We need to split that into multiple smaller documents
             ids = [calculate_md5_checksum(c.page_content) for c in docs]
             assert (len(ids) == len(docs))
-            update_db(ids, docs, config.db_dir)
+            db.update_db(ids, docs)
         except Exception:
             print("Failed to index video id: " + video_id)
 
