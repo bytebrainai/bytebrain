@@ -1,9 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from dev.sample_text_splitter import identify_changed_files, identify_removed_snippets
-from core.utils import create_dict_from_keys_and_values
-from core.db import map_ids_to_paths
+from core.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
 
 
 class TestIdentifyChanges(TestCase):
