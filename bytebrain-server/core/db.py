@@ -1,4 +1,6 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
+from langchain.vectorstores import Chroma
+from langchain.embeddings.openai import OpenAIEmbeddings
 
 from langchain.schema import Document
 
@@ -48,6 +50,11 @@ def index_docs(ids: List[str], docs: List[Document], db_dir: str):
         embedding=embeddings,
         persist_directory=db_dir
     )
+
+
+def update_db(ids: List[str], texts: list[Document], db_dir: str):
+    embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+    Chroma.from_documents(texts, embeddings, ids=ids, persist_directory=db_dir)
 
 
 def upsert_docs(ids: List[str], docs: List[Document], db_dir: str):
