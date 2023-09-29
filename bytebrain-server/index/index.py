@@ -54,12 +54,14 @@ def zio_ecosystem_projects():
 def index_zio_ecosystem_source_code():
     for p in zio_ecosystem_projects():
         project_dir = clone_repo(p['clone_url'])
+        log.info(f"Indexing {p['id']} source code")
         ids, docs = load_source_code(
             repo_path=project_dir,
             branch=None,
             source_identifier=p['id']
         )
         db.upsert_docs(ids, docs)
+        log.info(f"Indexed {p['id']} source code")
 
 
 def list_of_channel_videos():
