@@ -36,7 +36,8 @@ def load_config() -> ByteBrainConfig:
     name = config['name']
     project_name = config['project_name']
     db_dir = config['db_dir']
+    embeddings_dir = config['embeddings_dir']
     webservice = WebserviceConfig(**config['webservice'])
     discord = DiscordBotConfig(**config['discord'])
 
-    return ByteBrainConfig(name, project_name, db_dir, webservice, discord)
+    return ByteBrainConfig(name, project_name, db_dir, embeddings_dir, webservice, discord)
