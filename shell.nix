@@ -15,6 +15,7 @@ mkShell {
     guake
     fish
     vim
+    git
   ];
 
   shellHook = ''
