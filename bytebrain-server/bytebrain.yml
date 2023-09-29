@@ -1,6 +1,7 @@
 name: ZIO CHAT
 project_name: ZIO
 db_dir: './db'
+embeddings_dir: './embeddings-cache'
 webservice:
   prompt: |-
     Please refactor your answer to the User's Query based on given REFACTOR RULES. 

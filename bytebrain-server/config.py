@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import yaml
 
@@ -23,6 +24,7 @@ class ByteBrainConfig:
     name: str
     project_name: str
     db_dir: str
+    embeddings_dir: Optional[str]
     webservice: WebserviceConfig
     discord: DiscordBotConfig
 

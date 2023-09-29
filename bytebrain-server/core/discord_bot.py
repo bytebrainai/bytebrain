@@ -25,6 +25,7 @@ from core.DiscordMessage import DiscordMessage
 from core.chatbot import make_question_answering_chatbot
 from core.upgrade_sqlite import upgrade_sqlite_version
 from core.utils import split_string_preserve_suprimum_number_of_lines
+from core.db import Database
 
 config = load_config()
 
@@ -435,7 +436,8 @@ async def index_channel_history(
            for doc in documents]
 
     assert (len(ids) == len(documents))
-    update_db(documents, ids, config.db_dir)
+    db = Database(config.db_dir, config.embeddings_dir)
+    db.index_docs(ids, documents)
 
 
 def sliding_window_with_common_length(my_list, window_size, common_length):
