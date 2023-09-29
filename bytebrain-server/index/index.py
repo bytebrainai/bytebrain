@@ -56,7 +56,7 @@ def index_zio_ecosystem_source_code():
         project_dir = clone_repo(p['clone_url'])
         ids, docs = load_source_code(
             repo_path=project_dir,
-            branch=p['default_branch'],
+            branch=None,
             source_identifier=p['id']
         )
         db.upsert_docs(ids, docs)
