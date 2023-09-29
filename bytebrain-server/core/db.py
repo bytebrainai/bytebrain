@@ -1,15 +1,18 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.vectorstores import Chroma
+from langchain.storage import LocalFileStore
+from langchain.embeddings import CacheBackedEmbeddings
 
 from core.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
 
 
 class Database:
-    def __init__(self, db_dir: str):
+    def __init__(self, db_dir: str, embeddings_dir: Optional[str] = None):
         self.db_dir = db_dir
+        self.embeddings_dir = embeddings_dir
         self.chroma = Chroma(persist_directory=self.db_dir)
 
     def get_original_ids(self, docs_type: str, source_identifier: str) -> List[str]:
@@ -35,11 +38,17 @@ class Database:
     def index_docs(self, ids: List[str], docs: List[Document]):
         from langchain.embeddings.openai import OpenAIEmbeddings
 
-        embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+        underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+
+        fs = LocalFileStore(self.embeddings_dir)
+        cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+            underlying_embeddings, fs, namespace=underlying_embeddings.model
+        )
+
         self.chroma.from_documents(
             ids=ids,
             documents=docs,
-            embedding=embeddings,
+            embedding=cached_embedder,
             persist_directory=self.db_dir
         )
 

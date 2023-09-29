@@ -17,7 +17,7 @@ from core.utils import calculate_md5_checksum
 
 config = load_config()
 log = getLogger()
-db = Database(config.db_dir)
+db = Database(config.db_dir, config.embeddings_dir)
 
 
 def index_zio_project_docs():
