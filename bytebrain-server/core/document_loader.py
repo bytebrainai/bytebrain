@@ -51,6 +51,7 @@ def load_zio_website_docs(directory: str) -> (List[str], List[Document]):
     assert (len(ids) == len(fragmented_docs))
     return ids, fragmented_docs
 
+
 def load_source_code(
         repo_path: str,
         branch: Optional[str],
