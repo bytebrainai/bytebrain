@@ -21,6 +21,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./db:/app/db
+      - ./embeddings-cache:/app/embeddings-cache
+      - ./discord-cache:/app/discord-cache
     env_file: .env
     expose:
       - 8081
