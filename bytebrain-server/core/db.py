@@ -1,10 +1,10 @@
 from typing import List, Dict, Optional
 
+from langchain.embeddings import CacheBackedEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
-from langchain.vectorstores import Chroma
 from langchain.storage import LocalFileStore
-from langchain.embeddings import CacheBackedEmbeddings
+from langchain.vectorstores import Chroma
 
 from core.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
 
@@ -14,6 +14,12 @@ class Database:
         self.db_dir = db_dir
         self.embeddings_dir = embeddings_dir
         self.chroma = Chroma(persist_directory=self.db_dir)
+
+        underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+        fs = LocalFileStore(self.embeddings_dir)
+        self.cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+            underlying_embeddings, fs, namespace=underlying_embeddings.model
+        )
 
     def get_original_ids(self, docs_type: str, source_identifier: str) -> List[str]:
         import sqlite3
@@ -36,25 +42,12 @@ class Database:
         self.chroma.delete(ids)
 
     def index_docs(self, ids: List[str], docs: List[Document]):
-        from langchain.embeddings.openai import OpenAIEmbeddings
-
-        underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-
-        fs = LocalFileStore(self.embeddings_dir)
-        cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-            underlying_embeddings, fs, namespace=underlying_embeddings.model
-        )
-
         self.chroma.from_documents(
             ids=ids,
             documents=docs,
-            embedding=cached_embedder,
+            embedding=self.cached_embedder,
             persist_directory=self.db_dir
         )
-
-    def update_db(self, ids: List[str], texts: list[Document]):
-        embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-        Chroma.from_documents(texts, embeddings, ids=ids, persist_directory=self.db_dir)
 
     def upsert_docs(self, ids: List[str], docs: List[Document]):
         assert (len(ids) == len(docs))
