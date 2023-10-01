@@ -573,24 +573,6 @@ def add_header(channel_name: str, chat_history: str) -> str:
     return f"# Chat History for {channel_name}\n\n{chat_history}"
 
 
-def update_db(docs: List[Document], ids: Optional[List[str]] = None, persist_directory: str = "./db"):
-    """
-    Update a database with text documents and their embeddings.
-
-    This function takes a list of documents and their corresponding IDs (optional),
-    calculates embeddings for each document using an OpenAIEmbeddings object, and
-    stores the results in a persistent database directory.
-
-    Args:
-        docs (List[Document]): A list of documents to be added to the database.
-        ids (Optional[List[str]]): A list of unique identifiers for the documents (optional).
-        persist_directory (str): A database directory path
-    """
-    upgrade_sqlite_version()
-    embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-    Chroma.from_documents(docs, embeddings, ids=ids, persist_directory=persist_directory)
-
-
 def annotate_history_with_turns(history: List[str]) -> List[str]:
     """
     Annotate a conversation history with sender turns ("User" or "Bot").
