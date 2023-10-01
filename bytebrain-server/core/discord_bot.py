@@ -91,6 +91,14 @@ async def index_zio_docs(ctx):
 
 @bot.command()
 @commands.has_permissions(administrator=True)
+async def index_ziverge_youtube_channel(ctx):
+    await send_and_log(ctx, "Started indexing Ziverge's Youtube Channel!")
+    index.index_ziverge_youtube_channel()
+    await send_and_log(ctx, "Finished indexing Ziverge's Youtube Channel!")
+
+
+@bot.command()
+@commands.has_permissions(administrator=True)
 async def index_zionomicon(ctx):
     await send_and_log(ctx, "Started indexing Zionomicon book")
     index.index_zionomicon_book()

@@ -3,9 +3,11 @@ from typing import Optional, List, Dict
 
 import yaml
 from langchain.document_loaders import GitLoader
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter, Language, MarkdownTextSplitter
 from langchain.document_loaders import UnstructuredMarkdownLoader
+from langchain.document_loaders import YoutubeLoader
+from langchain.schema import Document
+from langchain.text_splitter import Language, MarkdownTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from core.utils import calculate_md5_checksum
 
@@ -158,3 +160,19 @@ def load_zionomicon_docs(directory: str) -> (List[str], List[Document]):
 
     assert (len(ids) == len(fragmented_docs))
     return ids, fragmented_docs
+
+
+def load_youtube_docs(video_id: str):
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    loader = YoutubeLoader.from_youtube_url(video_url, add_video_info=False)
+    docs: list[Document] = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+    splitted_docs = text_splitter.split_documents(docs)
+    for index, doc in enumerate(splitted_docs):
+        doc.metadata.pop("source")
+        doc.metadata.setdefault("doc_source", "youtube.com")
+        doc.metadata.setdefault("doc_url", video_url)
+    ids = [f"video_transcript:youtube.com/@Ziverge:{video_id}:{calculate_md5_checksum(c.page_content)}" for c in
+           splitted_docs]
+    assert (len(ids) == len(splitted_docs))
+    return ids, splitted_docs
