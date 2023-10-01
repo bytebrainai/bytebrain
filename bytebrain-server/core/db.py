@@ -6,6 +6,7 @@ from langchain.schema import Document
 from langchain.storage import LocalFileStore
 from langchain.vectorstores import Chroma
 
+from core.upgrade_sqlite import upgrade_sqlite_version
 from core.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
 
 
@@ -13,6 +14,7 @@ class Database:
     def __init__(self, db_dir: str, embeddings_dir: Optional[str] = None):
         self.db_dir = db_dir
         self.embeddings_dir = embeddings_dir
+        upgrade_sqlite_version()
         self.chroma = Chroma(persist_directory=self.db_dir)
 
         underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
