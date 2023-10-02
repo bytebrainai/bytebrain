@@ -595,7 +595,7 @@ def remove_discord_mention(msg: str) -> str:
     return re.sub(r"<@.*?>", "", msg)
 
 
-async def get_message_before_2(ctx, message: Message) -> Optional[Message]:
+async def get_message_before_v2(ctx, message: Message) -> Optional[Message]:
     channel = ctx.channel
     try:
         async for previous_message in channel.history(limit=2, before=message):
@@ -621,7 +621,7 @@ async def get_message_before(ctx, message_id: int) -> Optional[Message]:
 async def fetch_message_thread_v2(
         ctx: discord.ext.commands.Context,
         message: discord.message.Message) -> List[Tuple[str, str]]:
-    before = await get_message_before_2(ctx, message)
+    before = await get_message_before_v2(ctx, message)
     message_content: List[Tuple[str, str]]
 
     if message.reference is not None:
@@ -635,6 +635,7 @@ async def fetch_message_thread_v2(
         message_content = []
 
     return message_content
+
 
 async def fetch_message_thread(
         ctx: discord.ext.commands.Context,
