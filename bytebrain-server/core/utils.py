@@ -1,4 +1,4 @@
-from typing import Dict, List, TypeVar
+from typing import Dict, List, TypeVar, Tuple
 
 import hashlib
 
@@ -102,3 +102,48 @@ def split_string_preserve_suprimum_number_of_lines(input_string: str, chunk_size
         return chunks
 
     return loop(input_string.splitlines(), [], chunk_size)
+
+
+def annotate_history_with_turns(history: List[str]) -> List[str]:
+    """
+    Annotate a conversation history with sender turns ("User" or "Bot").
+
+    This function takes a list of messages representing a conversation history and
+    annotates each message with metadata indicating whether it was sent by the "User"
+    or the "Bot." It returns a list of messages with turn annotations.
+
+    Args:
+        history (List[str]): A list of strings representing the conversation history.
+
+    Returns:
+        List[str]: A list of strings with turn annotations.
+
+    Example:
+        >>> history = ["Hello", "How can I assist you?", "I have a question."]
+        >>> result = annotate_history_with_turns(history)
+        >>> print(result)
+        ['1. User: Hello', '2. Bot: How can I assist you?', '3. User: I have a question.']
+    """
+
+    def turn_generator():
+        while True:
+            yield "User"
+            yield "Bot"
+
+    turn_gen = turn_generator()
+    history_with_metadata = []
+
+    for i, msg in enumerate(history, start=1):
+        turn = next(turn_gen)
+        history_with_metadata.append(f"{i}. {turn}: {msg}")
+
+    return history_with_metadata
+
+
+def annotate_history_with_turns_v2(history: List[Tuple[str, str]]) -> List[str]:
+    history_with_metadata = []
+
+    for i, msg in enumerate(history, start=1):
+        history_with_metadata.append(f"{i}. {msg[0]}: {msg[1]}")
+
+    return history_with_metadata

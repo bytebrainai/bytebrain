@@ -4,7 +4,7 @@ import os
 import re
 from datetime import datetime
 from datetime import timedelta
-from typing import Any
+from typing import Any, Tuple
 from typing import List, Optional
 
 import chat_exporter
@@ -13,9 +13,7 @@ from discord.ext import commands, tasks
 from discord.ext.commands import Bot
 from discord.guild import Guild
 from discord.message import Message
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
-from langchain.vectorstores import Chroma
 from structlog import getLogger
 
 import index.index as index
@@ -23,9 +21,9 @@ from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
 from core.chatbot import make_question_answering_chatbot
-from core.upgrade_sqlite import upgrade_sqlite_version
-from core.utils import split_string_preserve_suprimum_number_of_lines
 from core.db import Database
+from core.utils import split_string_preserve_suprimum_number_of_lines
+from core.utils import annotate_history_with_turns_v2
 
 config = load_config()
 
@@ -181,12 +179,14 @@ async def on_message(message):
                 config.discord.prompt
             )
 
+            chat_history = ["FULL CHAT HISTORY:"] + annotate_history_with_turns_v2(
+                await fetch_message_thread_v2(ctx, message))
+
             result: dict[str, Any] = await qa.acall(
                 {
                     "question": remove_discord_mention(message.content),
                     "project_name": config.project_name,
-                    "chat_history": ["FULL CHAT HISTORY:"] + annotate_history_with_turns(
-                        await fetch_message_thread(ctx, message.reference))
+                    "chat_history": chat_history
                 },
                 return_only_outputs=True
             )
@@ -573,42 +573,6 @@ def add_header(channel_name: str, chat_history: str) -> str:
     return f"# Chat History for {channel_name}\n\n{chat_history}"
 
 
-def annotate_history_with_turns(history: List[str]) -> List[str]:
-    """
-    Annotate a conversation history with sender turns ("User" or "Bot").
-
-    This function takes a list of messages representing a conversation history and
-    annotates each message with metadata indicating whether it was sent by the "User"
-    or the "Bot." It returns a list of messages with turn annotations.
-
-    Args:
-        history (List[str]): A list of strings representing the conversation history.
-
-    Returns:
-        List[str]: A list of strings with turn annotations.
-
-    Example:
-        >>> history = ["Hello", "How can I assist you?", "I have a question."]
-        >>> result = annotate_history_with_turns(history)
-        >>> print(result)
-        ['1. User: Hello', '2. Bot: How can I assist you?', '3. User: I have a question.']
-    """
-
-    def turn_generator():
-        while True:
-            yield "User"
-            yield "Bot"
-
-    turn_gen = turn_generator()
-    history_with_metadata = []
-
-    for i, msg in enumerate(history, start=1):
-        turn = next(turn_gen)
-        history_with_metadata.append(f"{i}. {turn}: {msg}")
-
-    return history_with_metadata
-
-
 def remove_discord_mention(msg: str) -> str:
     """
     Remove Discord user mentions from a given message.
@@ -630,6 +594,47 @@ def remove_discord_mention(msg: str) -> str:
     """
     return re.sub(r"<@.*?>", "", msg)
 
+
+async def get_message_before_2(ctx, message: Message) -> Optional[Message]:
+    channel = ctx.channel
+    try:
+        async for previous_message in channel.history(limit=2, before=message):
+            # The limit is set to 2, so it will fetch the message before the target message
+            if previous_message.id != message.id:
+                return previous_message
+    except discord.NotFound:
+        return None
+
+
+async def get_message_before(ctx, message_id: int) -> Optional[Message]:
+    channel = ctx.channel
+    try:
+        message = await channel.fetch_message(message_id)
+        async for previous_message in channel.history(limit=2, before=message):
+            # The limit is set to 2, so it will fetch the message before the target message
+            if previous_message.id != message_id:
+                return previous_message
+    except discord.NotFound:
+        return None
+
+
+async def fetch_message_thread_v2(
+        ctx: discord.ext.commands.Context,
+        message: discord.message.Message) -> List[Tuple[str, str]]:
+    before = await get_message_before_2(ctx, message)
+    message_content: List[Tuple[str, str]]
+
+    if message.reference is not None:
+        referenced_message = await ctx.fetch_message(message.reference.message_id)
+        message_content = await fetch_message_thread_v2(ctx, referenced_message) + [
+            (referenced_message.author.name, referenced_message.content)]
+    elif abs(before.created_at - message.created_at) < timedelta(
+            minutes=5) and before.author.name == message.author.name:
+        message_content = await fetch_message_thread_v2(ctx, before) + [(before.author.name, before.content)]
+    else:
+        message_content = []
+
+    return message_content
 
 async def fetch_message_thread(
         ctx: discord.ext.commands.Context,
