@@ -24,24 +24,19 @@ generate_standalone_query = PromptTemplate(
 
 standalone_query_chain = LLMChain(llm=llm, prompt=generate_standalone_query, output_key="standalone-query")
 
-# query_prompt = PromptTemplate(
-#     input_variables=["standalone-query"],
-#     template="{standalone-query}"
-# )
-#
-# query_chain = LLMChain(llm=llm, prompt=query_prompt, output_key="text")
-
 refactor_prompt = PromptTemplate(
     input_variables=["standalone-query"],
-    template="""Please refactor your answer to the User's Query based on given REFACTOR RULES.
-
+    template="""
+    Please refactor your answer to the User's Query based on given REFACTOR RULES. 
+    If user asked you to write a code, please explain that code also. 
+    Don't include REFACTOR RULES in your explanation, but only use them to refactor your answers.
+  
     ----- 
     REFACTOR RULES: 
     If USER asked you to write code, you shouldn't use ZIO 1.x APIs in your generated response, instead you should only 
     use ZIO 2.x APIs.
-    Because ZIO 1.x API is old and deprecated. Anyway, to make sure that your code compatible with ZIO 2.x API use the 
-    following list. This is a list of tuples of "ZIO 1.x API" and "ZIO 2.x API":
-   
+    To make sure that your code is compatible with ZIO 2.x API, use the following migration table from ZIO 1.x to ZIO 2.x
+  
     | ZIO 1.x API | ZIO 2.x API |
     +-------------+-------------+
     | putStrLn | Console.printLine |
@@ -54,36 +49,30 @@ refactor_prompt = PromptTemplate(
     | ZIO.effectTotal | ZIO.succeed |
     | console.putStrLn | Console.printLine |
     | override def run(args: List[String]) | def run =  |
-    
-    Also remove these package imports: import zio.console.Console
+  
+    Remove any of following packages from import section: ["zio.console.Console"] 
+  
+    Before writing any code, write some introduction sentences.
+    Please add backticks for inline codes and three backticks for code blocks.
     ------
     USER's QUERY: {standalone-query}
     ------
-    YOUR ANSWER:""",
+    Before listing related questions, engage the user with a warming message.
+    After answering the user question, please don't forget to suggest some (max: 3) other related questions that a user 
+    can ask about the current topic!""",
 )
 
 query_chain = LLMChain(llm=llm, prompt=refactor_prompt, output_key="output")
-
-# from langchain.chains import ConversationalRetrievalChain
-#
-# refactor_chain = ConversationalRetrievalChain(
-#     combine_docs_chain=combine_docs_chain,
-#     llm=llm,
-#     prompt=refactor_prompt,
-#     output_key="output"
-# )
 
 chain = SequentialChain(chains=[standalone_query_chain, query_chain],
                         verbose=False,
                         input_variables=["query", "chat-history"],
                         output_variables=["output"])
 
-def run():
-    # chain({"query": "use console", "chat-history": "Please write a ZIO application that takes two numbers from user and print sum of them"})
-    # chain({"query": "What are the use-cases for ZIO?", "chat-history": ""})
-    # chain({"query": "Write hello world Restful service with zhttp", "chat-history": ""})
-    chain({"query": "Write a ZIO App which get 10 url from user in console and the fetch all those urls concurrently", "chat-history": ""})
-    # chain({"query": "Please write a zio application with an arbitrary logic.", "chat-history": ""})
-    # a: dict[str, Any] = chain({"query": "write fib function using fibers", "chat-history": ""})
-    # print(a)
-    # chain({"query": "Please write a bubble sort with ZIO", "chat-history": ""})
+if __name__ == "__main__":
+    chain(
+        {
+            "query": "What is its use-cases?",
+            "chat-history": "User: What is FiberRef? \nBot: FiberRef is one of the ZIO data structures."
+        }
+    )
