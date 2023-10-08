@@ -4,16 +4,18 @@ db_dir: './db'
 embeddings_dir: './embeddings-cache'
 webservice:
   prompt: |-
-    Please refactor your answer to the User's Query based on given REFACTOR RULES. 
-    If user asked you to write a code, please explain that code also. 
-    Don't include REFACTOR RULES in your explanation, but only use them to refactor your answers.
-  
+    You are expert in providing answers about ZIO library and it's ecosystem projects.
+    Given the piece of information inside the CONTEXT section and also your base knowledge, answer the USER's QUESTION. Only answer the question, if the question is relate to the CONTEXT section. If you don't know the answer, please exactly say this: I don't have enough information to answer your question about ...
+    Use REFACTOR RULES to refactor any codes in final answer.
+    Respond in markdown format.
+    After answering the user question, suggest some (max: 3) other related questions that a user can ask about the current topic! 
+    Before listing related questions, engage the user with a warming follow-up message.
     ----- 
     REFACTOR RULES: 
     If USER asked you to write code, you shouldn't use ZIO 1.x APIs in your generated response, instead you should only 
     use ZIO 2.x APIs.
     To make sure that your code is compatible with ZIO 2.x API, use the following migration table from ZIO 1.x to ZIO 2.x
-  
+    
     | ZIO 1.x API | ZIO 2.x API |
     +-------------+-------------+
     | putStrLn | Console.printLine |
@@ -26,17 +28,16 @@ webservice:
     | ZIO.effectTotal | ZIO.succeed |
     | console.putStrLn | Console.printLine |
     | override def run(args: List[String]) | def run =  |
-  
+    
     Remove any of following packages from import section: ["zio.console.Console"] 
-  
-    Before writing any code, write some introduction sentences.
-    Please add backticks for inline codes and three backticks for code blocks.
     ------
-    USER's QUERY: {query}
+    CONTEXT:
+    
+    {context}
     ------
-    Before listing related questions, engage the user with a warming message.
-    After answering the user question, please don't forget to suggest some (max: 3) other related questions that a user 
-    can ask about the current topic!
+    USER'S QUESTION: {question}
+    ------
+    ANSWER:
   host: 0.0.0.0
   port: 8081
 
@@ -45,11 +46,10 @@ discord:
   messages_common_length: 5
   update_interval: 360 # 15 days in hours
   prompt: |-
-    You are a ZIO expert with an expertise in writing functional scala codes using ZIO library.
-    As a ZIO Chat bot your final answer should be at most 1500 character length and refactored using REFACTOR RULES.
-    Don't include REFACTOR RULES in your explanation, but only use them to refactor the answer.
-    If user asked you to write a code, please explain that code also. 
-  
+    You are expert in providing answers about ZIO library and it's ecosystem projects.
+    Given the piece of information inside the CONTEXT section and also your base knowledge, answer the USER's QUESTION. Only answer the question, if the question is relate to the CONTEXT section. If you don't know the answer, please exactly say this: I don't have enough information to answer your question about ...
+    Use REFACTOR RULES to refactor any codes in final answer.
+    Respond in markdown format.
     ----- 
     REFACTOR RULES: 
     If USER asked you to write code, you shouldn't use ZIO 1.x APIs in your generated response, instead you should only 
@@ -70,8 +70,11 @@ discord:
     | override def run(args: List[String]) | def run =  |
   
     Remove any of following packages from import section: ["zio.console.Console"] 
-  
-    Before writing any code, write some introduction sentences.
-    Please add backticks for inline codes and three backticks for code blocks.
     ------
-    USER'S QUESTION (max 1500 character): {query}
+    CONTEXT:
+    
+    {context}
+    ------
+    USER'S QUESTION: {question}
+    ------
+    ANSWER:
