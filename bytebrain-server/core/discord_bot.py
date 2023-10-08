@@ -20,7 +20,7 @@ import index.index as index
 from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
-from core.chatbot import make_question_answering_chatbot
+from core.chatbot_v2 import make_question_answering_chatbot
 from core.db import Database
 from core.utils import split_string_preserve_suprimum_number_of_lines
 from core.utils import annotate_history_with_turns_v2
@@ -174,9 +174,9 @@ async def on_message(message):
         async with message.channel.typing():
             log.info(f"received message from {message.channel} channel")
             qa = make_question_answering_chatbot(
-                None,
-                config.db_dir,
-                config.discord.prompt
+                websocket=None,
+                persistent_dir=config.db_dir,
+                prompt_template=config.discord.prompt
             )
 
             chat_history = ["FULL CHAT HISTORY:"] + annotate_history_with_turns_v2(

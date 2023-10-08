@@ -10,7 +10,7 @@ from starlette.responses import Response
 from structlog import getLogger
 
 from config import load_config
-from core.chatbot import make_question_answering_chatbot
+from core.chatbot_v2 import make_question_answering_chatbot
 
 app = FastAPI()
 log = getLogger()
@@ -30,9 +30,9 @@ async def websocket_endpoint(websocket: WebSocket):
     start_time = time.time()
     request_counter.inc()
     qa = make_question_answering_chatbot(
-        websocket,
-        config.db_dir,
-        config.webservice.prompt
+        websocket=websocket,
+        persistent_dir=config.db_dir,
+        prompt_template=config.webservice.prompt
     )
     while True:
         raw_data = await websocket.receive_text()
@@ -73,7 +73,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     log.info(entry)
                     # source_documents.append(entry)
                 else:
-                    #TODO: Add support for zionomicon book
+                    # TODO: Add support for zionomicon book
                     log.warning(f"doc_source {doc_source} was not supported")
             else:
                 log.warning("The doc_source is not exists in metadata")
