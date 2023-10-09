@@ -23,6 +23,7 @@ prometheus-client = "^0.17.1"
 chat-exporter = "^2.6.1"
 pysqlite3-binary = "^0.5.2"
 faiss-cpu = "^1.7.4"
+html2text = "^2020.1.16"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

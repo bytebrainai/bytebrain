@@ -5,6 +5,8 @@ import yaml
 from langchain.document_loaders import GitLoader
 from langchain.document_loaders import UnstructuredMarkdownLoader
 from langchain.document_loaders import YoutubeLoader
+from langchain.document_loaders.recursive_url_loader import RecursiveUrlLoader
+from langchain.document_transformers.html2text import Html2TextTransformer
 from langchain.schema import Document
 from langchain.text_splitter import Language, MarkdownTextSplitter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -174,5 +176,45 @@ def load_youtube_docs(video_id: str):
         doc.metadata.setdefault("doc_url", video_url)
     ids = [f"video_transcript:youtube.com/@Ziverge:{video_id}:{calculate_md5_checksum(c.page_content)}" for c in
            splitted_docs]
+    assert (len(ids) == len(splitted_docs))
+    return ids, splitted_docs
+
+
+def load_docs_from_site(source_identifier: str, **kwargs):
+    # Set default values
+    default_loader_params = {
+        "max_depth": None,
+        "use_async": True,
+        "extractor": None,
+        "exclude_dirs": None,
+        "timeout": None,
+        "prevent_outside": True
+    }
+
+    # Update default values with user-specified values
+    loader_params = {**default_loader_params, **kwargs}
+
+    # Instantiate RecursiveUrlLoader with the specified parameters
+    loader = RecursiveUrlLoader(**loader_params)
+
+    docs = loader.load()
+
+    from langchain.text_splitter import MarkdownTextSplitter
+
+    text_docs = Html2TextTransformer(ignore_images=True).transform_documents(docs)
+
+    for index, doc in enumerate(text_docs):
+        doc.metadata.setdefault("doc_source", source_identifier)
+        doc.metadata.setdefault("doc_url", doc.metadata.pop("source"))
+
+    splitted_docs = MarkdownTextSplitter().transform_documents(text_docs)
+
+    ids: List[str] = []
+    for doc in splitted_docs:
+        content_hash = calculate_md5_checksum(doc.page_content)
+        doc_type = "website"
+        id = f"{doc_type}:{source_identifier}:{content_hash}"
+        ids.append(id)
+
     assert (len(ids) == len(splitted_docs))
     return ids, splitted_docs
