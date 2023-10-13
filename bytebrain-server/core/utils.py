@@ -1,6 +1,7 @@
-from typing import Dict, List, TypeVar, Tuple
-
 import hashlib
+import time
+from functools import wraps
+from typing import Dict, List, TypeVar, Tuple
 
 T = TypeVar('T')
 
@@ -147,3 +148,26 @@ def annotate_history_with_turns_v2(history: List[Tuple[str, str]]) -> List[str]:
         history_with_metadata.append(f"{i}. {msg[0]}: {msg[1]}")
 
     return history_with_metadata
+
+
+def measure_execution_time(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"{func.__name__} took {duration:.6f} seconds to run.")
+        return result
+    return wrapper
+
+
+def async_measure_execution_time(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = await func(*args, **kwargs)
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"{func.__name__} took {duration:.6f} seconds to run.")
+        return result
+    return wrapper
