@@ -1,11 +1,14 @@
 import asyncio
 import datetime
+import json
 import os
 import re
 from datetime import datetime
 from datetime import timedelta
 from typing import Any, Tuple
 from typing import List, Optional
+from datetime import timezone
+from uuid import UUID
 
 import chat_exporter
 import discord
@@ -21,11 +24,16 @@ from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
 from core.chatbot_v2 import make_question_answering_chatbot
-from core.db import Database
-from core.utils import split_string_preserve_suprimum_number_of_lines
+from core.document_loader import generate_uuid
+from core.stored_docs import fetch_last_item_in_discord_channel, create_connection
+from core.stored_docs import save_docs_metadata
 from core.utils import annotate_history_with_turns_v2
+from core.utils import calculate_md5_checksum
+from core.utils import split_string_preserve_suprimum_number_of_lines
+from core.weaviate_db import WeaviateDatabase
 
 config = load_config()
+vector_store = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -33,6 +41,8 @@ intents.members = True
 
 bot: Bot = commands.Bot(command_prefix="!", intents=intents)
 log = getLogger()
+
+NAMESPACE_DISCORD: UUID = UUID('e66dbce0-e817-4d27-bca5-72f1c4442b4a')
 
 
 @bot.event
@@ -175,7 +185,7 @@ async def on_message(message):
             log.info(f"received message from {message.channel} channel")
             qa = make_question_answering_chatbot(
                 websocket=None,
-                persistent_dir=config.db_dir,
+                vector_store=vector_store.weaviate,
                 prompt_template=config.discord.prompt
             )
 
@@ -274,33 +284,21 @@ async def first_message_of_last_indexed_page(channel_id: int) -> Optional[Discor
     """
     Retrieves the first message of the last indexed page associated with a given channel from the database.
     """
-    guild_id = get_guild_by_channel(channel_id).id
-    import sqlite3
-    con = sqlite3.connect(config.db_dir + "/chroma.sqlite3")
-    cur = con.cursor()
-    sql_query = f"""
-      SELECT embedding_id
-      FROM embeddings e 
-      WHERE embedding_id LIKE 'discord.com/channels/{guild_id}/{channel_id}/%'
-      ORDER BY id Desc 
-      LIMIT 1
-      """
-    try:
-        cur.execute(sql_query)
-        result = cur.fetchone()
-        if result:
-            id_parts = result[0].split("/")
-            msg_id = int(id_parts[-1])
-            channel_id = int(id_parts[-2])
-            guild_id = int(id_parts[-3])
+    with create_connection(config.stored_docs_db) as connection:
+        last_item = fetch_last_item_in_discord_channel(connection,
+                                                       doc_source_id="discord",
+                                                       channel_id=str(channel_id))
+    metadata = json.loads(last_item[3])
+    msg_id = int(metadata['message_id'])
+    guild_id = int(metadata['guild_id'])
 
-            discord_msg: Message = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
-            msg = DiscordMessage(discord_msg.id, discord_msg.author.name, discord_msg.created_at, discord_msg.content)
-            return msg
-        else:
-            return None
-    except sqlite3.Error as e:
-        log.error("sqlite error: ", e)
+    discord_msg = await bot.get_guild(guild_id).get_channel(channel_id).fetch_message(msg_id)
+    return DiscordMessage(
+        discord_msg.id,
+        discord_msg.author.name,
+        discord_msg.created_at,
+        discord_msg.content
+    )
 
 
 def get_guild_by_channel(channel_id: int) -> Optional[Guild]:
@@ -369,7 +367,7 @@ def filter_messages_from(history: List[DiscordMessage], after: Optional[datetime
     filtered_messages = []
     if after is not None:
         for message in history:
-            if message.created_at >= after:
+            if message.created_at >= after.replace(tzinfo=timezone.utc):
                 filtered_messages.append(message)
     else:
         filtered_messages = history
@@ -434,26 +432,43 @@ async def index_channel_history(
     """
     channel_id = channel_history.channel_id
     channel_name = bot.get_channel(channel_id).name
+    guild_id = channel_history.guild_id
+    guild_name = channel_history.guild_name
     batched_messages = sliding_window_with_common_length(channel_history.history, window_size, common_length)
     pages = [(x[0], add_header(channel_name=channel_name, chat_history=x[1])) for x in
              [generate_chat_transcript(i) for i in batched_messages]]
-    documents = [Document(page_content=page[1], metadata={
-        "doc_source": "discord",
-        "message_id": f"{page[0]}",
-        "channel_id": f"{channel_id}",
-        "channel_name": channel_name,
-        "guild_id": f"{channel_history.guild_id}",
-        "guild_name": channel_history.guild_name
-    }) for page in pages]
+    documents = [
+        Document(
+            page_content=page[1],
+            metadata={
+                "doc_source_id": "discord.com",
+                "doc_source_type": "chat",
+                "doc_id": f"discord.com/channels/{guild_id}/{channel_id}/{page[0]}",
+                "source": f"discord.com/channels/{guild_id}/{channel_id}/{page[0]}",
+                "doc_first_message_id": f"{page[0]}",
+                "doc_channel_id": str(channel_id),
+                "doc_channel_name": channel_name,
+                "doc_guild_id": str(guild_id),
+                "doc_guild_name": guild_name,
+                "doc_hash": calculate_md5_checksum(page[1]),
+                "doc_uuid":
+                    str(
+                        generate_uuid(
+                            namespace=NAMESPACE_DISCORD,
+                            doc_source_type="chat",
+                            doc_source_id="discord.com",
+                            doc_path=f"discord.com/channels/{guild_id}/{channel_id}/{page[0]}",
+                            doc_hash=calculate_md5_checksum(page[1])
+                        )
+                    )
+            }) for page in pages]
 
     log.info(f"Number of pages: {len(pages)}")
 
-    ids = [f"discord.com/channels/{doc.metadata['guild_id']}/{doc.metadata['channel_id']}/{doc.metadata['message_id']}"
-           for doc in documents]
-
+    ids = [doc.metadata['doc_uuid'] for doc in documents]
     assert (len(ids) == len(documents))
-    db = Database(config.db_dir, config.embeddings_dir)
-    db.index_docs(ids, documents)
+    vector_store.index_docs(ids, documents)
+    save_docs_metadata(documents=documents)
 
 
 def sliding_window_with_common_length(my_list, window_size, common_length):

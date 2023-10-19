@@ -1,5 +1,7 @@
 import os
+import uuid
 from typing import Optional, List, Dict
+from uuid import UUID
 
 import yaml
 from langchain.document_loaders import GitLoader
@@ -8,13 +10,23 @@ from langchain.document_loaders import YoutubeLoader
 from langchain.document_loaders.recursive_url_loader import RecursiveUrlLoader
 from langchain.document_transformers.html2text import Html2TextTransformer
 from langchain.schema import Document
-from langchain.text_splitter import Language, MarkdownTextSplitter
+from langchain.text_splitter import Language
+from langchain.text_splitter import MarkdownTextSplitter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from core.utils import calculate_md5_checksum
 
+NAMESPACE_DOCUMENT = UUID('f924e0a9-69a7-11ee-aa84-6c02e09469ba')
+NAMESPACE_WEBSITE = UUID('c88b857e-be16-4d80-9f45-b5c41fdd4a11')
+NAMESPACE_YOUTUBE = UUID('1572e8de-29bf-464e-9253-656bd7c78938')
+NAMESPACE_SOURCECODE = UUID('86adfa90-25d6-45bc-894c-8e1bb5c8ce76')
 
-def load_zio_website_docs(directory: str) -> (List[str], List[Document]):
+
+def generate_uuid(namespace: UUID, doc_source_type, doc_source_id, doc_path, doc_hash) -> UUID:
+    return uuid.uuid5(namespace, f"{doc_source_type}:{doc_source_id}:{doc_path}:{doc_hash}")
+
+
+def load_zio_website_docs(directory: str) -> (List[UUID], List[Document]):
     def extract_metadata(md_file_path: str) -> Dict[str, str]:
         with open(md_file_path, 'r') as file:
             content = file.read()
@@ -22,8 +34,8 @@ def load_zio_website_docs(directory: str) -> (List[str], List[Document]):
         # Parse YAML front matter
         try:
             _, yaml_content, _ = content.split('---', 2)
-            metadata = yaml.safe_load(yaml_content)
-            return {"id": metadata.get('id'), "title": metadata.get("title")}
+            meta_data = yaml.safe_load(yaml_content)
+            return {"id": meta_data.get('id'), "title": meta_data.get("title")}
         except ValueError:
             file_name = os.path.basename(md_file_path)
             return {"id": file_name, "title": file_name}
@@ -34,56 +46,67 @@ def load_zio_website_docs(directory: str) -> (List[str], List[Document]):
             if filename.endswith('.md'):
                 md_path = os.path.join(root, filename)
                 docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+                docs = MarkdownTextSplitter().split_documents(docs)
                 metadata: dict[str, str] = extract_metadata(md_path)
                 for index, doc in enumerate(docs):
-                    doc.metadata["doc_path"] = doc.metadata.pop("source").split("/zio/website/docs/")[1]
-                    doc.metadata.setdefault("doc_source", "zio.dev")
-                    doc.metadata.setdefault("doc_id", root.split("/zio/website/docs/")[1] + '/' + metadata["id"])
+                    doc_id = root.split("/zio/website/docs/")[1] + '/' + metadata["id"]
+                    doc.metadata["doc_path"] = doc.metadata["source"].split("/zio/website/docs/")[1]
+                    doc.metadata["source"] = doc_id
+                    doc.metadata.setdefault("doc_source_type", "documentation")
+                    doc.metadata.setdefault("doc_source_id", "zio.dev")
+                    doc.metadata.setdefault("doc_id", doc_id)
                     doc.metadata.setdefault("doc_title", metadata["title"])
+                    doc.metadata.setdefault("doc_url", f"https://zio.dev/{doc.metadata['doc_id']}")
+                    doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+                    doc.metadata.setdefault("doc_uuid",
+                                            str(generate_uuid(
+                                                NAMESPACE_DOCUMENT,
+                                                doc.metadata['doc_source_type'],
+                                                doc.metadata['doc_source_id'],
+                                                doc.metadata['doc_path'],
+                                                doc.metadata['doc_hash']
+                                            )))
                 documents.extend(docs)
 
-    fragmented_docs = MarkdownTextSplitter().split_documents(documents)
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in documents]
 
-    ids: List[str] = []
-    for d in fragmented_docs:
-        hash = calculate_md5_checksum(d.page_content)
-        doc_type = "documentation"
-        source_identifier = "github.com/zio/zio"
-        id = f"{doc_type}:{source_identifier}:{d.metadata['doc_path']}:{hash}"
-        ids.append(id)
-
-    assert (len(ids) == len(fragmented_docs))
-    return ids, fragmented_docs
+    assert (len(ids) == len(documents))
+    return ids, documents
 
 
 def load_source_code(
         repo_path: str,
         branch: Optional[str],
-        source_identifier: str
-) -> (List[str], List[Document]):
+        source_id: str
+) -> (List[UUID], List[Document]):
     loader = GitLoader(
         repo_path=repo_path,
         branch=branch,
         file_filter=lambda file_path: file_path.endswith(".scala")
     )
     docs = loader.load()
-
     splitter = RecursiveCharacterTextSplitter.from_language(language=Language.SCALA)
+    docs = splitter.transform_documents(docs)
 
-    snippets = splitter.transform_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_type", "source_code")
+        doc.metadata.setdefault("doc_source_id", source_id)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_path", doc.metadata.pop('file_path'))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_SOURCECODE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_path'],
+                                                  doc.metadata['doc_hash'])))
 
-    ids: List[str] = []
-    for snippet in snippets:
-        path = snippet.metadata['file_path']
-        hash = calculate_md5_checksum(snippet.page_content)
-        id = f"source_code:{source_identifier}:{path}:{hash}"
-        ids.append(id)
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
 
-    assert (len(ids) == len(snippets))
-    return ids, snippets
+    assert (len(ids) == len(docs))
+    return ids, docs
 
 
-def load_zionomicon_docs(directory: str) -> (List[str], List[Document]):
+def load_zionomicon_docs(directory: str) -> (List[UUID], List[Document]):
     documents: list[Document] = []
 
     chapters = {
@@ -144,43 +167,57 @@ def load_zionomicon_docs(directory: str) -> (List[str], List[Document]):
             if file_name.endswith('.md'):
                 md_path = os.path.join(root, file_name)
                 docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+                docs = MarkdownTextSplitter().split_documents(docs)
                 for index, doc in enumerate(docs):
-                    doc.metadata.setdefault("doc_source", "zionomicon")
+                    doc.metadata.setdefault("doc_source_id", "zionomicon")
+                    doc.metadata.setdefault("doc_source_type", "documentation")
                     doc.metadata.setdefault("doc_path", doc.metadata.pop('source').split("/zionomicon/docs/")[1])
                     doc.metadata.setdefault("doc_chapter", chapters[file_name])
+                    doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+                    doc.metadata.setdefault(
+                        "doc_uuid",
+                        str(
+                            generate_uuid(
+                                NAMESPACE_DOCUMENT,
+                                doc.metadata['doc_source_type'],
+                                doc.metadata['doc_source_id'],
+                                doc.metadata['doc_path'],
+                                doc.metadata['doc_hash']
+                            )
+                        )
+                    )
+
                 documents.extend(docs)
 
-    fragmented_docs = MarkdownTextSplitter().split_documents(documents)
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in documents]
 
-    ids: List[str] = []
-    for d in fragmented_docs:
-        hash = calculate_md5_checksum(d.page_content)
-        doc_type = "documentation"
-        source_identifier = "github.com/zivergetech/zionomicon"
-        id = f"{doc_type}:{source_identifier}:{d.metadata['doc_path']}:{hash}"
-        ids.append(id)
-
-    assert (len(ids) == len(fragmented_docs))
-    return ids, fragmented_docs
+    assert (len(ids) == len(documents))
+    return ids, documents
 
 
-def load_youtube_docs(video_id: str):
+def load_youtube_docs(video_id: str) -> (List[UUID], List[Document]):
     video_url = f"https://www.youtube.com/watch?v={video_id}"
-    loader = YoutubeLoader.from_youtube_url(video_url, add_video_info=False)
+    loader = YoutubeLoader.from_youtube_url(video_url, add_video_info=True)
     docs: list[Document] = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
-    splitted_docs = text_splitter.split_documents(docs)
-    for index, doc in enumerate(splitted_docs):
-        doc.metadata.pop("source")
-        doc.metadata.setdefault("doc_source", "youtube.com")
+    docs = text_splitter.split_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_id", "youtube.com")
+        doc.metadata.setdefault("doc_source_type", "subtitle")
         doc.metadata.setdefault("doc_url", video_url)
-    ids = [f"video_transcript:youtube.com/@Ziverge:{video_id}:{calculate_md5_checksum(c.page_content)}" for c in
-           splitted_docs]
-    assert (len(ids) == len(splitted_docs))
-    return ids, splitted_docs
+        doc.metadata.setdefault("doc_title", doc.metadata.pop('title'))
+        doc.metadata.setdefault("doc_view_count", doc.metadata.pop('view_count'))
+        doc.metadata.setdefault("doc_thumbnail_url", doc.metadata.pop('thumbnail_url'))
+        doc.metadata.setdefault("doc_publish_date", doc.metadata.pop("publish_date"))
+        doc.metadata.setdefault("doc_length", doc.metadata.pop("length"))
+        doc.metadata.setdefault("doc_author", doc.metadata.pop("author"))
+        doc.metadata.setdefault("doc_uuid", str(uuid.uuid5(NAMESPACE_YOUTUBE, video_url + doc.page_content)))
+    ids = [UUID(c.metadata['doc_uuid']) for c in docs]
+    assert (len(ids) == len(docs))
+    return ids, docs
 
 
-def load_docs_from_site(source_identifier: str, **kwargs):
+def load_docs_from_site(doc_source_id: str, **kwargs) -> (List[UUID], List[Document]):
     # Set default values
     default_loader_params = {
         "max_depth": None,
@@ -194,27 +231,30 @@ def load_docs_from_site(source_identifier: str, **kwargs):
     # Update default values with user-specified values
     loader_params = {**default_loader_params, **kwargs}
 
-    # Instantiate RecursiveUrlLoader with the specified parameters
     loader = RecursiveUrlLoader(**loader_params)
-
     docs = loader.load()
 
-    from langchain.text_splitter import MarkdownTextSplitter
+    docs = Html2TextTransformer(ignore_images=True).transform_documents(docs)
+    docs = MarkdownTextSplitter().transform_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_source_type", "website")
+        doc.metadata.setdefault("doc_url", doc.metadata["source"])
+        if title := doc.metadata.pop('title', None):
+            doc.metadata.setdefault("doc_title", title)
+        if description := doc.metadata.pop('description', None):
+            doc.metadata.setdefault("doc_description", description)
+        if language := doc.metadata.pop('language', None):
+            doc.metadata.setdefault("doc_language", language)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_uuid",
+                                generate_uuid(NAMESPACE_WEBSITE,
+                                              doc.metadata['doc_source_type'],
+                                              doc.metadata['doc_source_id'],
+                                              doc.metadata['doc_url'],
+                                              doc.metadata['doc_hash']))
 
-    text_docs = Html2TextTransformer(ignore_images=True).transform_documents(docs)
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
 
-    for index, doc in enumerate(text_docs):
-        doc.metadata.setdefault("doc_source", source_identifier)
-        doc.metadata.setdefault("doc_url", doc.metadata.pop("source"))
-
-    splitted_docs = MarkdownTextSplitter().transform_documents(text_docs)
-
-    ids: List[str] = []
-    for doc in splitted_docs:
-        content_hash = calculate_md5_checksum(doc.page_content)
-        doc_type = "website"
-        id = f"{doc_type}:{source_identifier}:{content_hash}"
-        ids.append(id)
-
-    assert (len(ids) == len(splitted_docs))
-    return ids, splitted_docs
+    assert (len(ids) == len(docs))
+    return ids, docs

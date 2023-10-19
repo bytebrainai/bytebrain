@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import yaml
+import os
 
 
 @dataclass
@@ -23,8 +24,9 @@ class WebserviceConfig:
 class ByteBrainConfig:
     name: str
     project_name: str
-    db_dir: str
+    stored_docs_db: str
     embeddings_dir: Optional[str]
+    weaviate_url: Optional[str]
     webservice: WebserviceConfig
     discord: DiscordBotConfig
 
@@ -35,9 +37,11 @@ def load_config() -> ByteBrainConfig:
 
     name = config['name']
     project_name = config['project_name']
-    db_dir = config['db_dir']
+    stored_docs_db = config['stored_docs_db']
     embeddings_dir = config['embeddings_dir']
+    weaviate_url = config['weaviate_url'] \
+        if os.environ.get('APP_ENV', 'development') == 'production' else "http://localhost:8080"
     webservice = WebserviceConfig(**config['webservice'])
     discord = DiscordBotConfig(**config['discord'])
 
-    return ByteBrainConfig(name, project_name, db_dir, embeddings_dir, webservice, discord)
+    return ByteBrainConfig(name, project_name, stored_docs_db, embeddings_dir, weaviate_url, webservice, discord)

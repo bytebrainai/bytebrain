@@ -4,7 +4,11 @@ import time
 from typing import Any
 
 import uvicorn
+import weaviate
 from fastapi import FastAPI, WebSocket
+from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
+from langchain.storage import LocalFileStore
+from langchain.vectorstores.weaviate import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
 from starlette.responses import Response
 from structlog import getLogger
@@ -23,6 +27,21 @@ response_counter = Counter("responses_total", "Total responses", registry=regist
 response_time_histogram = Histogram("response_latency", "Response latency (seconds)",
                                     labelnames=["path"], registry=registry)
 
+underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+
+fs = LocalFileStore(config.embeddings_dir)
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    underlying_embeddings, fs, namespace=underlying_embeddings.model
+)
+
+client = weaviate.Client(url=config.weaviate_url)
+vector_store = Weaviate(client,
+                        index_name='Zio',
+                        text_key="text",
+                        attributes=['source', 'doc_source_id', 'doc_title', 'doc_url'],
+                        embedding=cached_embedder,
+                        by_text=False)
+
 
 @app.websocket("/chat")
 async def websocket_endpoint(websocket: WebSocket):
@@ -31,7 +50,7 @@ async def websocket_endpoint(websocket: WebSocket):
     request_counter.inc()
     qa = make_question_answering_chatbot(
         websocket=websocket,
-        persistent_dir=config.db_dir,
+        vector_store=vector_store,
         prompt_template=config.webservice.prompt
     )
     while True:
@@ -50,31 +69,19 @@ async def websocket_endpoint(websocket: WebSocket):
         source_documents: list[dict[str, Any]] = []
         for src_doc in result["source_documents"]:
             metadata = src_doc.metadata
-            if "doc_source" in metadata:
-                doc_source = metadata["doc_source"]
-                if doc_source == "zio.dev":
+            if "doc_source_id" in metadata:
+                doc_source_id = metadata["doc_source_id"]
+                if doc_source_id == "zio.dev":
                     entry = {
                         "page_title": metadata["doc_title"],
-                        "page_url": f"https://zio.dev/{metadata['doc_id']}",
+                        "page_url": metadata["doc_url"],
                         "page_content": src_doc.page_content
                     }
                     log.info(entry)
                     source_documents.append(entry)
-                elif doc_source == "discord":
-                    metadata = src_doc.metadata
-                    entry = {
-                        "message_id": metadata["message_id"],
-                        "channel_id": metadata["channel_id"],
-                        "channel_name": metadata["channel_name"],
-                        "guild_id": metadata["guild_id"],
-                        "guild_name": metadata["guild_name"],
-                        "page_content": src_doc.page_content
-                    }
-                    log.info(entry)
-                    # source_documents.append(entry)
                 else:
-                    # TODO: Add support for zionomicon book
-                    log.warning(f"doc_source {doc_source} was not supported")
+                    # TODO: Add support for other source types
+                    log.warning(f"doc_source {doc_source_id} was not supported")
             else:
                 log.warning("The doc_source is not exists in metadata")
 

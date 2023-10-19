@@ -8,11 +8,12 @@ from langchain.chains.llm import BaseLanguageModel
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema import BaseRetriever
 from langchain.vectorstores import Chroma
+from langchain.vectorstores.base import VectorStore
 
 from core.callbacks import StreamingLLMCallbackHandler
 from core.upgrade_sqlite import upgrade_sqlite_version
@@ -99,8 +100,11 @@ def make_doc_search(persistent_dir: str):
     )
 
 
-def make_question_answering_chatbot(websocket: Optional[WebSocket], persistent_dir: str, prompt_template: str):
-    document_retriever = make_doc_search(persistent_dir).as_retriever(
+def make_question_answering_chatbot(
+        websocket: Optional[WebSocket],
+        vector_store: VectorStore,
+        prompt_template: str):
+    document_retriever = vector_store.as_retriever(
         # TODO: Find the best options for retrieving docs
         # search_type="similarity_score_threshold",
         # search_kwargs={'score_threshold': 0.8}
