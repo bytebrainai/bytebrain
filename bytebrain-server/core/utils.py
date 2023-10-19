@@ -44,17 +44,17 @@ def identify_changed_files(
 def create_dict_from_keys_and_values(keys: List[str], values: List[T]) -> Dict[str, List[T]]:
     assert (len(keys) == len(values))
 
-    id_doc_dict = {}
+    key_value = {}
 
     if len(keys) == 0:
-        return id_doc_dict
+        return key_value
 
-    for i, file_path in enumerate(keys):
-        if file_path in id_doc_dict:
-            id_doc_dict[file_path].append(values[i])
+    for i, value in enumerate(keys):
+        if value in key_value:
+            key_value[value].append(values[i])
         else:
-            id_doc_dict[file_path] = [values[i]]
-    return id_doc_dict
+            key_value[value] = [values[i]]
+    return key_value
 
 
 def split_string_preserve_suprimum_number_of_lines(input_string: str, chunk_size: int) -> List[str]:
