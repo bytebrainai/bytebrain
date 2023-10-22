@@ -41,6 +41,23 @@ services:
       - letsencrypt-docker-compose
     restart: unless-stopped
 
+  weaviate:
+    image: semitechnologies/weaviate:1.21.5
+    expose:
+      - 8080
+    restart: on-failure:0
+    volumes:
+      - ./db:/var/lib/weaviate
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'generative-openai'
+      CLUSTER_HOSTNAME: 'node1'
+    networks:
+      - letsencrypt-docker-compose
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
