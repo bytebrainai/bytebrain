@@ -124,3 +124,7 @@ async def metrics():
 
 def main():
     uvicorn.run("core.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=True)
+
+
+if __name__ == "__main__":
+    main()

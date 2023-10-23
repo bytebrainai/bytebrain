@@ -720,3 +720,7 @@ def main():
     import sqlite3
     log.info(f"started with sqlite version: ${sqlite3.sqlite_version}")
     bot.run(token=os.environ['DISCORD_BOT_TOKEN'])
+
+
+if __name__ == "__main__":
+    main()
