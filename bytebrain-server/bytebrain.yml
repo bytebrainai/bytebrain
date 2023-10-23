@@ -2,7 +2,7 @@ name: ZIO CHAT
 project_name: ZIO
 stored_docs_db: './stored_docs.db'
 embeddings_dir: './embeddings-cache'
-weaviate_url: 'weaviate:8080'
+weaviate_url: 'http://weaviate:8080'
 webservice:
   prompt: |-
     You are expert in providing answers about ZIO library and it's ecosystem projects.
