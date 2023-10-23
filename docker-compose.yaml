@@ -23,6 +23,8 @@ services:
       - ./db:/app/db
       - ./embeddings-cache:/app/embeddings-cache
       - ./discord-cache:/app/discord-cache
+    depends_on:
+      - weaviate
     env_file: .env
     expose:
       - 8081
