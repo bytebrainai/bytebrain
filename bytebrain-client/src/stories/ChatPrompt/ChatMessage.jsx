@@ -20,7 +20,6 @@ function ChatMessage(props) {
 
   useEffect(() => {
     setChatHistory(props.chatHistory);
-    console.log("chatHistory", chatHistory);
   }, [props]);
 
   let chatMessage;

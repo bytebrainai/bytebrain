@@ -43,3 +43,16 @@ export const DummyZIOChat =  {
     fullScreen: true,
   }
 }
+
+
+export const ZIOChatProduction =  {
+  args: {
+    title: "ZIO Chat",
+    defaultQuestion: "What are the befenits of using ZIO?",
+    websocketHost: "chat.zio.dev",
+    websocketPort: "8081",
+    websocketEndpoint: '/chat',
+    welcomeMessages: welcome_messages,
+    fullScreen: true,
+  }
+}
