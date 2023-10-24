@@ -29,6 +29,12 @@ export const ChatPrompt = (props) => {
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState([getRandom(greetings)]);
 
+  const host = websocketHost || window.location.hostname;
+  const port = websocketPort === "80" ? "" : ":" + websocketPort;
+  const protocol = websocketPort === "80" ? "wss://" : "ws://";
+  const httpProtocol = websocketPort === "80" ? 'https://' : "http://";
+  const baseHttpUrl = httpProtocol + host + port
+
   const handleChange = (event) => {
     setQuestion(event.target.value)
   }
@@ -48,9 +54,6 @@ export const ChatPrompt = (props) => {
   }
 
   const handleClick = () => {
-    const host = websocketHost || window.location.hostname;
-    const port = websocketPort === "80" ? "" : ":" + websocketPort;
-    const protocol = websocketPort === "80" ? "wss://" : "ws://";
     const ws = new WebSocket(protocol + host + port + websocketEndpoint);
     ws.onopen = (event) => {
       setMessages(messages => messages.concat([
@@ -103,10 +106,13 @@ export const ChatPrompt = (props) => {
             <ChatMessage
               key={id}
               id={"chat" + id}
+              index={id}
               userType={m.userType}
               text={m.message}
               references={m.references}
-              highlight={m.completed} />
+              highlight={m.completed}
+              chatHistory={messages}
+              baseHttpUrl={baseHttpUrl} />
           )
         }
         <div id="anchor"></div>

@@ -1,22 +1,34 @@
 import asyncio
 import json
 import time
-from typing import Any
+from datetime import datetime
+from typing import Any, List
 
 import uvicorn
 import weaviate
 from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.vectorstores.weaviate import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
-from starlette.responses import Response
+from pydantic.main import BaseModel
+from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
 from core.chatbot_v2 import make_question_answering_chatbot
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 log = getLogger()
 config = load_config()
 
@@ -122,7 +134,49 @@ async def metrics():
     return Response(generate_latest(registry), media_type="text/plain")
 
 
+def create_feedback_db():
+    import sqlite3
+    conn = sqlite3.connect('feedbacks.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS feedbacks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_history JSON,
+            is_useful BOOLEAN,
+            created_at DATETIME
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+
+class FeedbackCreate(BaseModel):
+    chat_history: List[Any]
+    is_useful: bool
+
+
+@app.post("/feedback/", response_model=FeedbackCreate)
+def create_feedback(feedback: FeedbackCreate):
+    import sqlite3
+    conn = sqlite3.connect('feedbacks.db')
+    cursor = conn.cursor()
+    created_at = datetime.utcnow()
+
+    cursor.execute('''
+        INSERT INTO feedbacks (chat_history, is_useful, created_at) 
+        VALUES (?, ?, ?)
+    ''', (json.dumps(feedback.chat_history), feedback.is_useful, created_at))
+
+    conn.commit()
+    conn.close()
+
+    return JSONResponse(content={"message": "Feedback received"}, status_code=200)
+
+
 def main():
+    create_feedback_db()
     uvicorn.run("core.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=False)
 
 

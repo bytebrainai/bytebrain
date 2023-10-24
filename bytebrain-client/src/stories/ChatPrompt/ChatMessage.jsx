@@ -4,8 +4,10 @@ import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import bot from './bot.png';
 import user from './user.png';
+import FeedbackForm from "../FeedbackForm";
 
 function ChatMessage(props) {
+  const [chatHistory, setChatHistory] = React.useState(props.chatHistory);
   useEffect(() => {
     if (props.highlight && props.userType === "bot") {
       document
@@ -15,6 +17,11 @@ function ChatMessage(props) {
         });
     }
   });
+
+  useEffect(() => {
+    setChatHistory(props.chatHistory);
+    console.log("chatHistory", chatHistory);
+  }, [props]);
 
   let chatMessage;
   if (props.userType === "user") {
@@ -31,6 +38,7 @@ function ChatMessage(props) {
           <ReactMarkdown className='px-4 py-2 space-y-2 rounded-t-lg bg-blue-600 text-white'>{props.text}</ReactMarkdown>
           <References items={props.references} />
         </div>
+        <FeedbackForm chatHistory={chatHistory.slice(1, props.index + 1)} baseHttpUrl={props.baseHttpUrl} />
       </div>
   }
 
