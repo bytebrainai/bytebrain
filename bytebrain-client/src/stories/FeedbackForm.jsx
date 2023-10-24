@@ -10,7 +10,6 @@ export const FeedbackForm = (props) => {
 
   useEffect(() => {
     setChatHistory(props.chatHistory);
-    console.log("chatHistory", chatHistory);
   }, [props]);
 
   const handleSubmit = async (value) => {
