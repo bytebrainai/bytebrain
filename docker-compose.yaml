@@ -20,9 +20,10 @@ services:
       context: ./bytebrain-server
       dockerfile: Dockerfile
     volumes:
-      - ./db:/app/db
-      - ./embeddings-cache:/app/embeddings-cache
-      - ./discord-cache:/app/discord-cache
+      - ./db/app/feedbacks.db:/app/feedbacks.db
+      - ./db/app/stored_docs.db:/app/stored_docs.db
+      - ./db/app/caches/embeddings-cache:/app/embeddings-cache
+      - ./db/app/caches/discord-cache:/app/discord-cache
     depends_on:
       - weaviate
     env_file: .env
@@ -49,7 +50,7 @@ services:
       - 8080
     restart: on-failure:0
     volumes:
-      - ./db:/var/lib/weaviate
+      - ./db/weaviate:/var/lib/weaviate
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
