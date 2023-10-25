@@ -335,7 +335,7 @@ async def download_channel_history(channel_id: int, after: Optional[datetime] = 
 
 
 def dump_channel_history(channel_history: ChannelHistory, file_name: str):
-    cache_dir = "./discord-cache"
+    cache_dir = "./db/discord-cache"
     with open(file_name, 'w') as file:
         file.write(channel_history.to_json())
 

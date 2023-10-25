@@ -1,7 +1,7 @@
 name: ZIO CHAT
 project_name: ZIO
-stored_docs_db: './stored_docs.db'
-embeddings_dir: './embeddings-cache'
+stored_docs_db: './db/stored_docs.db'
+embeddings_dir: './db/embeddings-cache'
 weaviate_url: 'http://weaviate:8080'
 webservice:
   prompt: |-

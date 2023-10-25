@@ -2,9 +2,8 @@
 
 # List of source directories
 source_dirs=(
-  "./embeddings-cache"
-  "./db"
-  "./discord-cache"
+  "./db/embeddings-cache"
+  "./db/discord-cache"
 )
 
 # Create a timestamp for the backup folder

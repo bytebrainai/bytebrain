@@ -3,8 +3,8 @@
 # Define the source directories
 source_dirs=(
   "./db"
-  "./embeddings-cache"
-  "./discord-cache"
+  "./db/embeddings-cache"
+  "./db/discord-cache"
 )
 
 # Prompt the user for the remote username

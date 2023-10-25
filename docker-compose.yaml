@@ -20,10 +20,7 @@ services:
       context: ./bytebrain-server
       dockerfile: Dockerfile
     volumes:
-      - ./db/app/feedbacks.db:/app/feedbacks.db
-      - ./db/app/stored_docs.db:/app/stored_docs.db
-      - ./db/app/caches/embeddings-cache:/app/embeddings-cache
-      - ./db/app/caches/discord-cache:/app/discord-cache
+      - ./db/app:/app/db
     depends_on:
       - weaviate
     env_file: .env
