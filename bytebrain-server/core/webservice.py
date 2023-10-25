@@ -160,7 +160,7 @@ class FeedbackCreate(BaseModel):
 @app.post("/feedback/", response_model=FeedbackCreate)
 def create_feedback(feedback: FeedbackCreate):
     import sqlite3
-    conn = sqlite3.connect('feedbacks.db')
+    conn = sqlite3.connect('./db/feedbacks.db')
     cursor = conn.cursor()
     created_at = datetime.utcnow()
 
