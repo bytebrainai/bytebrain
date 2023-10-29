@@ -1,7 +1,6 @@
 import React from 'react';
-import ChatMessage from './ChatMessage';
+import ChatMessage from './ChatMessage.jsx';
 import './ChatPrompt.css'
-import { useEffect } from 'react';
 
 export const ChatPrompt = (props) => {
 

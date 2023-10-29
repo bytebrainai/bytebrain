@@ -1,7 +1,7 @@
-import { ChatPrompt } from "@bytebrain.ai/bytebrain-ui";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import ChatPrompt from "./stories/ChatPrompt/ChatPrompt";
 import reportWebVitals from "./reportWebVitals";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "jsx": "react",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "outDir": "./dist",
+    "target": "es6",
+    "module": "commonjs"
+  },
+  "include": ["src/stories/**/*.jsx"],
+  "exclude": ["node_modules", "dist", "*.stories.js"]
+}
+

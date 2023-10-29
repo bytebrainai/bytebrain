@@ -1,4 +1,4 @@
-import PopupChatWindow from './PopupChatWindow';
+import PopupChatWindow from './PopupChatWindow.jsx';
 import React, { useState } from 'react';
 
 export const ChatApp = (props) => {

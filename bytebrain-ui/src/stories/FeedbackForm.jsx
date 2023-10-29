@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import ThumbsUp from './thumbs-up';
-import ThumbsDown from './thumbs-down';
+import ThumbsUp from './thumbs-up.jsx';
+import ThumbsDown from './thumbs-down.jsx';
 
 export const FeedbackForm = (props) => {
   const [chatHistory, setChatHistory] = useState(props.chatHistory);

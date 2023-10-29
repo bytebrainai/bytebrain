@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import bot from './bot.png';
 import user from './user.png';
-import FeedbackForm from "../FeedbackForm";
+import FeedbackForm from "../FeedbackForm.jsx";
 
 function ChatMessage(props) {
   const [chatHistory, setChatHistory] = React.useState(props.chatHistory);
