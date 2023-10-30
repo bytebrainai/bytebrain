@@ -25,13 +25,13 @@ function ChatMessage(props) {
   let chatMessage;
   if (props.userType === "user") {
     chatMessage =
-      <div className="max-w-[60%] text-gray-900 chat-message user-message text-base flex flex-row space-x-2" id={props.id} >
+      <div className="w-full chat-message user-message text-base flex flex-row space-x-2" id={props.id} >
         <img src={user} alt="User Profile" className="w-6 h-6 rounded-full" />
         <ReactMarkdown className='px-4 py-2 rounded-lg rounded-bl-none bg-gray-300 text-gray-600'>{props.text}</ReactMarkdown>
       </div>
   } else if (props.userType === "bot") {
     chatMessage =
-      <div className="max-w-[60%] chat-message bot-message text-base flex flex-row space-x-2" id={props.id}>
+      <div className="w-full chat-message bot-message text-base flex flex-row space-x-2" id={props.id}>
         <img src={bot} alt="Robot Profile" className="w-6 h-6 rounded-full" />
         <div className="w-full">
           <ReactMarkdown className='px-4 py-2 space-y-2 rounded-t-lg bg-blue-600 text-white'>{props.text}</ReactMarkdown>
