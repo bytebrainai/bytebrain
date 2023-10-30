@@ -1,8 +1,8 @@
 {
   "name": "@bytebrain.ai/bytebrain-ui",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
-    "node": "18.x"
+    "node": ">=16.x"
   },
   "main": "dist/index.js",
   "module": "dist/index.js",
