@@ -3,6 +3,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import image from "@rollup/plugin-image";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import postcss from "rollup-plugin-postcss";
+import { terser } from "rollup-plugin-terser";
 
 export default [
   {
@@ -28,6 +29,7 @@ export default [
         presets: ["@babel/preset-react"],
       }),
       commonjs(),
+      terser()
     ],
     external: ["react", "react-dom", "react-markdown", "highlight.js"],
   },

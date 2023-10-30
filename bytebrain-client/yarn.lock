@@ -1116,10 +1116,10 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@bytebrain.ai/bytebrain-ui@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.npmjs.org/@bytebrain.ai/bytebrain-ui/-/bytebrain-ui-0.0.1.tgz#0d9d8f82a961b6ee5ded5b8c62229306f061fb29"
-  integrity sha512-W98D0sjFtmQ+3eZEyfJO/VdKE/POAS2tJgwLs3A6BBMfTwIHRbEjINB4pmIQXmR5jDPviZjTMaZdEsk1i39TZw==
+"@bytebrain.ai/bytebrain-ui@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.npmjs.org/@bytebrain.ai/bytebrain-ui/-/bytebrain-ui-0.0.3.tgz#5578526f8eb6907060963e640c13eceb9e67dd4e"
+  integrity sha512-OkgAH0lVzOyBSnthXbaOa65gUD03CZgfjC9anPEA6h2tzZDXYHPyP/KFk3n5xZdUhUEisIEMeGLyeFxCg7SngQ==
   dependencies:
     highlight.js "^11.8.0"
     path-browserify "^1.0.1"
