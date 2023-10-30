@@ -20,7 +20,7 @@ const useClickOutside = (ref, callback) => {
 };
 
 
-export default function PopupChatWindow({ visible, onClose }) {
+export default function PopupChatWindow({ visible, onClose, websocketHost, websocketPort, websocketEndpoint }) {
 
   const ref = useRef();
 
@@ -43,9 +43,9 @@ export default function PopupChatWindow({ visible, onClose }) {
       <ChatPrompt
         title="ZIO Chat"
         defaultQuestion="Write a question about ZIO!"
-        websocketHost="localhost"
-        websocketPort="8081"
-        websocketEndpoint="/chat"
+        websocketHost={websocketHost || "localhost"}
+        websocketPort={websocketPort || "8081"}
+        websocketEndpoint={websocketEndpoint || "/chat"}
         welcomeMessages={welcome_messages}
         fullScreen={false}
       />

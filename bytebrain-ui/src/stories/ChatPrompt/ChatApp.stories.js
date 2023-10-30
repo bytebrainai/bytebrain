@@ -6,6 +6,10 @@ export default {
   tags: ["autodocs"],
 };
 
-export const ChatAppSample = {
-  args: {},
+export const ChatAppProduction = {
+  args: {
+    websocketHost: "chat.zio.dev",
+    websocketPort: "80",
+    websocketEndpoint: "/chat",
+  },
 };

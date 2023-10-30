@@ -15,7 +15,12 @@ export const ChatApp = (props) => {
       >
         ZIO Chat!
       </button>
-      <PopupChatWindow onClose={close} visible={isOpen} />
+      <PopupChatWindow
+        onClose={close}
+        visible={isOpen}
+        websocketHost={props.websocketHost}
+        websocketPort={props.websocketPort}
+        websocketEndpoint={props.websocketEndpoint} />
     </>
   );
 };
