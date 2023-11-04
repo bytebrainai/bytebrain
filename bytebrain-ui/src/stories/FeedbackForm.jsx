@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useEffect } from 'react';
 import ThumbsUp from './thumbs-up.jsx';
 import ThumbsDown from './thumbs-down.jsx';
+import './FeedbackForm.css'
 
 export const FeedbackForm = (props) => {
   const [chatHistory, setChatHistory] = useState(props.chatHistory);
@@ -47,14 +48,14 @@ export const FeedbackForm = (props) => {
       <button
         type="button"
         title='It was helpful to me!'
-        className={`inline-block ${feedbackSubmitted && !isUseful ? 'hidden' : ''}`}
+        className={`feedback-button inline-block ${feedbackSubmitted && !isUseful ? 'hidden' : ''}`}
         onClick={() => handleSubmit(true)} disabled={feedbackSubmitted}>
         <ThumbsUp />
       </button>
       <button
         type="button"
         title="It didn't help me at all!"
-        className={`inline-block ${feedbackSubmitted && isUseful ? 'hidden' : ''}`}
+        className={`feedback-button inline-block ${feedbackSubmitted && isUseful ? 'hidden' : ''}`}
         onClick={() => handleSubmit(false)} disabled={feedbackSubmitted}>
         <ThumbsDown />
       </button>
