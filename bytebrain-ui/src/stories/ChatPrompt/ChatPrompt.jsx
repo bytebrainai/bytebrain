@@ -25,7 +25,7 @@ export const ChatPrompt = (props) => {
     completed: true
   }));
 
-  const [question, setQuestion] = React.useState('');
+  const [question, setQuestion] = React.useState(defaultQuestion);
   const [messages, setMessages] = React.useState([getRandom(greetings)]);
 
   const host = websocketHost || window.location.hostname;
@@ -42,6 +42,7 @@ export const ChatPrompt = (props) => {
     event.preventDefault();
     handleClick();
     event.target.reset();
+    setQuestion(defaultQuestion)
   }
 
   function isButtonDisabled() {
@@ -111,7 +112,8 @@ export const ChatPrompt = (props) => {
               references={m.references}
               highlight={m.completed}
               chatHistory={messages}
-              baseHttpUrl={baseHttpUrl} />
+              baseHttpUrl={baseHttpUrl}
+              setQuestion={setQuestion} />
           )
         }
         <div id="anchor"></div>
@@ -121,8 +123,18 @@ export const ChatPrompt = (props) => {
           type="text"
           id="promptInput"
           onChange={handleChange}
-          className="w-full px-4 py-2 border-0 rounded-md text-base text-black bg-gray-200 placeholder-gray-500 focus:outline-none font-sans font-normal"
-          placeholder={defaultQuestion}
+          className={`w-full px-4 py-2 
+              border-0
+              rounded-md
+              text-base
+              text-blac
+              bg-gray-200
+              focus:outline-none
+              font-sans
+              font-normal
+              ${question === defaultQuestion ? 'placeholder-gray-500' : 'placeholder-black'}
+          `}
+          placeholder={question}
         />
         <button disabled={isButtonDisabled()}
           id="generateBtn"

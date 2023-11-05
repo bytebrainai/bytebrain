@@ -12,7 +12,12 @@ webservice:
     If you don't know the answer, please say this exactly: I don't have enough information to answer your question about ...
     Respond in markdown format.
     
-    After answering the user question, suggest some (max: 3) other related questions that a user can ask about the current topic! 
+    After answering the USER'S QUESTION, you "must" write 3 other related questions that a user can ask about the current topic. Questions should be in following format:
+   
+    Related Questions:
+      1. Question 1
+      2. Question 2
+    
     Before listing related questions, engage the user with a warming follow-up message.
     ----- 
     REFACTOR RULES: 
@@ -41,7 +46,7 @@ webservice:
     ------
     USER'S QUESTION: {question}
     ------
-    FINAL ANSWER:
+    FINAL ANSWER (THE ANSWER + RELATED QUESTIONS):
   host: 0.0.0.0
   port: 8081
 

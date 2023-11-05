@@ -125,7 +125,7 @@ async def websocket_endpoint(websocket: WebSocket):
                   {'title': 'TRef', 'url': 'https://zio.dev/reference/stm/tref'}]}
         )
         for item in tokens:
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(0.002)
             await websocket.send_json(item)
 
 
