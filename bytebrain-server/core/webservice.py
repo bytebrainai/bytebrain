@@ -119,10 +119,10 @@ async def websocket_endpoint(websocket: WebSocket):
         tokens.append(
             {"completed": True,
              "references":
-                 [{'title': 'Ref', 'url': 'https://zio.dev/reference/concurrency/ref'},
-                  {'title': 'Global Shared State Using Ref',
-                   'url': 'https://zio.dev/reference/state-management/global-shared-state'},
-                  {'title': 'TRef', 'url': 'https://zio.dev/reference/stm/tref'}]}
+                 [{'page_title': 'Ref', 'page_url': 'https://zio.dev/reference/concurrency/ref'},
+                  {'page_title': 'Global Shared State Using Ref',
+                   'page_url': 'https://zio.dev/reference/state-management/global-shared-state'},
+                  {'page_title': 'TRef', 'page_url': 'https://zio.dev/reference/stm/tref'}]}
         )
         for item in tokens:
             await asyncio.sleep(0.002)

@@ -8,6 +8,9 @@ const config = {
     "@storybook/addon-interactions",
     "storybook-tailwind-dark-mode",
   ],
+  typescript: {
+    check: true
+  },
   framework: {
     name: "@storybook/react-webpack5",
     options: {},

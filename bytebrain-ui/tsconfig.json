@@ -9,9 +9,12 @@
     "allowJs": true,
     "outDir": "./dist",
     "target": "es6",
-    "module": "commonjs"
+    "module": "esnext",
+    "forceConsistentCasingInFileNames": true,
   },
-  "include": ["src/stories/**/*.jsx"],
+  "include": [
+    "src/stories/**/*.tsx",
+    "index.d.ts",
+  ],
   "exclude": ["node_modules", "dist", "*.stories.js"]
 }
-

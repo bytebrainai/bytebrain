@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import ChatPrompt from "./ChatPrompt.jsx";
+import ChatPrompt from "./ChatPrompt";
 
 
 const useClickOutside = (ref, callback) => {

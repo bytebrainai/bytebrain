@@ -2,7 +2,7 @@ import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import FeedbackForm from "../FeedbackForm.jsx";
+import FeedbackForm from "../FeedbackForm";
 import bot from './bot.png';
 import user from './user.png';
 import RelatedQuestions from "./RelatedQuestions";
@@ -27,10 +27,11 @@ function ChatMessage(props) {
     return lines;
   }
 
+
   useEffect(() => {
     if (props.highlight && props.userType === "bot") {
       document
-        .querySelectorAll("#" + props.id + " pre code")
+        .querySelectorAll<HTMLElement>("#" + props.id + " pre code")
         .forEach((el) => {
           hljs.highlightElement(el);
         });

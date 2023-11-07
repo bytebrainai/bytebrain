@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import ThumbsUp from './thumbs-up.jsx';
-import ThumbsDown from './thumbs-down.jsx';
+import ThumbsUp from './thumbs-up';
+import ThumbsDown from './thumbs-down';
 import './FeedbackForm.css'
 
 export const FeedbackForm = (props) => {

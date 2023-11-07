@@ -4,23 +4,28 @@ import image from "@rollup/plugin-image";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import postcss from "rollup-plugin-postcss";
 import { terser } from "rollup-plugin-terser";
+import typescript from "@rollup/plugin-typescript";
+import external from 'rollup-plugin-peer-deps-external';
 
 export default [
   {
-    input: "src/stories/index.js",
+    input: "src/stories/index.tsx",
     output: [
       {
         file: "dist/index.js",
         format: "esm",
+        sourcemap: true,
+        // name: 'bytebrain-ui'
       },
     ],
     plugins: [
-      nodeResolve({
-        extensions: [".js", ".jsx"],
-      }),
+      external(),
       postcss({
         plugins: [],
-        minimize: true,
+        minimize: false,
+      }),
+      nodeResolve({
+        extensions: [".js", ".jsx", ".css"],
       }),
       image(),
       babel({
@@ -29,7 +34,8 @@ export default [
         presets: ["@babel/preset-react"],
       }),
       commonjs(),
-      terser()
+      typescript(),
+      terser(),
     ],
     external: ["react", "react-dom", "react-markdown", "highlight.js"],
   },
