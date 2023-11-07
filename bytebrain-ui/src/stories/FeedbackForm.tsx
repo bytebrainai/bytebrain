@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ThumbsUp from './thumbs-up';
 import ThumbsDown from './thumbs-down';
 import './FeedbackForm.css';
-import { Message } from './ChatPrompt/Message';
+import Message from './Message';
 
 interface FeedbackFormProps {
   chatHistory: Message[];

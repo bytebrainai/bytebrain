@@ -1,12 +1,12 @@
 import FeedbackForm from "./FeedbackForm";
 import ThumbsDown from "./thumbs-down";
 import ThumbsUp from "./thumbs-up";
-import RelatedQuestions from "./ChatPrompt/RelatedQuestions"
-import References from "./ChatPrompt/References"
-import ChatMessage from "./ChatPrompt/ChatMessage"
-import ChatPrompt from "./ChatPrompt/ChatPrompt"
-import ChatApp from "./ChatPrompt/ChatApp"
-import PopupChatWindow from "./ChatPrompt/PopupChatWindow"
+import RelatedQuestions from "./RelatedQuestions"
+import References from "./References"
+import ChatMessage from "./ChatMessage"
+import ChatPrompt from "./ChatPrompt"
+import ChatApp from "./ChatApp"
+import PopupChatWindow from "./PopupChatWindow"
 
 export {
   FeedbackForm,

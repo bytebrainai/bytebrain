@@ -2,14 +2,14 @@ import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import FeedbackForm from "../FeedbackForm";
+import FeedbackForm from "./FeedbackForm";
 import bot from './bot.png';
 import user from './user.png';
 import RelatedQuestions from "./RelatedQuestions";
 import References from "./References";
 import { ReferenceItem } from "./References";
-import { Message } from "./Message";
-import { UserTypes } from "./UserTypes";
+import Message from "./Message";
+import UserTypes from "./UserTypes";
 
 interface ChatMessageProps {
   id: string;

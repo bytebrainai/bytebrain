@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import PopupChatWindow from './PopupChatWindow';
 
-interface IChatAppProps {
+interface ChatAppProps {
   websocketHost?: string;
   websocketPort?: string;
   websocketEndpoint: string;
 }
 
-const ChatApp: React.FC<IChatAppProps> = (props) => {
+const ChatApp: React.FC<ChatAppProps> = (props) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   const close = () => setIsOpen(false); // Function to close the chat window
