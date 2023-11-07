@@ -1,9 +1,21 @@
 import React from 'react';
 import ChatMessage from './ChatMessage';
 import './ChatPrompt.css';
+import Message from './Message';
+import UserTypes from "./UserTypes";
 
-export const ChatPrompt = (props) => {
+interface ChatPromptProps {
+  title?: string;
+  defaultQuestion?: string;
+  websocketHost?: string;
+  websocketPort?: string;
+  websocketEndpoint: string;
+  welcomeMessages: string[];
+  fullScreen?: boolean;
+}
 
+
+export const ChatPrompt = (props: ChatPromptProps) => {
   function getRandom(arr) {
     const randomIndex = Math.floor(Math.random() * arr.length);
     return arr.splice(randomIndex, 1)[0];
@@ -20,13 +32,13 @@ export const ChatPrompt = (props) => {
   } = props
 
   const greetings = welcomeMessages.map(m => ({
-    userType: "bot",
+    userType: UserTypes.Bot,
     message: m,
     completed: true
   }));
 
-  const [question, setQuestion] = React.useState(defaultQuestion);
-  const [messages, setMessages] = React.useState([getRandom(greetings)]);
+  const [question, setQuestion] = React.useState<string>(defaultQuestion);
+  const [messages, setMessages] = React.useState<Message[]>([getRandom(greetings)]);
 
   const host = websocketHost || window.location.hostname;
   const port = websocketPort === "80" ? "" : ":" + websocketPort;
@@ -47,8 +59,8 @@ export const ChatPrompt = (props) => {
 
   function isButtonDisabled() {
     if (messages.length === 0) { return false }
-    else if (messages[messages.length - 1].userType == "user") { return true }
-    else if (messages[messages.length - 1].userType == "bot") {
+    else if (messages[messages.length - 1].userType == UserTypes.User) { return true }
+    else if (messages[messages.length - 1].userType == UserTypes.Bot) {
       return !messages[messages.length - 1].completed ? true : false
     }
   }
@@ -58,7 +70,7 @@ export const ChatPrompt = (props) => {
     ws.onopen = (event) => {
       setMessages(messages => messages.concat([
         {
-          userType: "user",
+          userType: UserTypes.User,
           message: question,
           completed: true
         }
@@ -78,9 +90,9 @@ export const ChatPrompt = (props) => {
       setMessages(messages => {
         if (
           messages.length === 0 ||
-          messages[messages.length - 1].userType === "user"
+          messages[messages.length - 1].userType === UserTypes.User
         ) {
-          return [...messages, { userType: "bot", message: word, completed: completed }];
+          return [...messages, { userType: UserTypes.Bot, message: word, completed: completed }];
         } else {
           const updatedMessages = [...messages];
           updatedMessages[updatedMessages.length - 1] = {
@@ -96,34 +108,34 @@ export const ChatPrompt = (props) => {
   }
 
   return (
-      <div id='ChatPrompt' className={`justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen ${fullScreen ? "h-screen" : ""}`}>
-        <h1 className="text-orange-600 text-3xl font-bold mb-6">{title}</h1>
-        <div
-          id="scroller"
-          className="flex flex-col space-y-4 overflow-y-scroll scroll-smooth">
-          {
-            messages.map((m, id) =>
-              <ChatMessage
-                key={id}
-                id={"chat" + id}
-                index={id}
-                userType={m.userType}
-                text={m.message}
-                references={m.references}
-                highlight={m.completed}
-                chatHistory={messages}
-                baseHttpUrl={baseHttpUrl}
-                setQuestion={setQuestion} />
-            )
-          }
-          <div id="anchor"></div>
-        </div>
-        <form onSubmit={handleSubmit} className="flex bottom-5 left-5 right-5 h-10 mt-4">
-          <input
-            type="text"
-            id="promptInput"
-            onChange={handleChange}
-            className={`w-full px-4 py-2 
+    <div id='ChatPrompt' className={`justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen ${fullScreen ? "h-screen" : ""}`}>
+      <h1 className="text-orange-600 text-3xl font-bold mb-6">{title}</h1>
+      <div
+        id="scroller"
+        className="flex flex-col space-y-4 overflow-y-scroll scroll-smooth">
+        {
+          messages.map((m, id) =>
+            <ChatMessage
+              key={id}
+              id={"chat" + id}
+              index={id}
+              userType={m.userType}
+              text={m.message}
+              references={m.references}
+              highlight={m.completed}
+              chatHistory={messages}
+              baseHttpUrl={baseHttpUrl}
+              setQuestion={setQuestion} />
+          )
+        }
+        <div id="anchor"></div>
+      </div>
+      <form onSubmit={handleSubmit} className="flex bottom-5 left-5 right-5 h-10 mt-4">
+        <input
+          type="text"
+          id="promptInput"
+          onChange={handleChange}
+          className={`w-full px-4 py-2 
               border-0
               rounded-md
               text-base
@@ -134,17 +146,17 @@ export const ChatPrompt = (props) => {
               font-normal
               ${question === defaultQuestion ? 'placeholder-gray-500' : 'placeholder-black'}
           `}
-            placeholder={question}
-          />
-          <button disabled={isButtonDisabled()}
-            id="generateBtn"
-            type='submit'
-            className="px-6 rounded-md border-0 bg-black text-base text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed font-sans font-normal"
-          >
-            Send
-          </button>
-        </form>
-      </div>
+          placeholder={question}
+        />
+        <button disabled={isButtonDisabled()}
+          id="generateBtn"
+          type='submit'
+          className="px-6 rounded-md border-0 bg-black text-base text-white hover:bg-gray-900 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed font-sans font-normal"
+        >
+          Send
+        </button>
+      </form>
+    </div>
   );
 };
 

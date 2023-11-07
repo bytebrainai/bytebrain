@@ -1,11 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import ChatPrompt from "./ChatPrompt";
 
-
-const useClickOutside = (ref, callback) => {
-  const handleClick = (event) => {
-    if (event.target.id === "chat-button") return null;
-    if (ref.current && !ref.current.contains(event.target)) {
+const useClickOutside = (ref: React.RefObject<HTMLElement>, callback: () => void) => {
+  const handleClick = (event: MouseEvent) => {
+    if ((event.target as HTMLElement)?.id === "chat-button") return null;
+    if (ref.current && !ref.current.contains(event.target as Node)) {
       callback();
     }
   };
@@ -16,13 +15,25 @@ const useClickOutside = (ref, callback) => {
     return () => {
       document.removeEventListener('click', handleClick);
     };
-  });
+  }, [callback, ref]);
 };
 
+interface PopupChatWindowProps {
+  visible: boolean;
+  onClose: () => void;
+  websocketHost?: string;
+  websocketPort?: string;
+  websocketEndpoint?: string;
+}
 
-export default function PopupChatWindow({ visible, onClose, websocketHost, websocketPort, websocketEndpoint }) {
-
-  const ref = useRef();
+const PopupChatWindow: React.FC<PopupChatWindowProps> = ({
+  visible,
+  onClose,
+  websocketHost,
+  websocketPort,
+  websocketEndpoint
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
 
   useClickOutside(ref, onClose);
 
@@ -51,4 +62,6 @@ export default function PopupChatWindow({ visible, onClose, websocketHost, webso
       />
     </div>
   );
-}
+};
+
+export default PopupChatWindow;
