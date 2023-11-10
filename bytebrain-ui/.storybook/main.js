@@ -7,9 +7,10 @@ const config = {
     "@storybook/preset-create-react-app",
     "@storybook/addon-interactions",
     "storybook-tailwind-dark-mode",
+    "storybook-dark-mode",
   ],
   typescript: {
-    check: true
+    check: true,
   },
   framework: {
     name: "@storybook/react-webpack5",

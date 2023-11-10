@@ -18,7 +18,7 @@ export const References: React.FC<ReferencesProps> = ({ items }) => {
           <ol className="flex flex-wrap list-inside pl-0">
             {items.map((item, index) => (
               <li key={index} className="mr-2">
-                <a className="underline text-white text-sm" href={item.page_url}>{item.page_title}</a>
+                <a className="underline text-white text-sm hover:text-black" href={item.page_url}>{item.page_title}</a>
               </li>
             ))}
           </ol>

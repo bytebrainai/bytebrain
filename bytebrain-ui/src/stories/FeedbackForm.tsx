@@ -53,7 +53,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ chatHistory, baseHtt
       <button
         type="button"
         title="It was helpful to me!"
-        className={`feedback-button inline-block ${feedbackSubmitted && !isUseful ? 'hidden' : ''}`}
+        className={`dark:bg-[#242526] bg-gray-100 feedback-button inline-block ${feedbackSubmitted && !isUseful ? 'hidden' : ''}`}
         onClick={() => handleSubmit(true)}
         disabled={feedbackSubmitted}
       >
@@ -62,7 +62,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ chatHistory, baseHtt
       <button
         type="button"
         title="It didn't help me at all!"
-        className={`feedback-button inline-block ${feedbackSubmitted && isUseful ? 'hidden' : ''}`}
+        className={`dark:bg-[#242526] bg-gray-100 feedback-button inline-block ${feedbackSubmitted && isUseful ? 'hidden' : ''}`}
         onClick={() => handleSubmit(false)}
         disabled={feedbackSubmitted}
       >

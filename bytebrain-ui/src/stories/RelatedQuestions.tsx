@@ -18,7 +18,7 @@ export const RelatedQuestions: React.FC<RelatedQuestionsProps> = ({ items, setQu
             {items.map((item, index) => (
               <li key={index} className="mr-2">
                 <a
-                  className="underline text-white text-sm"
+                  className="underline text-white text-sm hover:text-black"
                   href="#"
                   onClick={(event) => setQuestion((event.target as HTMLAnchorElement).textContent!)}
                 >

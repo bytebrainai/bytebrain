@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import './InsertLink.css'
 
-export const InsertLink = () => {
+export const InsertLink = (props) => {
   const [textareaValue, setTextareaValue] = useState('');
 
   const handleClick = (event) => {

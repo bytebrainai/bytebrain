@@ -3,7 +3,8 @@ import "highlight.js/styles/github.css";
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import FeedbackForm from "./FeedbackForm";
-import bot from './bot.png';
+import Bot from './Bot';
+import User from './User';
 import user from './user.png';
 import RelatedQuestions from "./RelatedQuestions";
 import References from "./References";
@@ -60,7 +61,7 @@ const ChatMessage: React.FC<ChatMessageProps> = (props: ChatMessageProps) => {
   if (props.userType === UserTypes.User) {
     chatMessage = (
       <div className="w-full chat-message user-message text-base flex flex-row space-x-2" id={props.id}>
-        <img src={user} alt="User Profile" className="w-6 h-6 rounded-full" />
+        <User />
         <ReactMarkdown className='px-4 py-2 rounded-lg rounded-bl-none bg-gray-300 text-gray-600'>{props.text}</ReactMarkdown>
       </div>
     );
@@ -70,7 +71,7 @@ const ChatMessage: React.FC<ChatMessageProps> = (props: ChatMessageProps) => {
       const related_questions = extract_numbered_lines(response[1].trim()).map((item) => remove_number_fromHead(item));
       chatMessage = (
         <div className="w-full chat-message bot-message text-base flex flex-row space-x-2" id={props.id}>
-          <img src={bot} alt="Robot Profile" className="w-6 h-6 rounded-full" />
+          <Bot />
           <div className="w-full">
             <ReactMarkdown className='px-4 py-2 space-y-2 rounded-t-lg bg-blue-600 text-white'>{response[0]}</ReactMarkdown>
             <RelatedQuestions items={related_questions} setQuestion={props.setQuestion} />
@@ -82,7 +83,7 @@ const ChatMessage: React.FC<ChatMessageProps> = (props: ChatMessageProps) => {
     } else {
       chatMessage = (
         <div className="w-full chat-message bot-message text-base flex flex-row space-x-2" id={props.id}>
-          <img src={bot} alt="Robot Profile" className="w-6 h-6 rounded-full" />
+          <Bot />
           <div className="w-full">
             <ReactMarkdown className='px-4 py-2 space-y-2 rounded-t-lg bg-blue-600 text-white'>{props.text}</ReactMarkdown>
             <References items={props.references} />

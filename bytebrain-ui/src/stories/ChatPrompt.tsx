@@ -108,8 +108,8 @@ export const ChatPrompt = (props: ChatPromptProps) => {
   }
 
   return (
-    <div id='ChatPrompt' className={`justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen ${fullScreen ? "h-screen" : ""}`}>
-      <h1 className="text-orange-600 text-3xl font-bold mb-6">{title}</h1>
+    <div id='ChatPrompt' className={`dark:bg-[#242526] justify-between flex flex-col p-5 rounded-md bg-gray-100 max-h-screen ${fullScreen ? "h-screen" : ""}`}>
+      <h1 className="text-[red] text-3xl font-bold mb-6">{title}</h1>
       <div
         id="scroller"
         className="flex flex-col space-y-4 overflow-y-scroll scroll-smooth">
@@ -139,12 +139,14 @@ export const ChatPrompt = (props: ChatPromptProps) => {
               border-0
               rounded-md
               text-base
-              text-blac
+              text-black
+              dark:text-white
               bg-gray-200
+              dark:bg-[#2b2e30]
               focus:outline-none
               font-sans
               font-normal
-              ${question === defaultQuestion ? 'placeholder-gray-500' : 'placeholder-black'}
+              ${question === defaultQuestion ? 'placeholder-gray-500' : 'placeholder-black dark:placeholder-white'}
           `}
           placeholder={question}
         />
