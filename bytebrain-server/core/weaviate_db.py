@@ -10,7 +10,7 @@ from langchain.vectorstores import Weaviate
 from weaviate import Client
 
 from core.document_loader import generate_uuid
-from core.stored_docs import get_metadata_list
+from core.docs.stored_docs import get_metadata_list
 from core.utils import create_dict_from_keys_and_values
 from core.utils import identify_changed_files
 

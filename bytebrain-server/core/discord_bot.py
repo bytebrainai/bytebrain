@@ -25,8 +25,8 @@ from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
 from core.chatbot_v2 import make_question_answering_chatbot
 from core.document_loader import generate_uuid
-from core.stored_docs import fetch_last_item_in_discord_channel, create_connection
-from core.stored_docs import save_docs_metadata
+from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
+from core.docs.stored_docs import save_docs_metadata
 from core.utils import annotate_history_with_turns_v2
 from core.utils import calculate_md5_checksum
 from core.utils import split_string_preserve_suprimum_number_of_lines
