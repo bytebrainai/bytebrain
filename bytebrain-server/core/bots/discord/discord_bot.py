@@ -19,7 +19,7 @@ from discord.message import Message
 from langchain.schema import Document
 from structlog import getLogger
 
-import index.index as index
+import core.docs.index as index
 from config import load_config
 from core.bots.discord.ChannelHistory import ChannelHistory
 from core.bots.discord.DiscordMessage import DiscordMessage
