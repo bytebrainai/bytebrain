@@ -32,7 +32,7 @@ pytest = "^5.2"
 [tool.poetry.scripts]
 config = "config:configure"
 configure_prometheus = "prometheus:configure"
-webserver = "core.webservice:main"
+webserver = "core.bots.web.webservice:main"
 discord = "core.bots.discord.discord_bot:main"
 main = "main:start"
 
