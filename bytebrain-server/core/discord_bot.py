@@ -30,7 +30,7 @@ from core.docs.stored_docs import save_docs_metadata
 from core.utils import annotate_history_with_turns_v2
 from core.utils import calculate_md5_checksum
 from core.utils import split_string_preserve_suprimum_number_of_lines
-from core.weaviate_db import WeaviateDatabase
+from core.docs.weaviate_db import WeaviateDatabase
 
 config = load_config()
 vector_store = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir)
