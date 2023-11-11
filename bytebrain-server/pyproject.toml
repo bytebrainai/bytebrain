@@ -33,7 +33,7 @@ pytest = "^5.2"
 config = "config:configure"
 configure_prometheus = "prometheus:configure"
 webserver = "core.webservice:main"
-discord = "core.discord:main"
+discord = "core.bots.discord.discord_bot:main"
 main = "main:start"
 export = "core.export_discord:main"
 
