@@ -14,7 +14,7 @@ from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from structlog import getLogger
 
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 intents = discord.Intents.default()
 intents.members = True

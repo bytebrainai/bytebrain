@@ -27,9 +27,9 @@ from core.llm.chatbot_v2 import make_question_answering_chatbot
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
 from core.docs.stored_docs import save_docs_metadata
-from core.utils import annotate_history_with_turns_v2
-from core.utils import calculate_md5_checksum
-from core.utils import split_string_preserve_suprimum_number_of_lines
+from core.utils.utils import annotate_history_with_turns_v2
+from core.utils.utils import calculate_md5_checksum
+from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 from core.docs.weaviate_db import WeaviateDatabase
 
 config = load_config()

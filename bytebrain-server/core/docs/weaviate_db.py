@@ -11,8 +11,8 @@ from weaviate import Client
 
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import get_metadata_list
-from core.utils import create_dict_from_keys_and_values
-from core.utils import identify_changed_files
+from core.utils.utils import create_dict_from_keys_and_values
+from core.utils.utils import identify_changed_files
 
 
 class WeaviateDatabase:
@@ -83,7 +83,7 @@ class WeaviateDatabase:
                 for d in new_file_path_to_docs[file_path]:
                     changed_docs.append(d)
                     changed_docs_ids.append(d.metadata['doc_uuid'])
-        from core.utils import identify_removed_snippets
+        from core.utils.utils import identify_removed_snippets
         removed_files: List[str] = list(
             set(
                 identify_removed_snippets(

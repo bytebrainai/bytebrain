@@ -6,8 +6,8 @@ from langchain.schema import Document
 from langchain.storage import LocalFileStore
 from langchain.vectorstores import Chroma
 
-from core.upgrade_sqlite import upgrade_sqlite_version
-from core.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
 
 
 class Database:

@@ -12,7 +12,7 @@ from langchain.vectorstores import Chroma
 
 from core.llm.callbacks import StreamingLLMCallbackHandler
 from core.llm.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 
 def make_doc_search(persistent_dir: str):

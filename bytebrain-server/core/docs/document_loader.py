@@ -14,7 +14,7 @@ from langchain.text_splitter import Language
 from langchain.text_splitter import MarkdownTextSplitter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from core.utils import calculate_md5_checksum
+from core.utils.utils import calculate_md5_checksum
 
 NAMESPACE_DOCUMENT = UUID('f924e0a9-69a7-11ee-aa84-6c02e09469ba')
 NAMESPACE_WEBSITE = UUID('c88b857e-be16-4d80-9f45-b5c41fdd4a11')

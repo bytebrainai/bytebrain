@@ -16,7 +16,7 @@ from langchain.vectorstores import Chroma
 from langchain.vectorstores.base import VectorStore
 
 from core.llm.callbacks import StreamingLLMCallbackHandler
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 
 def qa_with_stuffed_docs_chain(
