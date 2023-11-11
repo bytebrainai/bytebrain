@@ -17,7 +17,7 @@ from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
-from core.chatbot_v2 import make_question_answering_chatbot
+from core.llm.chatbot_v2 import make_question_answering_chatbot
 
 app = FastAPI()
 

@@ -23,7 +23,7 @@ import index.index as index
 from config import load_config
 from core.ChannelHistory import ChannelHistory
 from core.DiscordMessage import DiscordMessage
-from core.chatbot_v2 import make_question_answering_chatbot
+from core.llm.chatbot_v2 import make_question_answering_chatbot
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
 from core.docs.stored_docs import save_docs_metadata
