@@ -1,4 +1,4 @@
-from core.document_loader import load_docs_from_site
+from core.docs.document_loader import load_docs_from_site
 
 docs = load_docs_from_site(
     doc_source_id="caliban",

@@ -1,4 +1,4 @@
-from core.document_loader import load_source_code
+from core.docs.document_loader import load_source_code
 from core.db import upsert_docs
 
 
