@@ -21,8 +21,8 @@ from structlog import getLogger
 
 import index.index as index
 from config import load_config
-from core.ChannelHistory import ChannelHistory
-from core.DiscordMessage import DiscordMessage
+from core.bots.discord.ChannelHistory import ChannelHistory
+from core.bots.discord.DiscordMessage import DiscordMessage
 from core.llm.chatbot_v2 import make_question_answering_chatbot
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection

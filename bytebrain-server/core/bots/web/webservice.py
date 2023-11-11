@@ -177,7 +177,7 @@ def create_feedback(feedback: FeedbackCreate):
 
 def main():
     create_feedback_db()
-    uvicorn.run("core.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=False)
+    uvicorn.run("core.bots.web.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=False)
 
 
 if __name__ == "__main__":

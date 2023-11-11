@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from core.DiscordMessage import DiscordMessage
+from core.bots.discord.DiscordMessage import DiscordMessage
 
 
 class ChannelHistory:
