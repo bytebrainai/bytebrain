@@ -25,6 +25,7 @@ class ByteBrainConfig:
     name: str
     project_name: str
     stored_docs_db: str
+    feedbacks_db: str
     embeddings_dir: Optional[str]
     weaviate_url: Optional[str]
     webservice: WebserviceConfig
@@ -38,10 +39,18 @@ def load_config() -> ByteBrainConfig:
     name = config['name']
     project_name = config['project_name']
     stored_docs_db = config['stored_docs_db']
+    feedbacks_db = config['feedbacks_db']
     embeddings_dir = config['embeddings_dir']
     weaviate_url = config['weaviate_url'] \
         if os.environ.get('APP_ENV', 'development') == 'production' else "http://localhost:8080"
     webservice = WebserviceConfig(**config['webservice'])
     discord = DiscordBotConfig(**config['discord'])
 
-    return ByteBrainConfig(name, project_name, stored_docs_db, embeddings_dir, weaviate_url, webservice, discord)
+    return ByteBrainConfig(name,
+                           project_name,
+                           stored_docs_db,
+                           feedbacks_db,
+                           embeddings_dir,
+                           weaviate_url,
+                           webservice,
+                           discord)

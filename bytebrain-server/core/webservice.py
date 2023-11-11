@@ -136,7 +136,7 @@ async def metrics():
 
 def create_feedback_db():
     import sqlite3
-    conn = sqlite3.connect('./db/feedbacks.db')
+    conn = sqlite3.connect(config.feedbacks_db)
     cursor = conn.cursor()
 
     cursor.execute('''
