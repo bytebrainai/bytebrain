@@ -11,7 +11,7 @@ from langchain.llms import OpenAI
 from langchain.vectorstores import Chroma
 
 from core.llm.callbacks import StreamingLLMCallbackHandler
-from core.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
+from core.llm.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
 from core.upgrade_sqlite import upgrade_sqlite_version
 
 
