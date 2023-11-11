@@ -4,7 +4,7 @@ from langchain.llms import OpenAI
 from langchain.vectorstores import Chroma
 
 import config
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 cfg = config.load_config()
 upgrade_sqlite_version()

@@ -1,6 +1,5 @@
 import asyncio
 
-import langchain
 from langchain.chains.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
 from langchain.embeddings import FakeEmbeddings
 from langchain.llms import OpenAI
@@ -33,8 +32,6 @@ from weaviate import EmbeddedOptions
 w = Weaviate(client=weaviate.Client(embedded_options=EmbeddedOptions()),
              index_name="myindex", text_key="mytextkey")
 vector_store = w.from_documents(docs, embedding=embeddings, weaviate_url = "http://127.0.0.1:6666")
-
-from langchain.vectorstores import FAISS
 
 # vector_store = FAISS.from_documents(documents=docs, embedding=embeddings)
 

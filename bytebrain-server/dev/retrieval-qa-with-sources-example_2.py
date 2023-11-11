@@ -8,7 +8,7 @@ langchain.verbose = True
 # langchain.debug=True
 import asyncio
 
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 upgrade_sqlite_version()
 embeddings: OpenAIEmbeddings = OpenAIEmbeddings()

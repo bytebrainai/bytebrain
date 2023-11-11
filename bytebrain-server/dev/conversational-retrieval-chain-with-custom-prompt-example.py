@@ -9,12 +9,12 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import Document
 from langchain.vectorstores import FAISS
 
-from core.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
+from core.llm.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
 
 langchain.verbose = True
 langchain.debug=True
 
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 upgrade_sqlite_version()
 embeddings: OpenAIEmbeddings = OpenAIEmbeddings()

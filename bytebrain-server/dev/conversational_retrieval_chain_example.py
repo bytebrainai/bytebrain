@@ -2,7 +2,7 @@ from typing import Optional
 
 import langchain
 
-from core.callbacks import StreamingLLMCallbackHandler
+from core.llm.callbacks import StreamingLLMCallbackHandler
 
 langchain.verbose = True
 # langchain.debug=True
@@ -20,7 +20,7 @@ from langchain.vectorstores import FAISS
 from langchain.schema import BaseRetriever
 
 from fastapi import WebSocket
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 upgrade_sqlite_version()
 embeddings: OpenAIEmbeddings = OpenAIEmbeddings()

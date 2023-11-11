@@ -52,7 +52,7 @@ retriever = vector_store.as_retriever()
 
 retrievalQA = RetrievalQAWithSourcesChain.from_llm(llm=OpenAI(verbose=True), retriever=retriever)
 
-from core.utils import async_measure_execution_time
+from core.utils.utils import async_measure_execution_time
 
 
 @async_measure_execution_time

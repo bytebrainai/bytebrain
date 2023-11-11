@@ -1,5 +1,5 @@
 import os
-from core.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
+from core.llm.custom_conversational_chain import ConversationalRetrievalChainWithCustomPrompt
 from langchain.prompts import PromptTemplate
 from langchain.llms import OpenAI
 from langchain.chains import LLMChain

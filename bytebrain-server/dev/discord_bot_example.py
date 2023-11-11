@@ -6,7 +6,7 @@ from discord.ext.commands import Bot
 from structlog import getLogger
 
 from config import load_config
-from core.discord_bot import fetch_message_thread_v2
+from core.bots.discord.discord_bot import fetch_message_thread_v2
 
 config = load_config()
 

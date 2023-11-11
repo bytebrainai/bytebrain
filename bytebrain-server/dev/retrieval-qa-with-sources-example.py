@@ -10,7 +10,7 @@ langchain.verbose=True
 import asyncio
 
 import config
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 cfg = config.load_config()
 upgrade_sqlite_version()
