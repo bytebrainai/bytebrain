@@ -22,7 +22,7 @@ import os
 
 class TestIndexOperations(unittest.TestCase):
     def test_index_channel(self):
-        from core.discord_bot import index_channel
+        from core.bots.discord.discord_bot import index_channel
         from datetime import datetime, timedelta
         from config import load_config
         config = load_config()

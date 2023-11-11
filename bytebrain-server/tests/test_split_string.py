@@ -1,6 +1,6 @@
 import unittest
 
-from core.utils import split_string_preserve_suprimum_number_of_lines
+from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 
 
 class TestSplitStringFunction(unittest.TestCase):

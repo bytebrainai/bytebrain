@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from core.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
+from core.utils.utils import create_dict_from_keys_and_values, identify_changed_files, identify_removed_snippets
 
 
 class TestIdentifyChanges(TestCase):

@@ -1,7 +1,7 @@
 import unittest
 
-from core.utils import annotate_history_with_turns
-from core.utils import annotate_history_with_turns_v2
+from core.utils.utils import annotate_history_with_turns
+from core.utils.utils import annotate_history_with_turns_v2
 
 
 class TestAnnotateHistoryWithTurns(unittest.TestCase):

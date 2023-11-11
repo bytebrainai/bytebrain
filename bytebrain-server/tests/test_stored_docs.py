@@ -2,7 +2,7 @@ import sqlite3
 import unittest
 from datetime import datetime, timedelta
 
-from core.stored_docs import fetch_last_item_in_discord_channel, insert_batch_data, fetch_last_item
+from core.docs.stored_docs import fetch_last_item_in_discord_channel, insert_batch_data, fetch_last_item
 
 
 class TestStoredDocsOperations(unittest.TestCase):
