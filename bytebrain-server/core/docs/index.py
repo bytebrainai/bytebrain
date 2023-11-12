@@ -5,7 +5,7 @@ from structlog import getLogger
 from config import load_config
 from core.docs.document_loader import load_source_code, load_zionomicon_docs, load_zio_website_docs, load_youtube_docs
 from core.docs.stored_docs import save_docs_metadata
-from core.docs.weaviate_db import WeaviateDatabase
+from core.docs.db.weaviate_db import WeaviateDatabase
 from core.utils.github import zio_ecosystem_projects
 from core.utils.utils import clone_repo
 from core.utils.youtube import list_of_channel_videos
