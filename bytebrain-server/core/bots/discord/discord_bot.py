@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import Any, Tuple
 from typing import List, Optional
 from uuid import UUID
-from ChannelHistory import read_from_cache
 
 import chat_exporter
 import discord
@@ -20,17 +19,18 @@ from langchain.schema import Document
 from structlog import getLogger
 
 import core.docs.index as index
+from ChannelHistory import read_from_cache
 from config import load_config
 from core.bots.discord.ChannelHistory import ChannelHistory
 from core.bots.discord.DiscordMessage import DiscordMessage
-from core.llm.chains import make_question_answering_chain
+from core.docs.db.weaviate_db import WeaviateDatabase
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
 from core.docs.stored_docs import save_docs_metadata
+from core.llm.chains import make_question_answering_chain
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import calculate_md5_checksum
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
-from core.docs.db.weaviate_db import WeaviateDatabase
 
 config = load_config()
 vector_store = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir)
@@ -190,7 +190,7 @@ async def on_message(message):
             )
 
             chat_history = ["FULL CHAT HISTORY:"] + annotate_history_with_turns_v2(
-                await fetch_message_thread_v2(ctx, message))
+                await fetch_message_thread(ctx, message))
 
             result: dict[str, Any] = await qa.acall(
                 {
@@ -568,7 +568,7 @@ def remove_discord_mention(msg: str) -> str:
     return re.sub(r"<@.*?>", "", msg)
 
 
-async def get_message_before_v2(ctx, message: Message) -> Optional[Message]:
+async def get_message_before(ctx, message: Message) -> Optional[Message]:
     channel = ctx.channel
     try:
         async for previous_message in channel.history(limit=2, before=message):
@@ -579,63 +579,23 @@ async def get_message_before_v2(ctx, message: Message) -> Optional[Message]:
         return None
 
 
-async def get_message_before(ctx, message_id: int) -> Optional[Message]:
-    channel = ctx.channel
-    try:
-        message = await channel.fetch_message(message_id)
-        async for previous_message in channel.history(limit=2, before=message):
-            # The limit is set to 2, so it will fetch the message before the target message
-            if previous_message.id != message_id:
-                return previous_message
-    except discord.NotFound:
-        return None
-
-
-async def fetch_message_thread_v2(
+async def fetch_message_thread(
         ctx: discord.ext.commands.Context,
         message: discord.message.Message) -> List[Tuple[str, str]]:
-    before = await get_message_before_v2(ctx, message)
+    before = await get_message_before(ctx, message)
     message_content: List[Tuple[str, str]]
 
     if message.reference is not None:
         referenced_message = await ctx.fetch_message(message.reference.message_id)
-        message_content = await fetch_message_thread_v2(ctx, referenced_message) + [
+        message_content = await fetch_message_thread(ctx, referenced_message) + [
             (referenced_message.author.name, referenced_message.content)]
     elif abs(before.created_at - message.created_at) < timedelta(
             minutes=5) and before.author.name == message.author.name:
-        message_content = await fetch_message_thread_v2(ctx, before) + [(before.author.name, before.content)]
+        message_content = await fetch_message_thread(ctx, before) + [(before.author.name, before.content)]
     else:
         message_content = []
 
     return message_content
-
-
-async def fetch_message_thread(
-        ctx: discord.ext.commands.Context,
-        reference: discord.message.MessageReference) -> List[str]:
-    """
-    Retrieve a message thread including the referenced message.
-
-    This asynchronous function takes a `MessageReference` object as input and
-    retrieves a message thread, which includes the content of the referenced
-    message and its parent messages if they exist. The messages are returned
-    as a list in chronological order, with the referenced message first.
-
-    Args:
-        ctx (discord.ext.commands.Context): The Discord Message's Context.
-        reference (discord.message.MessageReference): A `MessageReference` object containing
-            information about the referenced message.
-
-    Returns:
-        List[str]: A list of message contents in chronological order.
-    """
-    if reference is None:
-        return []
-    referenced_message = await ctx.fetch_message(reference.message_id)
-    parent_reference = referenced_message.reference
-    parent_messages = await fetch_message_thread(ctx, parent_reference) if parent_reference else []
-    message_content: list[str] = [referenced_message.content]
-    return parent_messages + message_content
 
 
 async def send_message_in_chunks(ctx, msg: str, chunk_size: int = 2000):

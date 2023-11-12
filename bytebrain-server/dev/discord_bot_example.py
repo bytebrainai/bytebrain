@@ -6,7 +6,7 @@ from discord.ext.commands import Bot
 from structlog import getLogger
 
 from config import load_config
-from core.bots.discord.discord_bot import fetch_message_thread_v2
+from core.bots.discord.discord_bot import fetch_message_thread
 
 config = load_config()
 
@@ -38,7 +38,7 @@ async def on_message(message):
     if message.mention_everyone:
         return
 
-    thread: list[tuple[str, str]] = await fetch_message_thread_v2(ctx, message)
+    thread: list[tuple[str, str]] = await fetch_message_thread(ctx, message)
     print("----")
     for m in thread:
         print(m)
