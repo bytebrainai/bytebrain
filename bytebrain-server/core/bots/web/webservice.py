@@ -1,8 +1,7 @@
 import asyncio
 import json
 import time
-from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 import uvicorn
 import weaviate
@@ -12,12 +11,12 @@ from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.vectorstores.weaviate import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
-from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
 from core.llm.chains import make_question_answering_chain
+from feedbacks import create_feedback_db, add_feedback, FeedbackCreate
 
 app = FastAPI()
 
@@ -134,44 +133,9 @@ async def metrics():
     return Response(generate_latest(registry), media_type="text/plain")
 
 
-def create_feedback_db():
-    import sqlite3
-    conn = sqlite3.connect(config.feedbacks_db)
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS feedbacks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chat_history JSON,
-            is_useful BOOLEAN,
-            created_at DATETIME
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
-
-
-class FeedbackCreate(BaseModel):
-    chat_history: List[Any]
-    is_useful: bool
-
-
 @app.post("/feedback/", response_model=FeedbackCreate)
 def create_feedback(feedback: FeedbackCreate):
-    import sqlite3
-    conn = sqlite3.connect('./db/feedbacks.db')
-    cursor = conn.cursor()
-    created_at = datetime.utcnow()
-
-    cursor.execute('''
-        INSERT INTO feedbacks (chat_history, is_useful, created_at) 
-        VALUES (?, ?, ?)
-    ''', (json.dumps(feedback.chat_history), feedback.is_useful, created_at))
-
-    conn.commit()
-    conn.close()
-
+    add_feedback(feedback)
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
 
 
