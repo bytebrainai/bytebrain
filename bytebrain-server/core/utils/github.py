@@ -3,7 +3,7 @@ import requests
 
 
 def zio_ecosystem_projects():
-    file_path = "index/zio-ecosystem.json"
+    file_path = "./zio-ecosystem.json"
     try:
         with open(file_path, 'r') as file:
             return json.load(file)
