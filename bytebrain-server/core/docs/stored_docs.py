@@ -71,7 +71,8 @@ def save_docs_metadata(documents: List[Document], conn: Optional[Connection] = N
         (x.metadata['doc_uuid'], x.metadata['doc_source_id'], x.metadata['doc_source_type'], datetime.now(), x.metadata)
         for x in documents]
     if conn is None:
-        with create_connection("stored_docs.db") as connection:
+        cfg = config.load_config()
+        with create_connection(cfg.stored_docs_db) as connection:
             create_table(connection)
             insert_batch_data(connection, stored_data)
     else:
