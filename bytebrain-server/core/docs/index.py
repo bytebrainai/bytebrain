@@ -1,13 +1,12 @@
-import json
 import os
 
-import requests
 from structlog import getLogger
 
 from config import load_config
 from core.docs.document_loader import load_source_code, load_zionomicon_docs, load_zio_website_docs, load_youtube_docs
 from core.docs.stored_docs import save_docs_metadata
 from core.docs.weaviate_db import WeaviateDatabase
+from core.utils.github import zio_ecosystem_projects
 from core.utils.utils import clone_repo
 from core.utils.youtube import list_of_channel_videos
 
@@ -35,15 +34,6 @@ def index_zio_project_source_code():
     save_docs_metadata(docs)
 
 
-def zio_ecosystem_projects():
-    file_path = "index/zio-ecosystem.json"
-    try:
-        with open(file_path, 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
-
-
 def index_zio_ecosystem_source_code():
     for p in zio_ecosystem_projects():
         project_dir = clone_repo(p['clone_url'])
@@ -56,41 +46,6 @@ def index_zio_ecosystem_source_code():
         db.upsert_docs(ids, docs)
         log.info(f"Indexed {p['id']} source code")
         save_docs_metadata(docs)
-
-
-def get_zio_ecosystem_repo_info():
-    base_url = f"https://api.github.com/orgs/zio/repos"
-    headers = {"Accept": "application/vnd.github.v3+json"}  # Set headers to use GitHub API v3
-
-    repo_infos = []
-    page = 1
-    per_page = 100  # Number of repositories per page
-
-    while True:
-        params = {"page": page, "per_page": per_page}
-        response = requests.get(base_url, headers=headers, params=params)
-
-        if response.status_code == 200:
-            repos = response.json()
-            if len(repos) == 0:
-                break  # No more repositories to retrieve
-
-            for repo in repos:
-                clone_url = repo["clone_url"]
-                default_branch = repo["default_branch"]
-                print(clone_url)
-                repo_infos.append({  # TODO: Add id field for each entry
-                    "clone_url": clone_url,
-                    "default_branch": default_branch
-                })
-
-            page += 1
-        else:
-            print(f"Failed to retrieve repositories. Error: {response.status_code} - {response.text}")
-            return []
-
-    with open("zio-ecosystem.json", 'w') as file:
-        json.dump(repo_infos, file)
 
 
 def index_youtube_video(video_id: str):
