@@ -112,7 +112,7 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         await websocket.receive_text()
 
-        with open('core/dummy/chat.md', 'r') as file:
+        with open('core/bots/web/dummy/chat.md', 'r') as file:
             response = file.read()
 
         tokens = [{"token": token + " ", "completed": False} for token in response.split(" ")]
