@@ -569,7 +569,7 @@ def generate_chat_transcript(messages: List[DiscordMessage]) -> (id, str):
         Tuple[id, str]: A tuple containing the ID of the first message in the list and the transcript string.
 
     Example:
-        >>> from core.DiscordMessage import DiscordMessage
+        >>> from core.bots.discord.DiscordMessage import DiscordMessage
         >>> messages = [
         ...     DiscordMessage(1,"User1", datetime(2023, 9, 11, 10, 0, 0), "Hello!"),
         ...     DiscordMessage(2,"User2", datetime(2023, 9, 11, 10, 5, 0), "Hi there!"),

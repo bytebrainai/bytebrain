@@ -1,7 +1,10 @@
 import hashlib
+import tempfile
 import time
 from functools import wraps
 from typing import Dict, List, TypeVar, Tuple
+
+from git import Repo
 
 T = TypeVar('T')
 
@@ -158,6 +161,7 @@ def measure_execution_time(func):
         duration = end_time - start_time
         print(f"{func.__name__} took {duration:.6f} seconds to run.")
         return result
+
     return wrapper
 
 
@@ -170,4 +174,11 @@ def async_measure_execution_time(func):
         duration = end_time - start_time
         print(f"{func.__name__} took {duration:.6f} seconds to run.")
         return result
+
     return wrapper
+
+
+def clone_repo(repo_url, depth=1) -> str:
+    temp_folder: str = tempfile.mkdtemp()
+    Repo.clone_from(repo_url, temp_folder, depth=depth)
+    return temp_folder

@@ -1,17 +1,15 @@
 import json
 import os
-import tempfile
-from urllib.error import HTTPError
 
-import googleapiclient.discovery
 import requests
-from git import Repo
 from structlog import getLogger
 
 from config import load_config
 from core.docs.document_loader import load_source_code, load_zionomicon_docs, load_zio_website_docs, load_youtube_docs
-from core.docs.weaviate_db import WeaviateDatabase
 from core.docs.stored_docs import save_docs_metadata
+from core.docs.weaviate_db import WeaviateDatabase
+from core.utils.utils import clone_repo
+from core.utils.youtube import list_of_channel_videos
 
 config = load_config()
 log = getLogger()
@@ -37,12 +35,6 @@ def index_zio_project_source_code():
     save_docs_metadata(docs)
 
 
-def clone_repo(repo_url, depth=1) -> str:
-    temp_folder: str = tempfile.mkdtemp()
-    Repo.clone_from(repo_url, temp_folder, depth=depth)
-    return temp_folder
-
-
 def zio_ecosystem_projects():
     file_path = "index/zio-ecosystem.json"
     try:
@@ -64,59 +56,6 @@ def index_zio_ecosystem_source_code():
         db.upsert_docs(ids, docs)
         log.info(f"Indexed {p['id']} source code")
         save_docs_metadata(docs)
-
-
-def list_of_channel_videos():
-    youtube = googleapiclient.discovery.build(
-        'youtube',
-        'v3',
-        developerKey=os.environ["GOOGLE_API_KEY"]
-    )
-
-    # Check if cached data exists
-    cache_file = 'video_ids_cache.json'
-    if os.path.exists(cache_file):
-        with open(cache_file, 'r') as file:
-            cached_data = json.load(file)
-        if os.environ['YOUTUBE_CHANNEL_ID'] in cached_data:
-            return cached_data[os.environ['YOUTUBE_CHANNEL_ID']]
-
-    video_ids = []
-    page_token = None
-
-    try:
-        while True:
-            response = youtube.search().list(
-                part='id',
-                channelId=os.environ['YOUTUBE_CHANNEL_ID'],
-                maxResults=50,
-                pageToken=page_token
-            ).execute()
-
-            for item in response['items']:
-                if item['id']['kind'] == 'youtube#video':
-                    video_ids.append(item['id']['videoId'])
-
-            if 'nextPageToken' in response:
-                page_token = response['nextPageToken']
-            else:
-                break
-
-    except HTTPError:
-        print(f'An HTTP error occurred')
-
-    if os.path.exists(cache_file):
-        with open(cache_file, 'r') as file:
-            cached_data = json.load(file)
-    else:
-        cached_data = {}
-
-    cached_data[os.environ['YOUTUBE_CHANNEL_ID']] = video_ids
-
-    with open(cache_file, 'w') as file:
-        json.dump(cached_data, file)
-
-    return video_ids
 
 
 def get_zio_ecosystem_repo_info():
@@ -152,58 +91,6 @@ def get_zio_ecosystem_repo_info():
 
     with open("zio-ecosystem.json", 'w') as file:
         json.dump(repo_infos, file)
-
-
-def list_of_channel_videos(channel_id: str):
-    youtube = googleapiclient.discovery.build(
-        'youtube',
-        'v3',
-        developerKey=os.environ["GOOGLE_API_KEY"]
-    )
-
-    cache_file = 'video_ids_cache.json'
-    if os.path.exists(cache_file):
-        with open(cache_file, 'r') as file:
-            cached_data = json.load(file)
-        if channel_id in cached_data:
-            return cached_data[channel_id]
-
-    video_ids = []
-    page_token = None
-
-    try:
-        while True:
-            response = youtube.search().list(
-                part='id',
-                channelId=channel_id,
-                maxResults=50,
-                pageToken=page_token
-            ).execute()
-
-            for item in response['items']:
-                if item['id']['kind'] == 'youtube#video':
-                    video_ids.append(item['id']['videoId'])
-
-            if 'nextPageToken' in response:
-                page_token = response['nextPageToken']
-            else:
-                break
-
-    except HTTPError:
-        print(f'An HTTP error occurred')
-
-    if os.path.exists(cache_file):
-        with open(cache_file, 'r') as file:
-            cached_data = json.load(file)
-    else:
-        cached_data = {}
-
-    cached_data[channel_id] = video_ids
-
-    with open(cache_file, 'w') as file:
-        json.dump(cached_data, file)
-
-    return video_ids
 
 
 def index_youtube_video(video_id: str):
