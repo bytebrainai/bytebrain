@@ -1,8 +1,9 @@
-name: ZIO CHAT
+name: ZIO CHAT Bot
 project_name: ZIO
 stored_docs_db: './db/stored_docs.db'
 feedbacks_db: './db/feedbacks.db'
 embeddings_dir: './db/embeddings-cache'
+discord_cache_dir: './db/discord-cache'
 weaviate_url: 'http://weaviate:8080'
 webservice:
   prompt: |-

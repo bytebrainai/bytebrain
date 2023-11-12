@@ -7,8 +7,8 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any, Tuple
 from typing import List, Optional
-from datetime import timezone
 from uuid import UUID
+from ChannelHistory import read_from_cache
 
 import chat_exporter
 import discord
@@ -47,7 +47,7 @@ NAMESPACE_DISCORD: UUID = UUID('e66dbce0-e817-4d27-bca5-72f1c4442b4a')
 
 @bot.event
 async def on_ready():
-    log.info("Hello! I'm Chat Bot and ready to receive commands!")
+    log.info(f"Hello! I'm {config.name} and ready to receive commands!")
 
 
 @bot.command()
@@ -334,51 +334,9 @@ async def download_channel_history(channel_id: int, after: Optional[datetime] = 
     return messages
 
 
-def dump_channel_history(channel_history: ChannelHistory, file_name: str):
-    cache_dir = "./db/discord-cache"
-    with open(file_name, 'w') as file:
-        file.write(channel_history.to_json())
-
-    # Check if the directory exists, and create it if it doesn't
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-
-    with open(os.path.join(cache_dir, file_name), 'w') as file:
-        file.write(channel_history.to_json())
-
-
 async def send_and_log(ctx, message: str):
     await ctx.send(message)
     log.info(message)
-
-
-def filter_messages_from(history: List[DiscordMessage], after: Optional[datetime]) -> List[DiscordMessage]:
-    """
-    Filter a list of Discord messages to include only those created from a specified timestamp.
-
-    This function takes a list of Discord messages and filters them to include only messages
-    created from the specified timestamp, if provided. If no timestamp is given (after is None),
-    all messages in the input list are included in the result.
-
-    Note:
-        - Messages with timestamps greater than or equal to the provided 'after' timestamp
-          are included in the result.
-    """
-    filtered_messages = []
-    if after is not None:
-        for message in history:
-            if message.created_at >= after.replace(tzinfo=timezone.utc):
-                filtered_messages.append(message)
-    else:
-        filtered_messages = history
-    return filtered_messages
-
-
-def read_from_cache(file_path: str, after: Optional[datetime]) -> ChannelHistory:
-    with open(file_path, 'r') as file:
-        messages: ChannelHistory = ChannelHistory.from_json(file.read())
-        messages.history = filter_messages_from(messages.history, after)
-    return messages
 
 
 async def fetch_channel_history(channel_id: int, after: Optional[datetime]) -> ChannelHistory:
@@ -408,7 +366,7 @@ async def fetch_channel_history(channel_id: int, after: Optional[datetime]) -> C
         combined_messages: List[DiscordMessage] = combine_user_messages(history, time_threshold=4)
         channel_history = ChannelHistory(guild_id=guild.id, guild_name=guild.name, channel_id=channel_id,
                                          channel_name=channel_name, history=combined_messages)
-        dump_channel_history(channel_history, file_path)
+        channel_history.dump_channel_history(file_name=file_path, cache_dir=config.discord_cache_dir)
 
     return channel_history
 
