@@ -23,14 +23,14 @@ import core.docs.index as index
 from config import load_config
 from core.bots.discord.ChannelHistory import ChannelHistory
 from core.bots.discord.DiscordMessage import DiscordMessage
-from core.llm.chatbot_v2 import make_question_answering_chatbot
+from core.llm.chains import make_question_answering_chain
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
 from core.docs.stored_docs import save_docs_metadata
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import calculate_md5_checksum
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
-from core.docs.weaviate_db import WeaviateDatabase
+from core.docs.db.weaviate_db import WeaviateDatabase
 
 config = load_config()
 vector_store = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir)
@@ -183,7 +183,7 @@ async def on_message(message):
     if bot.user.mentioned_in(message) or is_private_message(message):
         async with message.channel.typing():
             log.info(f"received message from {message.channel} channel")
-            qa = make_question_answering_chatbot(
+            qa = make_question_answering_chain(
                 websocket=None,
                 vector_store=vector_store.weaviate,
                 prompt_template=config.discord.prompt

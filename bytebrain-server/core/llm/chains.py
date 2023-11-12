@@ -100,7 +100,7 @@ def make_doc_search(persistent_dir: str):
     )
 
 
-def make_question_answering_chatbot(
+def make_question_answering_chain(
         websocket: Optional[WebSocket],
         vector_store: VectorStore,
         prompt_template: str):

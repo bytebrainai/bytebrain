@@ -17,7 +17,7 @@ from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
-from core.llm.chatbot_v2 import make_question_answering_chatbot
+from core.llm.chains import make_question_answering_chain
 
 app = FastAPI()
 
@@ -60,7 +60,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     start_time = time.time()
     request_counter.inc()
-    qa = make_question_answering_chatbot(
+    qa = make_question_answering_chain(
         websocket=websocket,
         vector_store=vector_store,
         prompt_template=config.webservice.prompt
