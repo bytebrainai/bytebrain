@@ -41,7 +41,7 @@ class ChannelHistory:
         history = [DiscordMessage.from_json(json.dumps(message_json)) for message_json in data["history"]]
         return cls(data["guild_id"], data["guild_name"], data["channel_id"], data["channel_name"], history)
 
-    def dump_channel_history(self, file_name: str, cache_dir):
+    def dump(self, file_name: str, cache_dir):
         with open(file_name, 'w') as file:
             file.write(self.to_json())
 
