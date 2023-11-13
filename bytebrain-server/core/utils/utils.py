@@ -1,6 +1,7 @@
 import hashlib
 import tempfile
 import time
+from datetime import datetime
 from functools import wraps
 from typing import Dict, List, TypeVar, Tuple
 
@@ -182,3 +183,17 @@ def clone_repo(repo_url, depth=1) -> str:
     temp_folder: str = tempfile.mkdtemp()
     Repo.clone_from(repo_url, temp_folder, depth=depth)
     return temp_folder
+
+
+def serialize_datetime(obj):
+    """
+    Serialize a datetime object into an ISO 8601 formatted string.
+
+    Example:
+        >>> dt = datetime(2023, 9, 12, 15, 30)
+        >>> serialize_datetime(dt)
+        '2023-09-12T15:30:00'
+    """
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")

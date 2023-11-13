@@ -27,7 +27,7 @@ class ByteBrainConfig:
     stored_docs_db: str
     feedbacks_db: str
     embeddings_dir: Optional[str]
-    discord_cache_dir = Optional[str]
+    discord_cache_dir: Optional[str]
     weaviate_url: Optional[str]
     webservice: WebserviceConfig
     discord: DiscordBotConfig
