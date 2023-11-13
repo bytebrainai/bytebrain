@@ -4,15 +4,15 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Optional, List, Tuple
 
-import discord
 from discord.ext.commands import Bot
 from discord.message import Message
 from structlog import getLogger
 
-from ChannelHistory import ChannelHistory, read_from_cache
-from DiscordMessage import DiscordMessage
+import discord
 from config import load_config
-from discord_utils import get_guild_by_channel, combine_user_messages
+from core.bots.discord.discord_utils import get_guild_by_channel, combine_user_messages
+from core.models.discord.ChannelHistory import ChannelHistory, read_from_cache
+from core.models.discord.DiscordMessage import DiscordMessage
 
 config = load_config()
 log = getLogger()

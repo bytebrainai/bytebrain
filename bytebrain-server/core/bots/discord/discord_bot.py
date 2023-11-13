@@ -13,15 +13,14 @@ from structlog import getLogger
 import core.docs.index as index
 import discord_utils
 from config import load_config
-from core.bots.discord.ChannelHistory import ChannelHistory
-from core.bots.discord.DiscordMessage import DiscordMessage
-from core.bots.discord.discord_loader import fetch_channel_history
+from core.models.discord.ChannelHistory import ChannelHistory
+from core.models.discord.DiscordMessage import DiscordMessage
 from core.docs.db.weaviate_db import WeaviateDatabase
 from core.docs.discord import index_channel_history
+from core.docs.discord_loader import fetch_channel_history, fetch_message_thread
 from core.llm.chains import make_question_answering_chain
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
-from discord_loader import fetch_message_thread
 from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks, \
     first_message_of_last_indexed_page
 

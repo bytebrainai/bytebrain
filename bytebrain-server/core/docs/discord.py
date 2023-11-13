@@ -4,11 +4,11 @@ from uuid import UUID
 from langchain.schema import Document
 from structlog import getLogger
 
-from core.bots.discord.ChannelHistory import ChannelHistory
-from core.bots.discord.DiscordMessage import DiscordMessage
 from core.docs.db.weaviate_db import WeaviateDatabase
 from core.docs.document_loader import generate_uuid
 from core.docs.stored_docs import save_docs_metadata
+from core.models.discord.ChannelHistory import ChannelHistory
+from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.utils import calculate_md5_checksum
 
 NAMESPACE_DISCORD: UUID = UUID('e66dbce0-e817-4d27-bca5-72f1c4442b4a')
@@ -129,7 +129,7 @@ def generate_chat_transcript(messages: List[DiscordMessage]) -> (id, str):
         Tuple[id, str]: A tuple containing the ID of the first message in the list and the transcript string.
 
     Example:
-        >>> from core.bots.discord.DiscordMessage import DiscordMessage
+        >>> from core.models.discord.DiscordMessage import DiscordMessage
         >>> messages = [
         ...     DiscordMessage(1,"User1", datetime(2023, 9, 11, 10, 0, 0), "Hello!"),
         ...     DiscordMessage(2,"User2", datetime(2023, 9, 11, 10, 5, 0), "Hi there!"),

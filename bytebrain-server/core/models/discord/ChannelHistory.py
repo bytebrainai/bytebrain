@@ -4,7 +4,7 @@ from datetime import datetime
 from datetime import timezone
 from typing import List, Optional
 
-from core.bots.discord.DiscordMessage import DiscordMessage
+from core.docs.DiscordMessage import DiscordMessage
 
 
 class ChannelHistory:

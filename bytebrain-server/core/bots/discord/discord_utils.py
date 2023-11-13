@@ -7,7 +7,7 @@ from typing import Optional
 from discord.ext.commands import Bot
 from discord.guild import Guild
 
-from core.bots.discord.DiscordMessage import DiscordMessage
+from core.models.discord.DiscordMessage import DiscordMessage
 from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 
