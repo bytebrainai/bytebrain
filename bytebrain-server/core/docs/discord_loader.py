@@ -9,16 +9,14 @@ from discord.message import Message
 from structlog import getLogger
 
 import discord
-from config import load_config
 from core.bots.discord.discord_utils import get_guild_by_channel, combine_user_messages
 from core.models.discord.ChannelHistory import ChannelHistory, read_from_cache
 from core.models.discord.DiscordMessage import DiscordMessage
 
-config = load_config()
 log = getLogger()
 
 
-async def dump_channel_history(channel_id: int, after: Optional[datetime], bot: Bot) -> ChannelHistory:
+async def dump_channel_history(channel_id: int, after: Optional[datetime], bot: Bot, cache_dir: str) -> ChannelHistory:
     """
     This function first checks if there is a cached file for the channel's history that is not older than two weeks.
     If a valid cache is found, it reads the history from the cache. If no cache is found or if it's older than two
@@ -48,7 +46,7 @@ async def dump_channel_history(channel_id: int, after: Optional[datetime], bot: 
                                          channel_id=channel_id,
                                          channel_name=channel_name,
                                          history=combined_messages)
-        channel_history.dump(file_name=file_path, cache_dir=config.discord_cache_dir)
+        channel_history.dump(file_name=file_path, cache_dir=cache_dir)
 
     return channel_history
 

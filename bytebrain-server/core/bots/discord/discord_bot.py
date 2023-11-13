@@ -13,12 +13,12 @@ from structlog import getLogger
 import core.docs.index as index
 import discord_utils
 from config import load_config
-from core.models.discord.ChannelHistory import ChannelHistory
-from core.models.discord.DiscordMessage import DiscordMessage
 from core.docs.db.weaviate_db import WeaviateDatabase
 from core.docs.discord import index_channel_history
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
 from core.llm.chains import make_question_answering_chain
+from core.models.discord.ChannelHistory import ChannelHistory
+from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks, \
@@ -72,7 +72,7 @@ async def dump_channel(ctx: commands.Context, channel_id: int, after: Optional[s
     log.info(response_msg)
     await ctx.send(response_msg)
 
-    await dump_channel_history(channel_id, after_datetime, bot)
+    await dump_channel_history(channel_id, after_datetime, bot, config.discord_cache_dir)
 
     response_msg = f"Channel {channel_id} was dumped!"
     log.info(response_msg)
@@ -141,7 +141,8 @@ async def index_channel(ctx, channel_id: int,
                        f"started indexing channel {channel_name}" if after is None
                        else f"started indexing channel {channel_name} after {after}")
 
-    channel_history: ChannelHistory = await dump_channel_history(channel_id, after_datetime, bot)
+    channel_history: ChannelHistory = await dump_channel_history(channel_id, after_datetime, bot,
+                                                                 config.discord_cache_dir)
     await index_channel_history(
         channel_history=channel_history,
         window_size=window_size,
@@ -236,10 +237,11 @@ async def update_discord_channel(ctx, channel_id: int):
     channel_name = bot.get_channel(channel_id).name
     await send_and_log(ctx, log, f"Started updating {channel_name} channel.")
 
-    last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id=channel_id)
+    last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id, config.stored_docs_db, bot)
     last_created_at = last.created_at if last is not None else None
     try:
-        channel_history: ChannelHistory = await dump_channel_history(channel_id, last_created_at, bot)
+        channel_history: ChannelHistory = await dump_channel_history(channel_id, last_created_at, bot,
+                                                                     config.discord_cache_dir)
         if last is not None:
             # Add the first message of last indexed page
             channel_history.history.insert(0, last)
