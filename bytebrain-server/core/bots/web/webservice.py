@@ -16,7 +16,7 @@ from structlog import getLogger
 
 from config import load_config
 from core.llm.chains import make_question_answering_chain
-from feedbacks import create_feedback_db, add_feedback, FeedbackCreate
+from feedbacks import FeedbackService, FeedbackCreate
 
 app = FastAPI()
 
@@ -52,6 +52,8 @@ vector_store = Weaviate(client,
                         attributes=['source', 'doc_source_id', 'doc_title', 'doc_url'],
                         embedding=cached_embedder,
                         by_text=False)
+
+feedback_service = FeedbackService(config.feedbacks_db)
 
 
 @app.websocket("/chat")
@@ -135,12 +137,12 @@ async def metrics():
 
 @app.post("/feedback/", response_model=FeedbackCreate)
 def create_feedback(feedback: FeedbackCreate):
-    add_feedback(feedback)
+    feedback_service.add_feedback(feedback)
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
 
 
 def main():
-    create_feedback_db()
+    feedback_service.create_feedback_db()
     uvicorn.run("core.bots.web.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=False)
 
 
