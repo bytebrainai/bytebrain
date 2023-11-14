@@ -16,30 +16,24 @@ class FeedbackService:
         self.feedbacks_db = feedbacks_db
 
     def create_feedback_db(self):
-        conn = sqlite3.connect(self.feedbacks_db)
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS feedbacks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chat_history JSON,
-                is_useful BOOLEAN,
-                created_at DATETIME
-            )
-        ''')
-
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.feedbacks_db) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS feedbacks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chat_history JSON,
+                    is_useful BOOLEAN,
+                    created_at DATETIME
+                )
+            ''')
 
     def add_feedback(self, feedback: FeedbackCreate):
-        conn = sqlite3.connect(self.feedbacks_db)
-        cursor = conn.cursor()
         created_at = datetime.utcnow()
+        chat_history_json = json.dumps(feedback.chat_history)
 
-        cursor.execute('''
-            INSERT INTO feedbacks (chat_history, is_useful, created_at) 
-            VALUES (?, ?, ?)
-        ''', (json.dumps(feedback.chat_history), feedback.is_useful, created_at))
-
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.feedbacks_db) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO feedbacks (chat_history, is_useful, created_at) 
+                VALUES (?, ?, ?)
+            ''', (chat_history_json, feedback.is_useful, created_at))
