@@ -6,7 +6,6 @@ from structlog import getLogger
 
 from core.docs.db.weaviate_db import WeaviateDatabase
 from core.docs.document_loader import generate_uuid
-from core.docs.stored_docs import save_docs_metadata
 from core.models.discord.ChannelHistory import ChannelHistory
 from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.utils import calculate_md5_checksum
@@ -73,7 +72,7 @@ async def index_channel_history(
     ids = [doc.metadata['doc_uuid'] for doc in documents]
     assert (len(ids) == len(documents))
     db.index_docs(ids, documents)
-    save_docs_metadata(documents=documents)
+    db.stored_docs.save_docs_metadata(documents=documents)
 
 
 def sliding_window_with_common_length(my_list, window_size, common_length):

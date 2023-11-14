@@ -7,8 +7,8 @@ from typing import Optional
 from discord.ext.commands import Bot
 from discord.guild import Guild
 
+from core.docs.stored_docs import StoredDocsService
 from core.models.discord.DiscordMessage import DiscordMessage
-from core.docs.stored_docs import fetch_last_item_in_discord_channel, create_connection
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 
 
@@ -130,10 +130,8 @@ async def first_message_of_last_indexed_page(channel_id: int, stored_docs_db, bo
     """
     Retrieves the first message of the last indexed page associated with a given channel from the database.
     """
-    with create_connection(stored_docs_db) as connection:
-        last_item = fetch_last_item_in_discord_channel(connection,
-                                                       doc_source_id="discord",
-                                                       channel_id=str(channel_id))
+    stored_docs = StoredDocsService(stored_docs_db)
+    last_item = stored_docs.fetch_last_item_in_discord_channel(doc_source_id="discord", channel_id=channel_id)
     metadata = json.loads(last_item[3])
     msg_id = int(metadata['message_id'])
     guild_id = int(metadata['guild_id'])

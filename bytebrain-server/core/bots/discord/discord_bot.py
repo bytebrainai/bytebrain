@@ -25,7 +25,7 @@ from discord_utils import remove_discord_mention, send_and_log, send_message_in_
     first_message_of_last_indexed_page
 
 config = load_config()
-db = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir)
+db = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, stored_docs_db=config.stored_docs_db)
 
 intents = discord.Intents.default()
 intents.message_content = True
