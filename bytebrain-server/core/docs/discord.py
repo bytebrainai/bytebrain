@@ -4,7 +4,7 @@ from uuid import UUID
 from langchain.schema import Document
 from structlog import getLogger
 
-from core.docs.db.weaviate_db import WeaviateDatabase
+from core.docs.db.weaviate_db import VectorStore
 from core.docs.document_loader import generate_uuid
 from core.models.discord.ChannelHistory import ChannelHistory
 from core.models.discord.DiscordMessage import DiscordMessage
@@ -19,7 +19,7 @@ async def index_channel_history(
         channel_history: ChannelHistory,
         window_size: Optional[int],
         common_length: Optional[int],
-        db: WeaviateDatabase):
+        db: VectorStore):
     """
     Indexes the channel history into the db by processing and structuring the messages.
 

@@ -13,9 +13,10 @@ from structlog import getLogger
 import core.docs.index as index
 import discord_utils
 from config import load_config
-from core.docs.db.weaviate_db import WeaviateDatabase
+from core.docs.db.weaviate_db import VectorStore
 from core.docs.discord import index_channel_history
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
+from core.docs.stored_docs import StoredDocsService
 from core.llm.chains import make_question_answering_chain
 from core.models.discord.ChannelHistory import ChannelHistory
 from core.models.discord.DiscordMessage import DiscordMessage
@@ -25,7 +26,8 @@ from discord_utils import remove_discord_mention, send_and_log, send_message_in_
     first_message_of_last_indexed_page
 
 config = load_config()
-db = WeaviateDatabase(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, stored_docs_db=config.stored_docs_db)
+stored_docs = StoredDocsService(config.stored_docs_db)
+db = VectorStore(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, stored_docs=stored_docs)
 
 intents = discord.Intents.default()
 intents.message_content = True
