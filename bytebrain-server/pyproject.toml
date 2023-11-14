@@ -25,6 +25,7 @@ pysqlite3-binary = "^0.5.2"
 faiss-cpu = "^1.7.4"
 html2text = "^2020.1.16"
 weaviate-client = "^3.24.2"
+fastapi-utils = "^0.2.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

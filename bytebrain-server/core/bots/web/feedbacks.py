@@ -14,6 +14,7 @@ class FeedbackCreate(BaseModel):
 class FeedbackService:
     def __init__(self, feedbacks_db):
         self.feedbacks_db = feedbacks_db
+        self.create_feedback_db()
 
     def create_feedback_db(self):
         with sqlite3.connect(self.feedbacks_db) as conn:

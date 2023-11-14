@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from typing import Any
+from typing import Any, List, Dict
 
 import uvicorn
 import weaviate
@@ -28,23 +28,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Logging setup
 log = getLogger()
+
+# Configuration setup
 config = load_config()
 
+# Prometheus metrics setup
 registry = CollectorRegistry()
-
 request_counter = Counter("requests_total", "Total requests", registry=registry)
 response_counter = Counter("responses_total", "Total responses", registry=registry)
 response_time_histogram = Histogram("response_latency", "Response latency (seconds)",
                                     labelnames=["path"], registry=registry)
 
+# Embeddings setup
 underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-
 fs = LocalFileStore(config.embeddings_dir)
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     underlying_embeddings, fs, namespace=underlying_embeddings.model
 )
 
+# Weaviate setup
 client = weaviate.Client(url=config.weaviate_url)
 vector_store = Weaviate(client,
                         index_name='Zio',
@@ -53,23 +57,28 @@ vector_store = Weaviate(client,
                         embedding=cached_embedder,
                         by_text=False)
 
+# Feedback service setup
 feedback_service = FeedbackService(config.feedbacks_db)
 
 
+# WebSocket endpoint for chat
 @app.websocket("/chat")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_chat_endpoint(websocket: WebSocket):
     await websocket.accept()
     start_time = time.time()
     request_counter.inc()
+
     qa = make_question_answering_chain(
         websocket=websocket,
         vector_store=vector_store,
         prompt_template=config.webservice.prompt
     )
+
     while True:
         raw_data = await websocket.receive_text()
         obj = json.loads(raw_data)
         log.info("Received a new query!", query=obj)
+
         result: dict[str, Any] = await qa.acall(
             {
                 "question": obj["question"],
@@ -79,27 +88,8 @@ async def websocket_endpoint(websocket: WebSocket):
             return_only_outputs=True
         )
 
-        source_documents: list[dict[str, Any]] = []
-        for src_doc in result["source_documents"]:
-            metadata = src_doc.metadata
-            if "doc_source_id" in metadata:
-                doc_source_id = metadata["doc_source_id"]
-                if doc_source_id == "zio.dev":
-                    entry = {
-                        "page_title": metadata["doc_title"],
-                        "page_url": metadata["doc_url"],
-                        "page_content": src_doc.page_content
-                    }
-                    log.info(entry)
-                    source_documents.append(entry)
-                else:
-                    # TODO: Add support for other source types
-                    log.warning(f"doc_source {doc_source_id} was not supported")
-            else:
-                log.warning("The doc_source is not exists in metadata")
-
-        references = [{k: v for k, v in d.items() if k != "page_content"} for d in source_documents]
-        unique_refs = [dict(t) for t in {tuple(d.items()) for d in references}]
+        source_documents = extract_source_documents(result)
+        unique_refs = extract_references(source_documents)
 
         await websocket.send_json({"token": "", "completed": True, "references": unique_refs[:3]})
         duration = time.time() - start_time
@@ -107,8 +97,36 @@ async def websocket_endpoint(websocket: WebSocket):
         response_counter.inc()
 
 
+def extract_references(source_documents) -> List[Dict[str, Any]]:
+    references = [{k: v for k, v in d.items() if k != "page_content"} for d in source_documents]
+    unique_refs = [dict(t) for t in {tuple(d.items()) for d in references}]
+    return unique_refs
+
+
+def extract_source_documents(result) -> list[dict[str, Any]]:
+    source_documents: list[dict[str, Any]] = []
+    for src_doc in result["source_documents"]:
+        metadata = src_doc.metadata
+        if "doc_source_id" in metadata:
+            doc_source_id = metadata["doc_source_id"]
+            if doc_source_id == "zio.dev":
+                entry = {
+                    "page_title": metadata["doc_title"],
+                    "page_url": metadata["doc_url"],
+                    "page_content": src_doc.page_content
+                }
+                log.info(entry)
+                source_documents.append(entry)
+            else:
+                log.warning(f"doc_source {doc_source_id} was not supported")
+        else:
+            log.warning("The doc_source is not exists in metadata")
+    return source_documents
+
+
+# WebSocket endpoint for dummy chat
 @app.websocket("/dummy_chat")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_dummy_chat_endpoint(websocket: WebSocket):
     await websocket.accept()
     while True:
         await websocket.receive_text()
@@ -130,19 +148,21 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json(item)
 
 
+# Metrics endpoint
 @app.get("/metrics")
 async def metrics():
     return Response(generate_latest(registry), media_type="text/plain")
 
 
+# Feedback creation endpoint
 @app.post("/feedback/", response_model=FeedbackCreate)
 def create_feedback(feedback: FeedbackCreate):
     feedback_service.add_feedback(feedback)
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
 
 
+# Main function
 def main():
-    feedback_service.create_feedback_db()
     uvicorn.run("core.bots.web.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=False)
 
 
