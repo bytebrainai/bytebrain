@@ -10,12 +10,12 @@ from discord.ext import commands, tasks
 from discord.ext.commands import Bot
 from structlog import getLogger
 
-import core.docs.index as index
 import discord_utils
 from config import load_config
-from core.docs.db.weaviate_db import VectorStore
+from core.docs.db.vector_store import VectorStore
 from core.docs.discord import index_channel_history
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
+from core.docs.document_indexer import DocumentIndexer
 from core.docs.stored_docs import StoredDocsService
 from core.llm.chains import make_question_answering_chain
 from core.models.discord.ChannelHistory import ChannelHistory
@@ -28,6 +28,7 @@ from discord_utils import remove_discord_mention, send_and_log, send_message_in_
 config = load_config()
 stored_docs = StoredDocsService(config.stored_docs_db)
 db = VectorStore(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, stored_docs=stored_docs)
+indexer = DocumentIndexer(config.weaviate_url, config.embeddings_dir, config.stored_docs_db)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -85,7 +86,7 @@ async def dump_channel(ctx: commands.Context, channel_id: int, after: Optional[s
 @commands.has_permissions(administrator=True)
 async def index_zio_docs(ctx):
     await send_and_log(ctx, log, "Started indexing ZIO docs on zio.dev")
-    index.index_zio_project_docs()
+    indexer.index_zio_project_docs()
     await send_and_log(ctx, log, "Finished indexing zio project docs!")
 
 
@@ -93,7 +94,7 @@ async def index_zio_docs(ctx):
 @commands.has_permissions(administrator=True)
 async def index_ziverge_youtube_channel(ctx):
     await send_and_log(ctx, log, "Started indexing Ziverge's Youtube Channel!")
-    index.index_ziverge_youtube_channel()
+    indexer.index_ziverge_youtube_channel()
     await send_and_log(ctx, log, "Finished indexing Ziverge's Youtube Channel!")
 
 
@@ -101,7 +102,7 @@ async def index_ziverge_youtube_channel(ctx):
 @commands.has_permissions(administrator=True)
 async def index_zionomicon(ctx):
     await send_and_log(ctx, log, "Started indexing Zionomicon book")
-    index.index_zionomicon_book()
+    indexer.index_zionomicon_book()
     await send_and_log(ctx, log, "Finished indexing zionomicon book!")
 
 
@@ -109,7 +110,7 @@ async def index_zionomicon(ctx):
 @commands.has_permissions(administrator=True)
 async def index_zio_source(ctx):
     await send_and_log(ctx, log, "Started indexing ZIO's source code")
-    index.index_zio_project_source_code()
+    indexer.index_zio_project_source_code()
     await send_and_log(ctx, log, "Finished indexing zio's source codes!")
 
 
@@ -117,7 +118,7 @@ async def index_zio_source(ctx):
 @commands.has_permissions(administrator=True)
 async def index_zio_ecosystem_source(ctx):
     await send_and_log(ctx, log, "Started indexing ZIO's")
-    index.index_zio_ecosystem_source_code()
+    indexer.index_zio_ecosystem_source_code()
     await send_and_log(ctx, log, "Started indexing ZIO's")
 
 
