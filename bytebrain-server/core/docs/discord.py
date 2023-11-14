@@ -4,7 +4,7 @@ from uuid import UUID
 from langchain.schema import Document
 from structlog import getLogger
 
-from core.docs.db.weaviate_db import VectorStore
+from core.docs.db.vector_store import VectorStore
 from core.docs.document_loader import generate_uuid
 from core.models.discord.ChannelHistory import ChannelHistory
 from core.models.discord.DiscordMessage import DiscordMessage

@@ -3,7 +3,7 @@ import os
 from structlog import getLogger
 
 from config import load_config
-from core.docs.db.weaviate_db import VectorStore
+from core.docs.db.vector_store import VectorStore
 from core.docs.document_loader import load_source_code, load_zionomicon_docs, load_zio_website_docs, load_youtube_docs
 from core.utils.github import zio_ecosystem_projects
 from core.utils.utils import clone_repo
