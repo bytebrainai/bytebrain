@@ -18,12 +18,9 @@ from core.docs.discord_loader import dump_channel_history, fetch_message_thread
 from core.docs.document_indexer import DocumentIndexer
 from core.docs.stored_docs import StoredDocsService
 from core.llm.chains import make_question_answering_chain
-from core.models.discord.ChannelHistory import ChannelHistory
-from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
-from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks, \
-    first_message_of_last_indexed_page
+from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks
 
 config = load_config()
 stored_docs = StoredDocsService(config.stored_docs_db)
@@ -136,25 +133,7 @@ async def index_channel(ctx, channel_id: int,
                         after: Optional[str] = None,
                         window_size: Optional[int] = config.discord.messages_window_size,
                         common_length: Optional[int] = config.discord.messages_common_length):
-    channel = bot.get_channel(channel_id)
-    channel_name = channel.name
-    after_datetime = None if after is None else datetime.strptime(after, "%Y-%m-%d")
-
-    await send_and_log(ctx, log,
-                       f"started indexing channel {channel_name}" if after is None
-                       else f"started indexing channel {channel_name} after {after}")
-
-    channel_history: ChannelHistory = await dump_channel_history(channel_id, after_datetime, bot,
-                                                                 config.discord_cache_dir)
-    await index_channel_history(
-        channel_history=channel_history,
-        window_size=window_size,
-        common_length=common_length,
-        db=db
-    )
-
-    await send_and_log(ctx, log,
-                       f"Index process for {channel_name} done!")
+    await update_discord_channel(ctx, channel_id, after, window_size, common_length)
 
 
 def is_private_message(message):
@@ -236,23 +215,21 @@ async def on_message(message):
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def update_discord_channel(ctx, channel_id: int):
+async def update_discord_channel(ctx, channel_id: int,
+                                 after: Optional[str] = None,
+                                 window_size: Optional[int] = config.discord.messages_window_size,
+                                 common_length: Optional[int] = config.discord.messages_common_length):
     channel_name = bot.get_channel(channel_id).name
     await send_and_log(ctx, log, f"Started updating {channel_name} channel.")
-
-    last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id, config.stored_docs_db, bot)
-    last_created_at = last.created_at if last is not None else None
     try:
-        channel_history: ChannelHistory = await dump_channel_history(channel_id, last_created_at, bot,
-                                                                     config.discord_cache_dir)
-        if last is not None:
-            # Add the first message of last indexed page
-            channel_history.history.insert(0, last)
         await index_channel_history(
-            channel_history,
-            config.discord.messages_window_size,
-            config.discord.messages_common_length,
-            db
+            channel_id,
+            after,
+            window_size,
+            common_length,
+            config.discord_cache_dir,
+            db,
+            bot
         )
     except Exception as e:
         log.error(f"Exception occurred during updating {channel_name} channel! + {str(e)}")

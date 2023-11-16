@@ -126,11 +126,10 @@ async def send_and_log(ctx, log, message: str):
     log.info(message)
 
 
-async def first_message_of_last_indexed_page(channel_id: int, stored_docs_db, bot: Bot) -> Optional[DiscordMessage]:
+async def first_message_of_last_indexed_page(channel_id: int, stored_docs: StoredDocsService, bot: Bot) -> Optional[DiscordMessage]:
     """
     Retrieves the first message of the last indexed page associated with a given channel from the database.
     """
-    stored_docs = StoredDocsService(stored_docs_db)
     last_item = stored_docs.fetch_last_item_in_discord_channel(doc_source_id="discord", channel_id=channel_id)
     metadata = json.loads(last_item[3])
     msg_id = int(metadata['message_id'])

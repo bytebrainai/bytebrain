@@ -1,10 +1,14 @@
+from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 
+from discord.ext.commands import Bot
 from langchain.schema import Document
 from structlog import getLogger
 
+from core.bots.discord.discord_utils import first_message_of_last_indexed_page
 from core.docs.db.vector_store import VectorStore
+from core.docs.discord_loader import dump_channel_history
 from core.docs.document_loader import generate_uuid
 from core.models.discord.ChannelHistory import ChannelHistory
 from core.models.discord.DiscordMessage import DiscordMessage
@@ -16,24 +20,24 @@ log = getLogger()
 
 
 async def index_channel_history(
-        channel_history: ChannelHistory,
+        channel_id: int,
+        after: Optional[str],
         window_size: Optional[int],
         common_length: Optional[int],
-        db: VectorStore):
-    """
-    Indexes the channel history into the db by processing and structuring the messages.
+        discord_cache_dir: str,
+        db: VectorStore,
+        bot: Bot):
+    last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id, db.stored_docs, bot)
+    last_created_at = last.created_at if last is not None else None
 
-    Args:
-        channel_history (ChannelHistory): The channel history to be indexed.
-        window_size (Optional[int]): The size of the sliding window used to batch messages.
-        common_length (Optional[int]): The length at which common parts of messages are truncated.
-        db: WeaviateDatabase
+    after_datetime = last_created_at if after is None else datetime.strptime(after, "%Y-%m-%d")
 
-    Notes:
-        This function processes the given channel history, divides it into batches, adds metadata, and indexes it
-        for search purposes. It generates chat transcripts and creates documents with appropriate metadata to
-        be indexed in a search database.
-    """
+    channel_history: ChannelHistory = await dump_channel_history(channel_id, after_datetime, bot,
+                                                                 discord_cache_dir)
+    if last is not None:
+        # Add the first message of last indexed page
+        channel_history.history.insert(0, last)
+
     channel_id = channel_history.channel_id
     channel_name = channel_history.channel_name
     guild_id = channel_history.guild_id
