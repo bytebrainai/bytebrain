@@ -222,13 +222,12 @@ async def update_discord_channel(ctx, channel_id: int,
     channel_name = bot.get_channel(channel_id).name
     await send_and_log(ctx, log, f"Started updating {channel_name} channel.")
     try:
-        await index_channel_history(
+        await indexer.index_channel_history(
             channel_id,
             after,
             window_size,
             common_length,
             config.discord_cache_dir,
-            db,
             bot
         )
     except Exception as e:
