@@ -78,6 +78,7 @@ class DocumentIndexer:
 
         self.vector_store.index_docs(ids, docs)
         self.stored_docs.save_docs_metadata(documents=docs)
+        return len(docs)
 
 
 def index_all():

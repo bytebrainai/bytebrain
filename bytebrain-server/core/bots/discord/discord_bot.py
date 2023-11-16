@@ -13,7 +13,6 @@ from structlog import getLogger
 import discord_utils
 from config import load_config
 from core.docs.db.vector_store import VectorStore
-from core.docs.discord import index_channel_history
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
 from core.docs.document_indexer import DocumentIndexer
 from core.docs.stored_docs import StoredDocsService
@@ -222,7 +221,7 @@ async def update_discord_channel(ctx, channel_id: int,
     channel_name = bot.get_channel(channel_id).name
     await send_and_log(ctx, log, f"Started updating {channel_name} channel.")
     try:
-        await indexer.index_channel_history(
+        length = await indexer.index_channel_history(
             channel_id,
             after,
             window_size,
@@ -230,6 +229,7 @@ async def update_discord_channel(ctx, channel_id: int,
             config.discord_cache_dir,
             bot
         )
+        log.info(f"Updated {length} of docs for channel {channel_name}")
     except Exception as e:
         log.error(f"Exception occurred during updating {channel_name} channel! + {str(e)}")
 
