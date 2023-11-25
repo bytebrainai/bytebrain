@@ -16,8 +16,10 @@ from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
+from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_service import DocumentService
-from core.docs.resource_service import Resource
+from core.docs.metadata_service import DocumentMetadataService
+from core.docs.resource_service import Resource, ResourceService, ResourceType
 from core.llm.chains import make_question_answering_chain
 from feedback_service import FeedbackService, FeedbackCreate
 
@@ -64,8 +66,12 @@ vector_store = Weaviate(client,
 feedback_service = FeedbackService(config.feedbacks_db)
 document_service = DocumentService(config.weaviate_url,
                                    config.embeddings_dir,
-                                   config.metadata_docs_db,
-                                   config.resources_db, config.background_jobs_db)
+                                   config.metadata_docs_db)
+metadata_service = DocumentMetadataService(config.metadata_docs_db)
+vectorstore_service = VectorStoreService(url=config.weaviate_url,
+                                         embeddings_dir=config.embeddings_dir,
+                                         metadata_service=metadata_service)
+resource_service = ResourceService(config.resources_db, vectorstore_service, metadata_service)
 
 
 # WebSocket endpoint for chat
@@ -161,7 +167,6 @@ async def metrics():
     return Response(generate_latest(registry), media_type="text/plain")
 
 
-# Feedback creation endpoint
 @app.post("/feedback/", response_model=FeedbackCreate)
 def create_feedback(feedback: FeedbackCreate):
     feedback_service.add_feedback(feedback)
@@ -175,7 +180,7 @@ class WebsiteResourceRequest(BaseModel):
 
 @app.post("/resources/website")
 async def submit_new_website_resources(website_resource: WebsiteResourceRequest):
-    resource_id = document_service.submit_index_website(website_resource.name, website_resource.url)
+    resource_id = resource_service.submit_website_index(website_resource.name, website_resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -184,20 +189,19 @@ async def submit_new_website_resources(website_resource: WebsiteResourceRequest)
 
 @app.get("/resources/{resource_id}")
 async def get_resource_status(resource_id: str):
-    status = document_service.get_resource_status(resource_id).value
+    status = resource_service.get_resource_status(resource_id).value
     return JSONResponse({"status": status})
 
 
 @app.get("/resources/website/")
 async def get_website_resources():
-    resources: list[Resource] = document_service.get_website_resources()
+    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Website)
     return resources
 
 
 @app.delete("/resources/{resource_id}", status_code=204)
 async def delete_resource(resource_id: str):
-    document_service.delete_resource(resource_id)
-    response = JSONResponse(content="", status_code=204)
+    resource_service.delete_resource(resource_id)
 
 
 # Main function

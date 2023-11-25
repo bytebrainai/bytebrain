@@ -24,8 +24,7 @@ from discord_utils import remove_discord_mention, send_and_log, send_message_in_
 config = load_config()
 stored_docs = DocumentMetadataService(config.metadata_docs_db)
 db = VectorStoreService(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, metadata_service=stored_docs)
-indexer = DocumentService(config.weaviate_url, config.embeddings_dir, config.metadata_docs_db, config.resources_db,
-                          background_job_db=config.background_jobs_db)
+indexer = DocumentService(config.weaviate_url, config.embeddings_dir, config.metadata_docs_db)
 
 intents = discord.Intents.default()
 intents.message_content = True
