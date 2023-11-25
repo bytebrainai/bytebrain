@@ -3,3 +3,6 @@
 .direnv
 env.sh
 .env
+/bytebrain-server/embeddings-cache/
+/bytebrain-server/db/
+/bytebrain-server/backups/

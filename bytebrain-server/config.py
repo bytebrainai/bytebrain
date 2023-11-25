@@ -24,8 +24,10 @@ class WebserviceConfig:
 class ByteBrainConfig:
     name: str
     project_name: str
-    stored_docs_db: str
+    metadata_docs_db: str
     feedbacks_db: str
+    background_jobs_db: str
+    resources_db: str
     embeddings_dir: Optional[str]
     discord_cache_dir: Optional[str]
     weaviate_url: Optional[str]
@@ -39,8 +41,10 @@ def load_config() -> ByteBrainConfig:
 
     name = config['name']
     project_name = config['project_name']
-    stored_docs_db = config['stored_docs_db']
+    metadata_docs_db = config['metadata_docs_db']
     feedbacks_db = config['feedbacks_db']
+    background_jobs_db = config['background_jobs_db']
+    resources_db = config['resources_db']
     embeddings_dir = config['embeddings_dir']
     discord_cache_dir = config['discord_cache_dir']
     weaviate_url = config['weaviate_url'] \
@@ -50,8 +54,10 @@ def load_config() -> ByteBrainConfig:
 
     return ByteBrainConfig(name,
                            project_name,
-                           stored_docs_db,
+                           metadata_docs_db,
                            feedbacks_db,
+                           background_jobs_db,
+                           resources_db,
                            embeddings_dir,
                            discord_cache_dir,
                            weaviate_url,

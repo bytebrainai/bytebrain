@@ -223,7 +223,7 @@ def load_youtube_docs(video_id: str) -> (List[UUID], List[Document]):
     return ids, docs
 
 
-def load_docs_from_site(doc_source_id: str, **kwargs) -> (List[UUID], List[Document]):
+def load_docs_from_site(doc_source_id: str, doc_source_type: str, **kwargs) -> (List[UUID], List[Document]):
     # Set default values
     default_loader_params = {
         "max_depth": None,
@@ -244,7 +244,7 @@ def load_docs_from_site(doc_source_id: str, **kwargs) -> (List[UUID], List[Docum
     docs = MarkdownTextSplitter().transform_documents(docs)
     for index, doc in enumerate(docs):
         doc.metadata.setdefault("doc_source_id", doc_source_id)
-        doc.metadata.setdefault("doc_source_type", "website")
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
         doc.metadata.setdefault("doc_url", doc.metadata["source"])
         if title := doc.metadata.pop('title', None):
             doc.metadata.setdefault("doc_title", title)
@@ -254,11 +254,11 @@ def load_docs_from_site(doc_source_id: str, **kwargs) -> (List[UUID], List[Docum
             doc.metadata.setdefault("doc_language", language)
         doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
         doc.metadata.setdefault("doc_uuid",
-                                generate_uuid(NAMESPACE_WEBSITE,
-                                              doc.metadata['doc_source_type'],
-                                              doc.metadata['doc_source_id'],
-                                              doc.metadata['doc_url'],
-                                              doc.metadata['doc_hash']))
+                                str(generate_uuid(NAMESPACE_WEBSITE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_url'],
+                                                  doc.metadata['doc_hash'])))
 
     ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
 

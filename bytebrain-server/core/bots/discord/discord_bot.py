@@ -12,19 +12,20 @@ from structlog import getLogger
 
 import discord_utils
 from config import load_config
-from core.docs.db.vector_store import VectorStore
+from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
-from core.docs.document_indexer import DocumentIndexer
-from core.docs.stored_docs import StoredDocsService
+from core.docs.document_service import DocumentService
+from core.docs.metadata_service import DocumentMetadataService
 from core.llm.chains import make_question_answering_chain
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks
 
 config = load_config()
-stored_docs = StoredDocsService(config.stored_docs_db)
-db = VectorStore(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, stored_docs=stored_docs)
-indexer = DocumentIndexer(config.weaviate_url, config.embeddings_dir, config.stored_docs_db)
+stored_docs = DocumentMetadataService(config.metadata_docs_db)
+db = VectorStoreService(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, metadata_service=stored_docs)
+indexer = DocumentService(config.weaviate_url, config.embeddings_dir, config.metadata_docs_db, config.resources_db,
+                          background_job_db=config.background_jobs_db)
 
 intents = discord.Intents.default()
 intents.message_content = True

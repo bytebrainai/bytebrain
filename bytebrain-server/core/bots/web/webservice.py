@@ -11,12 +11,15 @@ from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.vectorstores.weaviate import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
+from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
+from core.docs.document_service import DocumentService
+from core.docs.resource_service import Resource
 from core.llm.chains import make_question_answering_chain
-from feedbacks import FeedbackService, FeedbackCreate
+from feedback_service import FeedbackService, FeedbackCreate
 
 app = FastAPI()
 
@@ -59,6 +62,10 @@ vector_store = Weaviate(client,
 
 # Feedback service setup
 feedback_service = FeedbackService(config.feedbacks_db)
+document_service = DocumentService(config.weaviate_url,
+                                   config.embeddings_dir,
+                                   config.metadata_docs_db,
+                                   config.resources_db, config.background_jobs_db)
 
 
 # WebSocket endpoint for chat
@@ -159,6 +166,38 @@ async def metrics():
 def create_feedback(feedback: FeedbackCreate):
     feedback_service.add_feedback(feedback)
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
+
+
+class WebsiteResourceRequest(BaseModel):
+    name: str
+    url: str
+
+
+@app.post("/resources/website")
+async def submit_new_website_resources(website_resource: WebsiteResourceRequest):
+    resource_id = document_service.submit_index_website(website_resource.name, website_resource.url)
+    if resource_id:
+        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
+    else:
+        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
+
+
+@app.get("/resources/{resource_id}")
+async def get_resource_status(resource_id: str):
+    status = document_service.get_resource_status(resource_id).value
+    return JSONResponse({"status": status})
+
+
+@app.get("/resources/website/")
+async def get_website_resources():
+    resources: list[Resource] = document_service.get_website_resources()
+    return resources
+
+
+@app.delete("/resources/{resource_id}", status_code=204)
+async def delete_resource(resource_id: str):
+    document_service.delete_resource(resource_id)
+    response = JSONResponse(content="", status_code=204)
 
 
 # Main function

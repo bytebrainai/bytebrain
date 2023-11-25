@@ -4,14 +4,14 @@ import json
 import os
 from datetime import datetime, timedelta
 from langchain.schema import Document
-from core.docs.stored_docs import StoredDocsService  # Replace 'your_module' with the actual module name
+from core.docs.stored_docs import DocumentMetadataService  # Replace 'your_module' with the actual module name
 
 
 class TestStoredDocsService(unittest.TestCase):
     def setUp(self):
         # Create a temporary database file for testing
         self.temp_db_file = tempfile.mktemp()
-        self.service = StoredDocsService(self.temp_db_file)
+        self.service = DocumentMetadataService(self.temp_db_file)
 
     def tearDown(self):
         # Clean up the temporary database file

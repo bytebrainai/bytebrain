@@ -3,16 +3,14 @@ import sqlite3
 from datetime import datetime
 from sqlite3 import Connection
 from typing import Optional, List
+from uuid import UUID
 
 from langchain.schema import Document
 
-import config
 
-
-class StoredDocsService:
+class DocumentMetadataService:
     def __init__(self, database_file: str):
         self.database_file = database_file
-        self.conn = self.create_connection()
         self.create_table()
 
     def create_connection(self) -> Optional[Connection]:
@@ -25,7 +23,8 @@ class StoredDocsService:
 
     def create_table(self):
         try:
-            cursor = self.conn.cursor()
+            conn = self.create_connection()
+            cursor = conn.cursor()
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stored_docs (
                     uuid TEXT PRIMARY KEY,
@@ -35,12 +34,38 @@ class StoredDocsService:
                     metadata JSON
                 )
             ''')
-            self.conn.commit()
+            conn.commit()
         except sqlite3.Error as e:
             print(e)
 
+    def get_docs_ids_by_source_id(self, resource_id) -> List[UUID]:
+        with sqlite3.connect(self.database_file) as connection:
+            try:
+                cursor = connection.cursor()
+                select_query = "SELECT uuid FROM stored_docs WHERE source_id = ?"
+                cursor.execute(select_query, (resource_id,))
+                doc_ids = [UUID(row[0]) for row in cursor.fetchall()]
+                return doc_ids
+
+            except sqlite3.Error as e:
+                print(f"Error retrieving document IDs: {e}")
+                return []
+
+    def delete_docs_by_resource_id(self, resource_id: str):
+        with sqlite3.connect(self.database_file) as connection:
+            try:
+                cursor = connection.cursor()
+                delete_query = "DELETE FROM stored_docs WHERE source_id = ?"
+                cursor.execute(delete_query, (resource_id,))
+                connection.commit()
+                print(f"Deleted {cursor.rowcount} rows with source_id {resource_id}")
+
+            except sqlite3.Error as e:
+                print(f"Error deleting rows: {e}")
+
     def get_metadata_list(self, doc_source_type: str, doc_source_id: str) -> List[dict]:
-        cur = self.conn.cursor()
+        conn = self.create_connection()
+        cur = conn.cursor()
         sql_query = f"""
           SELECT uuid, source_id, source_type, created_at, metadata 
           FROM stored_docs
@@ -56,12 +81,13 @@ class StoredDocsService:
 
     def insert_data(self, doc_uuid, doc_source_id, doc_source_type, created_at, metadata):
         try:
-            cursor = self.conn.cursor()
+            conn = self.create_connection()
+            cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO stored_docs (uuid, source_id, source_type, created_at, metadata)
+                INSERT or REPLACE INTO stored_docs (uuid, source_id, source_type, created_at, metadata)
                 VALUES (?, ?, ?, ?, ?)
             ''', (str(doc_uuid), doc_source_id, doc_source_type, created_at, json.dumps(metadata)))
-            self.conn.commit()
+            conn.commit()
         except sqlite3.Error as e:
             print(e)
 
@@ -73,7 +99,8 @@ class StoredDocsService:
 
     def insert_batch_data(self, data_list):
         try:
-            cursor = self.conn.cursor()
+            conn = self.create_connection()
+            cursor = conn.cursor()
 
             cursor.executemany('''
                 INSERT OR REPLACE INTO stored_docs (uuid, source_id, source_type, created_at, metadata)
@@ -81,13 +108,14 @@ class StoredDocsService:
             ''', [(str(doc_uuid), doc_source_id, doc_source_type, created_at, json.dumps(metadata)) for
                   doc_uuid, doc_source_id, doc_source_type, created_at, metadata in data_list])
 
-            self.conn.commit()
+            conn.commit()
         except sqlite3.Error as e:
             print(e)
 
     def fetch_last_item(self, doc_source_id: str):
         try:
-            cursor = self.conn.cursor()
+            conn = self.create_connection()
+            cursor = conn.cursor()
 
             cursor.execute('''
                 SELECT * FROM stored_docs
@@ -106,7 +134,8 @@ class StoredDocsService:
 
     def fetch_last_item_in_discord_channel(self, doc_source_id: str, channel_id: id):
         try:
-            cursor = self.conn.cursor()
+            conn = self.create_connection()
+            cursor = conn.cursor()
 
             cursor.execute('''
                 SELECT * FROM stored_docs
@@ -123,9 +152,3 @@ class StoredDocsService:
         except sqlite3.Error as e:
             print(e)
             return None
-
-
-if __name__ == '__main__':
-    service = StoredDocsService(config.load_config().stored_docs_db)
-    res = service.get_metadata_list("documentation", "zio.dev")
-    print(res)

@@ -7,7 +7,7 @@ from typing import Optional
 from discord.ext.commands import Bot
 from discord.guild import Guild
 
-from core.docs.stored_docs import StoredDocsService
+from core.docs.metadata_service import DocumentMetadataService
 from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 
@@ -126,11 +126,11 @@ async def send_and_log(ctx, log, message: str):
     log.info(message)
 
 
-async def first_message_of_last_indexed_page(channel_id: int, stored_docs: StoredDocsService, bot: Bot) -> Optional[DiscordMessage]:
+async def first_message_of_last_indexed_page(channel_id: int, metadata_service: DocumentMetadataService, bot: Bot) -> Optional[DiscordMessage]:
     """
     Retrieves the first message of the last indexed page associated with a given channel from the database.
     """
-    last_item = stored_docs.fetch_last_item_in_discord_channel(doc_source_id="discord", channel_id=channel_id)
+    last_item = metadata_service.fetch_last_item_in_discord_channel(doc_source_id="discord", channel_id=channel_id)
     metadata = json.loads(last_item[3])
     msg_id = int(metadata['message_id'])
     guild_id = int(metadata['guild_id'])
