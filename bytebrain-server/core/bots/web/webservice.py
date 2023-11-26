@@ -180,7 +180,7 @@ class WebsiteResourceRequest(BaseModel):
 
 @app.post("/resources/website")
 async def submit_new_website_resources(website_resource: WebsiteResourceRequest):
-    resource_id = resource_service.submit_website_index(website_resource.name, website_resource.url)
+    resource_id = resource_service.submit_resource(website_resource.name, website_resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -189,8 +189,12 @@ async def submit_new_website_resources(website_resource: WebsiteResourceRequest)
 
 @app.get("/resources/{resource_id}")
 async def get_resource_status(resource_id: str):
-    status = resource_service.get_resource_status(resource_id).value
-    return JSONResponse({"status": status})
+    status = resource_service.get_resource_status(resource_id)
+    match status:
+        case None:
+            return JSONResponse({"message": "Resource not found"}, status_code=404)
+        case s:
+            return JSONResponse({"status": s.value})
 
 
 @app.get("/resources/website/")

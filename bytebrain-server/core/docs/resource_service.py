@@ -114,17 +114,17 @@ class ResourceService:
             else:
                 return None
 
-    def submit_website_index(self, name: str, url: str) -> Optional[str]:
+    def submit_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.WEBSITE_ID_NAMESPACE, name=url))
         if self.get_by_id(resource_id):
             return None
         else:
-            self.add_resource(
+            self._add_resource(
                 Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
                          metadata={"url": url}))
             return resource_id
 
-    def add_resource(self, resource):
+    def _add_resource(self, resource):
         if not isinstance(resource.resource_type, ResourceType):
             raise ValueError("Invalid resource type")
 
@@ -139,8 +139,9 @@ class ResourceService:
             )
             cursor.execute(query, values)
             connection.commit()
+        self._create_daemon()
 
-    def get_pending_resources(self):
+    def _get_pending_resources(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -155,39 +156,35 @@ class ResourceService:
     def index_website(self, resource_id, name: str, url: str):
         resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
                             metadata={"url": url})
-        # self.add_resource(resource)
-        self.set_state(resource_id, ResourceState.Loading)
+        self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
                                         doc_source_type=resource.resource_type.value,
                                         url=resource.metadata['url'])
-        self.set_state(resource_id, ResourceState.Indexing)
+        self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
-        self.set_state(resource_id, ResourceState.Finished)
+        self._set_state(resource_id, ResourceState.Finished)
 
     def _index_pending_resources(self):
-        while True:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-            pending_resources = self.get_pending_resources()
+        pending_resources = self._get_pending_resources()
 
-            for resource_id, resource_name, resource_type, metadata, status in pending_resources:
-                cursor.execute('UPDATE resources SET status=? WHERE id=?', ('running', resource_id,))
-                conn.commit()
+        for resource_id, resource_name, resource_type, metadata, status in pending_resources:
+            cursor.execute('UPDATE resources SET status=? WHERE id=?', ('running', resource_id,))
+            conn.commit()
 
-                match resource_type:
-                    case "gitrepo":
-                        log.info(f"added git repo: {resource_name}")
-                    case "website":
-                        print(resource_id, resource_name, json.loads(metadata)['url'])
-                        self.index_website(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
-                        log.info(f"New website added {resource_name}")
+            match resource_type:
+                case "gitrepo":
+                    log.info(f"added git repo: {resource_name}")
+                case "website":
+                    self.index_website(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
+                    log.info(f"New website added {resource_name}")
 
-            conn.close()
-            time.sleep(2)
+        conn.close()
 
-    def delete_resource_from_table(self, resource_id):
+    def _delete_resource_from_table(self, resource_id):
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
 
@@ -201,9 +198,9 @@ class ResourceService:
         ids = self.metadata_service.get_docs_ids_by_source_id(resource_id)
         self.vectorstore_service.delete_docs(ids)
         self.metadata_service.delete_docs_by_resource_id(resource_id)
-        self.delete_resource_from_table(resource_id)
+        self._delete_resource_from_table(resource_id)
 
-    def set_state(self, resource_id, state: ResourceState):
+    def _set_state(self, resource_id, state: ResourceState):
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
 
