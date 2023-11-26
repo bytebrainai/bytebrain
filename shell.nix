@@ -6,6 +6,7 @@ mkShell {
     python310Packages.ipython
     python310Packages.virtualenv
     python310Packages.pip
+    pkgs.python310Packages.python-magic
     stdenv.cc.cc.lib
     gcc-unwrapped.lib
     docker-compose

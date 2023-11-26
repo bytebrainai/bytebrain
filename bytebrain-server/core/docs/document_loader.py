@@ -8,7 +8,7 @@ import yaml
 from discord.ext.commands import Bot
 from langchain.document_loaders import GitLoader
 from langchain.document_loaders import UnstructuredMarkdownLoader
-from langchain.document_loaders import YoutubeLoader
+from langchain.document_loaders import YoutubeLoader, UnstructuredURLLoader
 from langchain.document_loaders.recursive_url_loader import RecursiveUrlLoader
 from langchain.document_transformers.html2text import Html2TextTransformer
 from langchain.schema import Document
@@ -23,6 +23,7 @@ from core.utils.utils import calculate_md5_checksum
 
 NAMESPACE_DOCUMENT = UUID('f924e0a9-69a7-11ee-aa84-6c02e09469ba')
 NAMESPACE_WEBSITE = UUID('c88b857e-be16-4d80-9f45-b5c41fdd4a11')
+NAMESPACE_WEBPAGE = UUID('e48c5a31-a290-4b79-b47e-2b2999f18d3d')
 NAMESPACE_YOUTUBE = UUID('1572e8de-29bf-464e-9253-656bd7c78938')
 NAMESPACE_SOURCECODE = UUID('86adfa90-25d6-45bc-894c-8e1bb5c8ce76')
 NAMESPACE_DISCORD: UUID = UUID('e66dbce0-e817-4d27-bca5-72f1c4442b4a')
@@ -219,6 +220,35 @@ def load_youtube_docs(video_id: str) -> (List[UUID], List[Document]):
         doc.metadata.setdefault("doc_author", doc.metadata.pop("author"))
         doc.metadata.setdefault("doc_uuid", str(uuid.uuid5(NAMESPACE_YOUTUBE, video_url + doc.page_content)))
     ids = [UUID(c.metadata['doc_uuid']) for c in docs]
+    assert (len(ids) == len(docs))
+    return ids, docs
+
+
+def load_docs_from_webpage(url: str,
+                           doc_source_id: str,
+                           doc_source_type: str) -> (List[UUID], List[Document]):
+    loader = UnstructuredURLLoader(urls=[url])
+    docs = loader.load()
+    docs = Html2TextTransformer(ignore_images=True).transform_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_url", doc.metadata["source"])
+        if title := doc.metadata.pop('title', None):
+            doc.metadata.setdefault("doc_title", title)
+        if description := doc.metadata.pop('description', None):
+            doc.metadata.setdefault("doc_description", description)
+        if language := doc.metadata.pop('language', None):
+            doc.metadata.setdefault("doc_language", language)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_WEBPAGE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_url'],
+                                                  doc.metadata['doc_hash'])))
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
     assert (len(ids) == len(docs))
     return ids, docs
 

@@ -180,7 +180,21 @@ class WebsiteResourceRequest(BaseModel):
 
 @app.post("/resources/website")
 async def submit_new_website_resources(website_resource: WebsiteResourceRequest):
-    resource_id = resource_service.submit_resource(website_resource.name, website_resource.url)
+    resource_id = resource_service.submit_website_resource(website_resource.name, website_resource.url)
+    if resource_id:
+        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
+    else:
+        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
+
+
+class WebpageResourceRequest(BaseModel):
+    name: str
+    url: str
+
+
+@app.post("/resources/webpage")
+async def submit_new_website_resources(website_resource: WebpageResourceRequest):
+    resource_id = resource_service.submit_webpage_resource(website_resource.name, website_resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -189,17 +203,23 @@ async def submit_new_website_resources(website_resource: WebsiteResourceRequest)
 
 @app.get("/resources/{resource_id}")
 async def get_resource_status(resource_id: str):
-    status = resource_service.get_resource_status(resource_id)
-    match status:
+    status_option = resource_service.get_resource_status(resource_id)
+    match status_option:
         case None:
             return JSONResponse({"message": "Resource not found"}, status_code=404)
-        case s:
-            return JSONResponse({"status": s.value})
+        case status:
+            return JSONResponse({"status": status.value})
 
 
 @app.get("/resources/website/")
 async def get_website_resources():
     resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Website)
+    return resources
+
+
+@app.get("/resources/webpage/")
+async def get_webpage_resources():
+    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Webpage)
     return resources
 
 

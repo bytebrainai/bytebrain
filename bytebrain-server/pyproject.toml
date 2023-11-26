@@ -26,6 +26,8 @@ faiss-cpu = "^1.7.4"
 html2text = "^2020.1.16"
 weaviate-client = "^3.24.2"
 fastapi-utils = "^0.2.1"
+libmagic = "^1.0"
+python-magic = "^0.4.27"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

@@ -1,7 +1,6 @@
 import json
 import sqlite3
 import threading
-import time
 import uuid
 from enum import Enum
 from typing import Optional, List
@@ -10,7 +9,7 @@ from pydantic.main import BaseModel
 from structlog import getLogger
 
 from core.docs.db.vectorstore_service import VectorStoreService
-from core.docs.document_loader import load_docs_from_site
+from core.docs.document_loader import load_docs_from_site, load_docs_from_webpage
 from core.docs.metadata_service import DocumentMetadataService
 
 log = getLogger()
@@ -18,6 +17,7 @@ log = getLogger()
 
 class ResourceType(str, Enum):
     Website = 'website'
+    Webpage = 'webpage'
 
 
 class ResourceState(Enum):
@@ -36,6 +36,7 @@ class Resource(BaseModel):
 
 class ResourceService:
     WEBSITE_ID_NAMESPACE = uuid.UUID('f6eea9d5-8b70-11ee-b7b1-6c02e09469ba')
+    WEBPAGE_ID_NAMESPACE = uuid.UUID('a715a944-5eab-4293-9de5-d5c7989eb1fc')
 
     def __init__(self, resources_db, vectorstore_service: VectorStoreService,
                  metadata_service: DocumentMetadataService):
@@ -114,13 +115,23 @@ class ResourceService:
             else:
                 return None
 
-    def submit_resource(self, name: str, url: str) -> Optional[str]:
+    def submit_website_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.WEBSITE_ID_NAMESPACE, name=url))
         if self.get_by_id(resource_id):
             return None
         else:
             self._add_resource(
                 Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
+                         metadata={"url": url}))
+            return resource_id
+
+    def submit_webpage_resource(self, name: str, url: str) -> Optional[str]:
+        resource_id = str(uuid.uuid5(self.WEBPAGE_ID_NAMESPACE, name=url))
+        if self.get_by_id(resource_id):
+            return None
+        else:
+            self._add_resource(
+                Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
                          metadata={"url": url}))
             return resource_id
 
@@ -165,6 +176,19 @@ class ResourceService:
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self._set_state(resource_id, ResourceState.Finished)
 
+    def index_webpage(self, resource_id, name: str, url: str):
+        resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
+                            metadata={"url": url})
+        self._set_state(resource_id, ResourceState.Loading)
+        ids, docs = load_docs_from_webpage(url=resource.metadata['url'],
+                                           doc_source_id=resource_id,
+                                           doc_source_type=resource.resource_type.value)
+        self._set_state(resource_id, ResourceState.Indexing)
+        self.vectorstore_service.index_docs(ids, docs)
+        self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
+        self._set_state(resource_id, ResourceState.Finished)
+        print(len(docs), len(ids))
+
     def _index_pending_resources(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -181,6 +205,8 @@ class ResourceService:
                 case "website":
                     self.index_website(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
                     log.info(f"New website added {resource_name}")
+                case "webpage":
+                    self.index_webpage(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
 
         conn.close()
 
