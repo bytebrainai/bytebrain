@@ -71,7 +71,7 @@ class DocumentService:
 
     def index_youtube_video(self, video_id: str):
         try:
-            ids, docs = load_youtube_docs(video_id)
+            ids, docs = load_youtube_docs_from_video_id(video_id)
             log.info(f"Loaded youtube docs for {video_id}!")
             # TODO: use upsert instead of index_docs
             self.vectorstore_service.index_docs(ids, docs)

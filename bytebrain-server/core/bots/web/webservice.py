@@ -179,7 +179,7 @@ class WebsiteResourceRequest(BaseModel):
 
 
 @app.post("/resources/website")
-async def submit_new_website_resources(website_resource: WebsiteResourceRequest):
+async def submit_new_website_resource(website_resource: WebsiteResourceRequest):
     resource_id = resource_service.submit_website_resource(website_resource.name, website_resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
@@ -193,8 +193,22 @@ class WebpageResourceRequest(BaseModel):
 
 
 @app.post("/resources/webpage")
-async def submit_new_website_resources(website_resource: WebpageResourceRequest):
+async def submit_new_website_resource(website_resource: WebpageResourceRequest):
     resource_id = resource_service.submit_webpage_resource(website_resource.name, website_resource.url)
+    if resource_id:
+        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
+    else:
+        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
+
+
+class YoutubeResourceRequest(BaseModel):
+    name: str
+    url: str
+
+
+@app.post("/resources/youtube")
+async def submit_new_youtube_resource(website_resource: YoutubeResourceRequest):
+    resource_id = resource_service.submit_youtube_resource(website_resource.name, website_resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -219,6 +233,12 @@ async def get_website_resources():
 
 @app.get("/resources/webpage/")
 async def get_webpage_resources():
+    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Webpage)
+    return resources
+
+
+@app.get("/resources/youtube/")
+async def get_youtube_resources():
     resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Webpage)
     return resources
 

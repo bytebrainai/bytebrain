@@ -1,7 +1,8 @@
 import os
 import uuid
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import List, Dict
+from typing import Optional
 from uuid import UUID
 
 import yaml
@@ -202,23 +203,27 @@ def load_zionomicon_docs(directory: str) -> (List[UUID], List[Document]):
     return ids, documents
 
 
-def load_youtube_docs(video_id: str) -> (List[UUID], List[Document]):
+def load_youtube_docs_from_video_id(video_id: str) -> (List[UUID], List[Document]):
     video_url = f"https://www.youtube.com/watch?v={video_id}"
-    loader = YoutubeLoader.from_youtube_url(video_url, add_video_info=True)
+    return load_youtube_docs(video_url, doc_source_id="youtube.com", doc_source_type="youtube")
+
+
+def load_youtube_docs(url: str, doc_source_id: str, doc_source_type: str) -> (List[UUID], List[Document]):
+    loader = YoutubeLoader.from_youtube_url(url, add_video_info=True)
     docs: list[Document] = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
     docs = text_splitter.split_documents(docs)
     for index, doc in enumerate(docs):
-        doc.metadata.setdefault("doc_source_id", "youtube.com")
-        doc.metadata.setdefault("doc_source_type", "subtitle")
-        doc.metadata.setdefault("doc_url", video_url)
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_url", url)
         doc.metadata.setdefault("doc_title", doc.metadata.pop('title'))
         doc.metadata.setdefault("doc_view_count", doc.metadata.pop('view_count'))
         doc.metadata.setdefault("doc_thumbnail_url", doc.metadata.pop('thumbnail_url'))
         doc.metadata.setdefault("doc_publish_date", doc.metadata.pop("publish_date"))
         doc.metadata.setdefault("doc_length", doc.metadata.pop("length"))
         doc.metadata.setdefault("doc_author", doc.metadata.pop("author"))
-        doc.metadata.setdefault("doc_uuid", str(uuid.uuid5(NAMESPACE_YOUTUBE, video_url + doc.page_content)))
+        doc.metadata.setdefault("doc_uuid", str(uuid.uuid5(NAMESPACE_YOUTUBE, url + doc.page_content)))
     ids = [UUID(c.metadata['doc_uuid']) for c in docs]
     assert (len(ids) == len(docs))
     return ids, docs
