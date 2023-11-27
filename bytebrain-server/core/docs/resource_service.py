@@ -49,10 +49,11 @@ class ResourceService:
         self.vectorstore_service = vectorstore_service
         self.metadata_service = metadata_service
         self._create_table()
-        self._create_daemon()
+        self._create_daemon(self._get_unfinished_resources())
 
-    def _create_daemon(self):
-        background_thread = threading.Thread(target=self._index_pending_resources, daemon=True)
+    def _create_daemon(self, pending_resources):
+        background_thread = threading.Thread(target=self._index_resources,
+                                             kwargs={"pending_resources": pending_resources}, daemon=True)
         background_thread.start()
 
     def _create_table(self):
@@ -183,19 +184,32 @@ class ResourceService:
             )
             cursor.execute(query, values)
             connection.commit()
-        self._create_daemon()
+        pending_resources = self._get_pending_resources_by_id(resource.resource_id)
+        self._create_daemon(pending_resources)
 
-    def _get_pending_resources(self):
+    def _get_unfinished_resources(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         cursor.execute(
-            f'SELECT id, resource_name, resource_type, metadata, status FROM resources WHERE status=?',
-            ('pending',))
-        pending_jobs = cursor.fetchall()
+            f'SELECT id, resource_name, resource_type, metadata, status FROM resources WHERE status != ?',
+            (ResourceState.Finished.value,))
+        unfinished_resources = cursor.fetchall()
 
         conn.close()
-        return pending_jobs
+        return unfinished_resources
+
+    def _get_pending_resources_by_id(self, resource_id: str):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            f'SELECT id, resource_name, resource_type, metadata, status FROM resources WHERE id=?',
+            (resource_id,))
+        resource = cursor.fetchall()
+
+        conn.close()
+        return resource
 
     def index_website(self, resource_id, name: str, url: str):
         resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
@@ -251,16 +265,8 @@ class ResourceService:
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self._set_state(resource_id, ResourceState.Finished)
 
-    def _index_pending_resources(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        pending_resources = self._get_pending_resources()
-
+    def _index_resources(self, pending_resources):
         for resource_id, resource_name, resource_type, metadata, status in pending_resources:
-            cursor.execute('UPDATE resources SET status=? WHERE id=?', ('running', resource_id,))
-            conn.commit()
-
             match resource_type:
                 case "gitrepo":
                     log.info(f"added git repo: {resource_name}")
@@ -281,8 +287,6 @@ class ResourceService:
                                       paths=json.loads(metadata)['paths'],
                                       branch=json.loads(metadata)['branch'])
                     log.info(f"New GitHub source was added: {resource_name, json.loads(metadata)['language']}")
-
-        conn.close()
 
     def _delete_resource_from_table(self, resource_id):
         with sqlite3.connect(self.db_path) as connection:

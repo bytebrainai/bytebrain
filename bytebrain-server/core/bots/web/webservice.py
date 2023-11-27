@@ -1,7 +1,6 @@
 import asyncio
 import json
 import time
-import re
 from enum import Enum
 from typing import Any, List, Dict, Optional
 
@@ -13,7 +12,6 @@ from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.vectorstores.weaviate import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
-from pydantic.class_validators import validator
 from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
@@ -67,6 +65,8 @@ vector_store = Weaviate(client,
 
 # Feedback service setup
 feedback_service = FeedbackService(config.feedbacks_db)
+
+# Resource service setup
 document_service = DocumentService(config.weaviate_url,
                                    config.embeddings_dir,
                                    config.metadata_docs_db)
@@ -182,8 +182,8 @@ class WebsiteResourceRequest(BaseModel):
 
 
 @app.post("/resources/website")
-async def submit_new_website_resource(website_resource: WebsiteResourceRequest):
-    resource_id = resource_service.submit_website_resource(website_resource.name, website_resource.url)
+async def submit_new_website_resource(resource: WebsiteResourceRequest):
+    resource_id = resource_service.submit_website_resource(resource.name, resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -196,8 +196,8 @@ class WebpageResourceRequest(BaseModel):
 
 
 @app.post("/resources/webpage")
-async def submit_new_website_resource(website_resource: WebpageResourceRequest):
-    resource_id = resource_service.submit_webpage_resource(website_resource.name, website_resource.url)
+async def submit_new_website_resource(resource: WebpageResourceRequest):
+    resource_id = resource_service.submit_webpage_resource(resource.name, resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -210,8 +210,8 @@ class YoutubeResourceRequest(BaseModel):
 
 
 @app.post("/resources/youtube")
-async def submit_new_youtube_resource(website_resource: YoutubeResourceRequest):
-    resource_id = resource_service.submit_youtube_resource(website_resource.name, website_resource.url)
+async def submit_new_youtube_resource(resource: YoutubeResourceRequest):
+    resource_id = resource_service.submit_youtube_resource(resource.name, resource.url)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -249,13 +249,13 @@ class GithubResourceRequest(BaseModel):
 
 
 @app.post("/resources/github")
-async def submit_new_github_resource(website_resource: GithubResourceRequest):
-    paths = website_resource.paths if website_resource.paths is not None else "*"
-    resource_id = resource_service.submit_github_resource(website_resource.name,
-                                                          website_resource.language.value,
-                                                          website_resource.clone_url,
+async def submit_new_github_resource(resource: GithubResourceRequest):
+    paths = resource.paths if resource.paths is not None else "*"
+    resource_id = resource_service.submit_github_resource(resource.name,
+                                                          resource.language.value,
+                                                          resource.clone_url,
                                                           paths,
-                                                          website_resource.branch)
+                                                          resource.branch)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -308,7 +308,7 @@ async def delete_resource():
 
 # Main function
 def main():
-    uvicorn.run("core.bots.web.webservice:app", host=config.webservice.host, port=config.webservice.port, reload=False)
+    uvicorn.run(app, host=config.webservice.host, port=config.webservice.port, reload=False)
 
 
 if __name__ == "__main__":
