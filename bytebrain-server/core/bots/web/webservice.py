@@ -272,6 +272,12 @@ async def get_resource_status(resource_id: str):
             return JSONResponse({"status": status.value})
 
 
+@app.get("/resources/update/{resource_id}")
+async def update_resource(resource_id: str):
+    resource_service.submit_resource_update(resource_id)
+    return JSONResponse({"message": "The update request has been submitted successfully."})
+
+
 @app.get("/resources/website/")
 async def get_website_resources():
     resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Website)

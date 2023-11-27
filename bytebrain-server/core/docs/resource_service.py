@@ -169,6 +169,11 @@ class ResourceService:
                                    "branch": branch}))
             return resource_id
 
+    def submit_resource_update(self, resource_id: str):
+        self._set_state(resource_id, ResourceState.Pending)
+        pending_resource = self._get_pending_resources_by_id(resource_id)
+        self._create_daemon(pending_resource)
+
     def _add_resource(self, resource):
         if not isinstance(resource.resource_type, ResourceType):
             raise ValueError("Invalid resource type")
