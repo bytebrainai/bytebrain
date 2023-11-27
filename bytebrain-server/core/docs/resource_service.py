@@ -154,9 +154,9 @@ class ResourceService:
                                name: str,
                                language: str,
                                clone_url: str,
-                               filter_regex: str,
+                               paths: str,
                                branch: Optional[str]) -> Optional[str]:
-        resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + filter_regex))
+        resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + paths))
         if self.get_by_id(resource_id):
             return None
         else:
@@ -164,7 +164,7 @@ class ResourceService:
                 Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
                          metadata={"language": language,
                                    "clone_url": clone_url,
-                                   "filter_regex": filter_regex,
+                                   "paths": paths,
                                    "branch": branch}))
             return resource_id
 
@@ -202,7 +202,7 @@ class ResourceService:
                             metadata={"url": url})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
-                                        doc_source_type=resource.resource_type.value(),
+                                        doc_source_type=resource.resource_type.value,
                                         url=resource.metadata['url'])
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
@@ -215,7 +215,7 @@ class ResourceService:
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_webpage(url=resource.metadata['url'],
                                            doc_source_id=resource_id,
-                                           doc_source_type=resource.resource_type.value())
+                                           doc_source_type=resource.resource_type.value)
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
@@ -228,24 +228,24 @@ class ResourceService:
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_youtube_docs(url=resource.metadata['url'],
                                       doc_source_id=resource_id,
-                                      doc_source_type=resource.resource_type.value())
+                                      doc_source_type=resource.resource_type.value)
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self._set_state(resource_id, ResourceState.Finished)
 
-    def index_github(self, resource_id, name: str, clone_url: str, language: str, filter_regex: str,
+    def index_github(self, resource_id, name: str, clone_url: str, language: str, paths: str,
                      branch: Optional[str]):
         resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
-                            metadata={"language": language, "clone_url": clone_url, "filter_regex": filter_regex,
+                            metadata={"language": language, "clone_url": clone_url, "paths": paths,
                                       "branch": branch})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_sourcecode_from_git_repo(clone_url=resource.metadata['clone_url'],
                                                   doc_source_id=resource_id,
-                                                  doc_source_type=resource.resource_type.value(),
+                                                  doc_source_type=resource.resource_type.value,
                                                   language=language,
                                                   branch=branch,
-                                                  regex_pattern=filter_regex)
+                                                  paths=paths)
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
@@ -278,7 +278,7 @@ class ResourceService:
                                       name=resource_name,
                                       clone_url=json.loads(metadata)['clone_url'],
                                       language=json.loads(metadata)['language'],
-                                      filter_regex=json.loads(metadata)['filter_regex'],
+                                      paths=json.loads(metadata)['paths'],
                                       branch=json.loads(metadata)['branch'])
                     log.info(f"New GitHub source was added: {resource_name, json.loads(metadata)['language']}")
 
@@ -299,6 +299,16 @@ class ResourceService:
         self.vectorstore_service.delete_docs(ids)
         self.metadata_service.delete_docs_by_resource_id(resource_id)
         self._delete_resource_from_table(resource_id)
+
+    def delete_all_resources(self):
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.cursor()
+            query = "SELECT id FROM resources"
+            cursor.execute(query)
+            resource_ids = cursor.fetchall()
+
+            for resource_id in resource_ids:
+                self.delete_resource(resource_id[0])
 
     def _set_state(self, resource_id, state: ResourceState):
         with sqlite3.connect(self.db_path) as connection:

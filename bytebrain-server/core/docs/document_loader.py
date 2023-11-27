@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import re
 import tempfile
@@ -90,17 +91,17 @@ def load_sourcecode_from_git_repo(
         doc_source_type: str,
         language: str,
         branch: Optional[str],
-        regex_pattern: Optional[str] = None
+        paths: Optional[str] = None
 ) -> (List[UUID], List[Document]):
+    repo_path = tempfile.mkdtemp()
     file_filter: Optional[Callable[[str], bool]] = None
-    if regex_pattern:
+    if paths:
         try:
-            regex = re.compile(regex_pattern)
-            file_filter = lambda file_path: bool(regex.search(file_path))
+            file_filter = lambda file_path: fnmatch.fnmatch(file_path, os.path.join(repo_path, paths))
         except re.error:
             raise ValueError("Invalid regular expression pattern")
     loader = GitLoader(
-        repo_path=tempfile.mkdtemp(),
+        repo_path=repo_path,
         clone_url=clone_url,
         branch=branch,
         file_filter=file_filter

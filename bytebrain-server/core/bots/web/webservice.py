@@ -244,25 +244,17 @@ class GithubResourceRequest(BaseModel):
     name: str
     language: Language
     clone_url: str
-    filter_pattern: Optional[str]
+    paths: Optional[str]
     branch: Optional[str]
-
-    @validator("filter_pattern")
-    def validate_pattern(cls, value):
-        try:
-            re.compile(value)
-            return value
-        except re.error:
-            raise ValueError("Invalid regular expression pattern")
 
 
 @app.post("/resources/github")
 async def submit_new_github_resource(website_resource: GithubResourceRequest):
-    filter_pattern = website_resource.filter_pattern if website_resource.filter_pattern is not None else ".*"
+    paths = website_resource.paths if website_resource.paths is not None else "*"
     resource_id = resource_service.submit_github_resource(website_resource.name,
-                                                          website_resource.language.value(),
+                                                          website_resource.language.value,
                                                           website_resource.clone_url,
-                                                          filter_pattern,
+                                                          paths,
                                                           website_resource.branch)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
@@ -307,6 +299,11 @@ async def get_youtube_resources():
 @app.delete("/resources/{resource_id}", status_code=204)
 async def delete_resource(resource_id: str):
     resource_service.delete_resource(resource_id)
+
+
+@app.delete("/resources/", status_code=204)
+async def delete_resource():
+    resource_service.delete_all_resources()
 
 
 # Main function
