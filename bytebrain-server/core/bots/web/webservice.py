@@ -1,7 +1,9 @@
 import asyncio
 import json
 import time
-from typing import Any, List, Dict
+import re
+from enum import Enum
+from typing import Any, List, Dict, Optional
 
 import uvicorn
 import weaviate
@@ -11,6 +13,7 @@ from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.vectorstores.weaviate import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
+from pydantic.class_validators import validator
 from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
@@ -215,6 +218,57 @@ async def submit_new_youtube_resource(website_resource: YoutubeResourceRequest):
         return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
 
 
+class Language(str, Enum):
+    CPP = "cpp"
+    GO = "go"
+    JAVA = "java"
+    KOTLIN = "kotlin"
+    JS = "js"
+    TS = "ts"
+    PHP = "php"
+    PROTO = "proto"
+    PYTHON = "python"
+    RST = "rst"
+    RUBY = "ruby"
+    RUST = "rust"
+    SCALA = "scala"
+    SWIFT = "swift"
+    MARKDOWN = "markdown"
+    LATEX = "latex"
+    HTML = "html"
+    SOL = "sol"
+    CSHARP = "csharp"
+
+
+class GithubResourceRequest(BaseModel):
+    name: str
+    language: Language
+    clone_url: str
+    filter_regex: str
+    branch: Optional[str]
+
+    @validator("filter_regex")
+    def validate_pattern(cls, value):
+        try:
+            re.compile(value)
+            return value
+        except re.error:
+            raise ValueError("Invalid regular expression pattern")
+
+
+@app.post("/resources/github")
+async def submit_new_github_resource(website_resource: GithubResourceRequest):
+    resource_id = resource_service.submit_github_resource(website_resource.name,
+                                                          website_resource.language.value,
+                                                          website_resource.clone_url,
+                                                          website_resource.filter_regex,
+                                                          website_resource.branch)
+    if resource_id:
+        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
+    else:
+        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
+
+
 @app.get("/resources/{resource_id}")
 async def get_resource_status(resource_id: str):
     status_option = resource_service.get_resource_status(resource_id)
@@ -240,6 +294,12 @@ async def get_webpage_resources():
 @app.get("/resources/youtube/")
 async def get_youtube_resources():
     resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Webpage)
+    return resources
+
+
+@app.get("/resources/github/")
+async def get_youtube_resources():
+    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.GitHub)
     return resources
 
 

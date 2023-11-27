@@ -1,7 +1,9 @@
 import os
+import re
+import tempfile
 import uuid
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Callable
 from typing import Optional
 from uuid import UUID
 
@@ -80,6 +82,50 @@ def load_zio_website_docs(directory: str) -> (List[UUID], List[Document]):
 
     assert (len(ids) == len(documents))
     return ids, documents
+
+
+def load_sourcecode_from_git_repo(
+        clone_url: str,
+        doc_source_id: str,
+        doc_source_type: str,
+        language: str,
+        branch: Optional[str],
+        regex_pattern: Optional[str] = None
+) -> (List[UUID], List[Document]):
+    file_filter: Optional[Callable[[str], bool]] = None
+    if regex_pattern:
+        try:
+            regex = re.compile(regex_pattern)
+            file_filter = lambda file_path: bool(regex.search(file_path))
+        except re.error:
+            raise ValueError("Invalid regular expression pattern")
+    loader = GitLoader(
+        repo_path=tempfile.mkdtemp(),
+        clone_url=clone_url,
+        branch=branch,
+        file_filter=file_filter
+    )
+    docs = loader.load()
+
+    splitter = RecursiveCharacterTextSplitter.from_language(language=Language(language))
+    docs = splitter.transform_documents(docs)
+
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_path", doc.metadata.pop('file_path'))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_SOURCECODE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_path'],
+                                                  doc.metadata['doc_hash'])))
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
+
+    assert (len(ids) == len(docs))
+    return ids, docs
 
 
 def load_source_code(
