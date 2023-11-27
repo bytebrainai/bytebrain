@@ -202,7 +202,7 @@ class ResourceService:
                             metadata={"url": url})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
-                                        doc_source_type=resource.resource_type.value,
+                                        doc_source_type=resource.resource_type.value(),
                                         url=resource.metadata['url'])
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
@@ -215,7 +215,7 @@ class ResourceService:
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_webpage(url=resource.metadata['url'],
                                            doc_source_id=resource_id,
-                                           doc_source_type=resource.resource_type.value)
+                                           doc_source_type=resource.resource_type.value())
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
@@ -228,7 +228,7 @@ class ResourceService:
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_youtube_docs(url=resource.metadata['url'],
                                       doc_source_id=resource_id,
-                                      doc_source_type=resource.resource_type.value)
+                                      doc_source_type=resource.resource_type.value())
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
@@ -242,7 +242,7 @@ class ResourceService:
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_sourcecode_from_git_repo(clone_url=resource.metadata['clone_url'],
                                                   doc_source_id=resource_id,
-                                                  doc_source_type=resource.resource_type.value,
+                                                  doc_source_type=resource.resource_type.value(),
                                                   language=language,
                                                   branch=branch,
                                                   regex_pattern=filter_regex)

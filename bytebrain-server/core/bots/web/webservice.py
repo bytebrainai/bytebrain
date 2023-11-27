@@ -244,10 +244,10 @@ class GithubResourceRequest(BaseModel):
     name: str
     language: Language
     clone_url: str
-    filter_regex: str
+    filter_pattern: Optional[str]
     branch: Optional[str]
 
-    @validator("filter_regex")
+    @validator("filter_pattern")
     def validate_pattern(cls, value):
         try:
             re.compile(value)
@@ -258,10 +258,11 @@ class GithubResourceRequest(BaseModel):
 
 @app.post("/resources/github")
 async def submit_new_github_resource(website_resource: GithubResourceRequest):
+    filter_pattern = website_resource.filter_pattern if website_resource.filter_pattern is not None else ".*"
     resource_id = resource_service.submit_github_resource(website_resource.name,
-                                                          website_resource.language.value,
+                                                          website_resource.language.value(),
                                                           website_resource.clone_url,
-                                                          website_resource.filter_regex,
+                                                          filter_pattern,
                                                           website_resource.branch)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
