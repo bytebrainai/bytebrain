@@ -156,7 +156,7 @@ class ResourceService:
                                clone_url: str,
                                filter_regex: str,
                                branch: Optional[str]) -> Optional[str]:
-        resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language))
+        resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + filter_regex))
         if self.get_by_id(resource_id):
             return None
         else:
