@@ -20,7 +20,7 @@ from config import load_config
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_service import DocumentService
 from core.docs.metadata_service import DocumentMetadataService
-from core.docs.resource_service import Resource, ResourceService, ResourceType
+from core.docs.resource_service import ResourceRequest, ResourceService, ResourceType, Resource
 from core.llm.chains import make_question_answering_chain
 from feedback_service import FeedbackService, FeedbackCreate
 
@@ -272,10 +272,22 @@ async def get_resource_status(resource_id: str):
             return JSONResponse({"status": status.value})
 
 
-@app.get("/resources/update/{resource_id}")
+class UpdateRequest(BaseModel):
+    request_id: str
+
+
+@app.put("/resources/{resource_id}")
 async def update_resource(resource_id: str):
-    resource_service.submit_resource_update(resource_id)
-    return JSONResponse({"message": "The update request has been submitted successfully."})
+    if resource_service.submit_resource_update(resource_id):
+        return JSONResponse({
+            "resource_id": resource_id,
+            "message": "The update request has been submitted successfully."
+        })
+    else:
+        return JSONResponse({
+            "resource_id": resource_id,
+            "message": f"Update request is forbidden. Last update was less than 24 hours ago."
+        }, status_code=403)
 
 
 @app.get("/resources/website/")

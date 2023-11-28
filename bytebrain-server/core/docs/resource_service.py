@@ -2,6 +2,7 @@ import json
 import sqlite3
 import threading
 import uuid
+from datetime import datetime
 from enum import Enum
 from typing import Optional, List
 
@@ -23,18 +24,28 @@ class ResourceType(str, Enum):
     GitHub = "github"
 
 
-class ResourceState(Enum):
+class ResourceState(str, Enum):
     Pending = 'pending'
     Loading = "loading"
     Indexing = 'indexing'
     Finished = 'finished'
 
 
-class Resource(BaseModel):
+class ResourceRequest(BaseModel):
     resource_id: str
     resource_name: str
     resource_type: ResourceType
     metadata: dict = None
+
+
+class Resource(BaseModel):
+    resource_id: str
+    resource_name: str
+    resource_type: ResourceType
+    metadata: dict
+    status: ResourceState
+    created_at: datetime
+    last_updated_at: datetime
 
 
 class ResourceService:
@@ -65,7 +76,9 @@ class ResourceService:
                     resource_name TEXT NOT NULL,
                     resource_type TEXT NOT NULL,
                     metadata JSON,
-                    status TEXT DEFAULT '{ResourceState.Pending.value}'
+                    status TEXT DEFAULT '{ResourceState.Pending.value}',
+                    created_at TIMESTAMP DEFAULT (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME')),
+                    last_updated_at TIMESTAMP DEFAULT (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME'))
                 )
             '''
             cursor.execute(query)
@@ -82,7 +95,7 @@ class ResourceService:
             row = cursor.fetchone()
 
             if row:
-                resource = Resource(
+                resource = ResourceRequest(
                     resource_id=row[0],
                     resource_name=row[1],
                     resource_type=ResourceType(row[2]),
@@ -104,7 +117,10 @@ class ResourceService:
             resources = []
             for row in rows:
                 resource = Resource(resource_id=row[0], resource_name=row[1], resource_type=ResourceType(row[2]),
-                                    metadata=json.loads(row[3]))
+                                    metadata=json.loads(row[3]),
+                                    status=ResourceState(row[4]),
+                                    created_at=datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S'),
+                                    last_updated_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'))
                 resources.append(resource)
 
             return resources
@@ -127,8 +143,8 @@ class ResourceService:
             return None
         else:
             self._add_resource(
-                Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
-                         metadata={"url": url}))
+                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
+                                metadata={"url": url}))
             return resource_id
 
     def submit_webpage_resource(self, name: str, url: str) -> Optional[str]:
@@ -137,8 +153,8 @@ class ResourceService:
             return None
         else:
             self._add_resource(
-                Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
-                         metadata={"url": url}))
+                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
+                                metadata={"url": url}))
             return resource_id
 
     def submit_youtube_resource(self, name: str, url: str) -> Optional[str]:
@@ -147,8 +163,8 @@ class ResourceService:
             return None
         else:
             self._add_resource(
-                Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
-                         metadata={"url": url}))
+                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
+                                metadata={"url": url}))
             return resource_id
 
     def submit_github_resource(self,
@@ -162,17 +178,34 @@ class ResourceService:
             return None
         else:
             self._add_resource(
-                Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
-                         metadata={"language": language,
-                                   "clone_url": clone_url,
-                                   "paths": paths,
-                                   "branch": branch}))
+                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
+                                metadata={"language": language,
+                                          "clone_url": clone_url,
+                                          "paths": paths,
+                                          "branch": branch}))
             return resource_id
 
-    def submit_resource_update(self, resource_id: str):
+    def _is_update_allowed(self, resource_id: str) -> bool:
+        last_updated_at = self.get_last_updated_at(resource_id)
+
+        if last_updated_at is not None:
+            current_time = datetime.now()
+            time_difference = current_time - last_updated_at
+            hours_difference = time_difference.total_seconds() / 3600
+
+            return hours_difference >= 24
+        else:
+            return True
+
+    def submit_resource_update(self, resource_id: str) -> bool:
+        if not self._is_update_allowed(resource_id):
+            log.warn(f"Update request for resource {resource_id} rejected. Last update was less than 24 hours ago.")
+            return False
+
         self._set_state(resource_id, ResourceState.Pending)
         pending_resource = self._get_pending_resources_by_id(resource_id)
         self._create_daemon(pending_resource)
+        return True
 
     def _add_resource(self, resource):
         if not isinstance(resource.resource_type, ResourceType):
@@ -180,7 +213,10 @@ class ResourceService:
 
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
-            query = 'INSERT INTO resources (id, resource_name, resource_type, metadata) VALUES (?, ?, ?, ?)'
+            query = '''
+                INSERT INTO resources (id, resource_name, resource_type, metadata, created_at, last_updated_at)
+                VALUES (?, ?, ?, ?, (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME')), (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME')))
+            '''
             values = (
                 resource.resource_id,
                 resource.resource_name,
@@ -189,8 +225,21 @@ class ResourceService:
             )
             cursor.execute(query, values)
             connection.commit()
+
         pending_resources = self._get_pending_resources_by_id(resource.resource_id)
         self._create_daemon(pending_resources)
+
+    def get_last_updated_at(self, resource_id: str) -> Optional[datetime]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.cursor()
+            query = 'SELECT last_updated_at FROM resources WHERE id = ?'
+            cursor.execute(query, (resource_id,))
+            result = cursor.fetchone()
+
+            if result:
+                return datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
+            else:
+                return None
 
     def _get_unfinished_resources(self):
         conn = sqlite3.connect(self.db_path)
@@ -217,8 +266,8 @@ class ResourceService:
         return resource
 
     def index_website(self, resource_id, name: str, url: str):
-        resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
-                            metadata={"url": url})
+        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
+                                   metadata={"url": url})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
                                         doc_source_type=resource.resource_type.value,
@@ -229,8 +278,8 @@ class ResourceService:
         self._set_state(resource_id, ResourceState.Finished)
 
     def index_webpage(self, resource_id, name: str, url: str):
-        resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
-                            metadata={"url": url})
+        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
+                                   metadata={"url": url})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_webpage(url=resource.metadata['url'],
                                            doc_source_id=resource_id,
@@ -242,8 +291,8 @@ class ResourceService:
         print(len(docs), len(ids))
 
     def index_youtube(self, resource_id, name: str, url: str):
-        resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
-                            metadata={"url": url})
+        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
+                                   metadata={"url": url})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_youtube_docs(url=resource.metadata['url'],
                                       doc_source_id=resource_id,
@@ -255,9 +304,9 @@ class ResourceService:
 
     def index_github(self, resource_id, name: str, clone_url: str, language: str, paths: str,
                      branch: Optional[str]):
-        resource = Resource(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
-                            metadata={"language": language, "clone_url": clone_url, "paths": paths,
-                                      "branch": branch})
+        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
+                                   metadata={"language": language, "clone_url": clone_url, "paths": paths,
+                                             "branch": branch})
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_sourcecode_from_git_repo(clone_url=resource.metadata['clone_url'],
                                                   doc_source_id=resource_id,
@@ -325,7 +374,8 @@ class ResourceService:
 
             query = '''
                 UPDATE resources
-                SET status = ?
+                SET status = ?,
+                    last_updated_at = (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME'))
                 WHERE id = ?
             '''
             cursor.execute(query, (state.value, resource_id))
