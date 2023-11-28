@@ -284,52 +284,43 @@ class ResourceService:
         conn.close()
         return resource
 
-    def index_website(self, resource_id, name: str, url: str):
-        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
-                                   metadata={"url": url})
+    def index_website(self, resource_id, url: str):
         self._set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
-                                        doc_source_type=resource.resource_type.value,
-                                        url=resource.metadata['url'])
+                                        doc_source_type=ResourceType.Website.value,
+                                        url=url)
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self._set_state(resource_id, ResourceState.Finished)
 
-    def index_webpage(self, resource_id, name: str, url: str):
-        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
-                                   metadata={"url": url})
+    def index_webpage(self, resource_id, url: str):
         self._set_state(resource_id, ResourceState.Loading)
-        ids, docs = load_docs_from_webpage(url=resource.metadata['url'],
+        ids, docs = load_docs_from_webpage(url=url,
                                            doc_source_id=resource_id,
-                                           doc_source_type=resource.resource_type.value)
+                                           doc_source_type=ResourceType.Webpage.value)
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self._set_state(resource_id, ResourceState.Finished)
         print(len(docs), len(ids))
 
-    def index_youtube(self, resource_id, name: str, url: str):
-        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
-                                   metadata={"url": url})
+    def index_youtube(self, resource_id, url: str):
         self._set_state(resource_id, ResourceState.Loading)
-        ids, docs = load_youtube_docs(url=resource.metadata['url'],
+        ids, docs = load_youtube_docs(url=url,
                                       doc_source_id=resource_id,
-                                      doc_source_type=resource.resource_type.value)
+                                      doc_source_type=ResourceType.Youtube.value)
         self._set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self._set_state(resource_id, ResourceState.Finished)
 
-    def index_github(self, resource_id, name: str, clone_url: str, language: str, paths: str,
+    def index_github(self, resource_id, clone_url: str, language: str, paths: str,
                      branch: Optional[str]):
-        resource = ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
-                                   metadata={"language": language, "clone_url": clone_url, "paths": paths,
-                                             "branch": branch})
         self._set_state(resource_id, ResourceState.Loading)
-        ids, docs = load_sourcecode_from_git_repo(clone_url=resource.metadata['clone_url'],
+        ids, docs = load_sourcecode_from_git_repo(clone_url=clone_url,
                                                   doc_source_id=resource_id,
-                                                  doc_source_type=resource.resource_type.value,
+                                                  doc_source_type=ResourceType.GitHub.value,
                                                   language=language,
                                                   branch=branch,
                                                   paths=paths)
@@ -341,20 +332,17 @@ class ResourceService:
     def _index_resources(self, pending_resources):
         for resource_id, resource_name, resource_type, metadata, status in pending_resources:
             match resource_type:
-                case "gitrepo":
-                    log.info(f"added git repo: {resource_name}")
                 case ResourceType.Website.value:
-                    self.index_website(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
+                    self.index_website(resource_id=resource_id, url=json.loads(metadata)['url'])
                     log.info(f"New website added {resource_name}")
                 case ResourceType.Webpage.value:
-                    self.index_webpage(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
+                    self.index_webpage(resource_id=resource_id, url=json.loads(metadata)['url'])
                     log.info(f"New webpage added {resource_name}")
                 case ResourceType.Youtube.value:
-                    self.index_youtube(resource_id=resource_id, name=resource_name, url=json.loads(metadata)['url'])
+                    self.index_youtube(resource_id=resource_id, url=json.loads(metadata)['url'])
                     log.info(f"New youtube video added {resource_name}")
                 case ResourceType.GitHub.value:
                     self.index_github(resource_id=resource_id,
-                                      name=resource_name,
                                       clone_url=json.loads(metadata)['clone_url'],
                                       language=json.loads(metadata)['language'],
                                       paths=json.loads(metadata)['paths'],
