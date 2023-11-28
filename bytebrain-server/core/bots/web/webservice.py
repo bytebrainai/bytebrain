@@ -20,7 +20,8 @@ from config import load_config
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_service import DocumentService
 from core.docs.metadata_service import DocumentMetadataService
-from core.docs.resource_service import ResourceService, ResourceType, Resource
+from core.docs.resource_service import ResourceService
+from core.docs.resource_dao import ResourceType, Resource, ResourceDao
 from core.llm.chains import make_question_answering_chain
 from feedback_service import FeedbackService, FeedbackCreate
 
@@ -74,7 +75,8 @@ metadata_service = DocumentMetadataService(config.metadata_docs_db)
 vectorstore_service = VectorStoreService(url=config.weaviate_url,
                                          embeddings_dir=config.embeddings_dir,
                                          metadata_service=metadata_service)
-resource_service = ResourceService(config.resources_db, vectorstore_service, metadata_service)
+resource_dao = ResourceDao(config.resources_db)
+resource_service = ResourceService(resource_dao, vectorstore_service, metadata_service)
 
 
 # WebSocket endpoint for chat
@@ -264,7 +266,7 @@ async def submit_new_github_resource(resource: GithubResourceRequest):
 
 @app.get("/resources/{resource_id}")
 async def get_resource_status(resource_id: str):
-    status_option = resource_service.get_resource_status(resource_id)
+    status_option = resource_dao.get_resource_status(resource_id)
     match status_option:
         case None:
             return JSONResponse({"message": "Resource not found"}, status_code=404)
@@ -292,31 +294,31 @@ async def update_resource(resource_id: str):
 
 @app.get("/resources/")
 async def get_website_resources():
-    resources: list[Resource] = resource_service.get_all_resources()
+    resources: list[Resource] = resource_dao.get_all_resources()
     return resources
 
 
 @app.get("/resources/website/")
 async def get_website_resources():
-    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Website)
+    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.Website)
     return resources
 
 
 @app.get("/resources/webpage/")
 async def get_webpage_resources():
-    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Webpage)
+    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.Webpage)
     return resources
 
 
 @app.get("/resources/youtube/")
 async def get_youtube_resources():
-    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Webpage)
+    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.Webpage)
     return resources
 
 
 @app.get("/resources/github/")
 async def get_youtube_resources():
-    resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.GitHub)
+    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.GitHub)
     return resources
 
 
