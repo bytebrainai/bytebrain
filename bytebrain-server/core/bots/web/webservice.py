@@ -290,6 +290,12 @@ async def update_resource(resource_id: str):
         }, status_code=403)
 
 
+@app.get("/resources/")
+async def get_website_resources():
+    resources: list[Resource] = resource_service.get_all_resources()
+    return resources
+
+
 @app.get("/resources/website/")
 async def get_website_resources():
     resources: list[Resource] = resource_service.get_resources_of_type(ResourceType.Website)

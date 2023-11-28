@@ -95,15 +95,34 @@ class ResourceService:
             row = cursor.fetchone()
 
             if row:
-                resource = ResourceRequest(
-                    resource_id=row[0],
-                    resource_name=row[1],
-                    resource_type=ResourceType(row[2]),
-                    metadata=json.loads(row[3]) if row[3] else None
-                )
+                resource = Resource(resource_id=row[0], resource_name=row[1], resource_type=ResourceType(row[2]),
+                                    metadata=json.loads(row[3]),
+                                    status=ResourceState(row[4]),
+                                    created_at=datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S'),
+                                    last_updated_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'))
                 return resource
             else:
                 return None
+
+    def get_all_resources(self):
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.cursor()
+            query = '''
+                SELECT * FROM resources
+            '''
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            resources = []
+            for row in rows:
+                resource = Resource(resource_id=row[0], resource_name=row[1], resource_type=ResourceType(row[2]),
+                                    metadata=json.loads(row[3]),
+                                    status=ResourceState(row[4]),
+                                    created_at=datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S'),
+                                    last_updated_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'))
+                resources.append(resource)
+
+            return resources
 
     def get_resources_of_type(self, resource_type: ResourceType) -> List[Resource]:
         with sqlite3.connect(self.db_path) as connection:
