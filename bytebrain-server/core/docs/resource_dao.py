@@ -36,26 +36,27 @@ class ResourceDao:
         self.db_path = resource_db
         self._create_table()
 
-    def add_resource(self, resource: Resource) -> Optional[str]:
+    def add_resource(self, resource_id, resource_name, resource_type, metadata) -> Optional[str]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
             query = '''
-                INSERT OR IGNORE INTO resources (id, resource_name, resource_type, metadata, created_at, last_updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT OR IGNORE INTO resources (id, resource_name, resource_type, metadata, status, created_at, last_updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             '''
             values = (
-                resource.resource_id,
-                resource.resource_name,
-                resource.resource_type.value,
-                json.dumps(resource.metadata) if resource.metadata else None,
-                resource.created_at,
-                resource.last_updated_at
+                resource_id,
+                resource_name,
+                resource_type.value,
+                json.dumps(metadata) if metadata else None,
+                ResourceState.Pending.value,
+                datetime.now().replace(microsecond=0),
+                datetime.now().replace(microsecond=0)
             )
             cursor.execute(query, values)
             connection.commit()
 
             if cursor.rowcount > 0:  # Check if a new row was inserted
-                return resource.resource_id
+                return resource_id
             else:
                 return None
 

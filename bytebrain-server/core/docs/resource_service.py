@@ -36,12 +36,10 @@ class ResourceService:
     def submit_website_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.WEBSITE_ID_NAMESPACE, name=url))
         result = self.resource_dao.add_resource(
-            Resource(
-                resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
-                metadata={"url": url}, status=ResourceState.Pending,
-                created_at=datetime.now().replace(microsecond=0),
-                last_updated_at=datetime.now().replace(microsecond=0)
-            )
+            resource_id=resource_id,
+            resource_name=name,
+            resource_type=ResourceType.Website,
+            metadata={"url": url}
         )
         if result is None:
             return None
@@ -53,12 +51,10 @@ class ResourceService:
     def submit_webpage_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.WEBPAGE_ID_NAMESPACE, name=url))
         result = self.resource_dao.add_resource(
-            Resource(
-                resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
-                metadata={"url": url}, status=ResourceState.Pending,
-                created_at=datetime.now().replace(microsecond=0),
-                last_updated_at=datetime.now().replace(microsecond=0)
-            )
+            resource_id=resource_id,
+            resource_name=name,
+            resource_type=ResourceType.Webpage,
+            metadata={"url": url}
         )
         if result is None:
             return None
@@ -70,12 +66,10 @@ class ResourceService:
     def submit_youtube_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.YOUTUBE_ID_NAMESPACE, name=url))
         result = self.resource_dao.add_resource(
-            Resource(
-                resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
-                metadata={"url": url}, status=ResourceState.Pending,
-                created_at=datetime.now().replace(microsecond=0),
-                last_updated_at=datetime.now().replace(microsecond=0)
-            )
+            resource_id=resource_id,
+            resource_name=name,
+            resource_type=ResourceType.Youtube,
+            metadata={"url": url},
         )
         if result is None:
             return None
@@ -92,16 +86,13 @@ class ResourceService:
                                branch: Optional[str]) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + paths))
         result = self.resource_dao.add_resource(
-            Resource(
-                resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
-                metadata={"language": language,
-                          "clone_url": clone_url,
-                          "paths": paths,
-                          "branch": branch},
-                status=ResourceState.Pending,
-                created_at=datetime.now().replace(microsecond=0),
-                last_updated_at=datetime.now().replace(microsecond=0)
-            )
+            resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
+            metadata={
+                "language": language,
+                "clone_url": clone_url,
+                "paths": paths,
+                "branch": branch
+            }
         )
         if result is None:
             return None
@@ -143,6 +134,7 @@ class ResourceService:
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def index_webpage(self, resource_id, url: str):
+        # TODO: when it can't download the resource why it proceeds?
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_webpage(url=url,
                                            doc_source_id=resource_id,
@@ -151,7 +143,6 @@ class ResourceService:
         self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
-        print(len(docs), len(ids))
 
     def index_youtube(self, resource_id, url: str):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
@@ -206,4 +197,4 @@ class ResourceService:
     def delete_all_resources(self):
         resource_ids = [resource.resource_id for resource in self.resource_dao.get_all_resources()]
         for resource_id in resource_ids:
-            self.delete_resource(resource_id[0])
+            self.delete_resource(resource_id)
