@@ -31,13 +31,6 @@ class ResourceState(str, Enum):
     Finished = 'finished'
 
 
-class ResourceRequest(BaseModel):
-    resource_id: str
-    resource_name: str
-    resource_type: ResourceType
-    metadata: dict = None
-
-
 class Resource(BaseModel):
     resource_id: str
     resource_name: str
@@ -77,8 +70,8 @@ class ResourceService:
                     resource_type TEXT NOT NULL,
                     metadata JSON,
                     status TEXT DEFAULT '{ResourceState.Pending.value}',
-                    created_at TIMESTAMP DEFAULT (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME')),
-                    last_updated_at TIMESTAMP DEFAULT (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME'))
+                    created_at TIMESTAMP DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+                    last_updated_at TIMESTAMP DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
                 )
             '''
             cursor.execute(query)
@@ -158,32 +151,53 @@ class ResourceService:
 
     def submit_website_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.WEBSITE_ID_NAMESPACE, name=url))
-        if self.get_by_id(resource_id):
+        result = self._add_resource(
+            Resource(
+                resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
+                metadata={"url": url}, status=ResourceState.Pending,
+                created_at=datetime.now().replace(microsecond=0),
+                last_updated_at=datetime.now().replace(microsecond=0)
+            )
+        )
+        if result is None:
             return None
         else:
-            self._add_resource(
-                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Website,
-                                metadata={"url": url}))
+            pending_resources = self._get_pending_resources_by_id(resource_id)
+            self._create_daemon(pending_resources)
             return resource_id
 
     def submit_webpage_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.WEBPAGE_ID_NAMESPACE, name=url))
-        if self.get_by_id(resource_id):
+        result = self._add_resource(
+            Resource(
+                resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
+                metadata={"url": url}, status=ResourceState.Pending,
+                created_at=datetime.now().replace(microsecond=0),
+                last_updated_at=datetime.now().replace(microsecond=0)
+            )
+        )
+        if result is None:
             return None
         else:
-            self._add_resource(
-                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Webpage,
-                                metadata={"url": url}))
+            pending_resources = self._get_pending_resources_by_id(resource_id)
+            self._create_daemon(pending_resources)
             return resource_id
 
     def submit_youtube_resource(self, name: str, url: str) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.YOUTUBE_ID_NAMESPACE, name=url))
-        if self.get_by_id(resource_id):
+        result = self._add_resource(
+            Resource(
+                resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
+                metadata={"url": url}, status=ResourceState.Pending,
+                created_at=datetime.now().replace(microsecond=0),
+                last_updated_at=datetime.now().replace(microsecond=0)
+            )
+        )
+        if result is None:
             return None
         else:
-            self._add_resource(
-                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.Youtube,
-                                metadata={"url": url}))
+            pending_resources = self._get_pending_resources_by_id(resource_id)
+            self._create_daemon(pending_resources)
             return resource_id
 
     def submit_github_resource(self,
@@ -193,15 +207,23 @@ class ResourceService:
                                paths: str,
                                branch: Optional[str]) -> Optional[str]:
         resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + paths))
-        if self.get_by_id(resource_id):
+        result = self._add_resource(
+            Resource(
+                resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
+                metadata={"language": language,
+                          "clone_url": clone_url,
+                          "paths": paths,
+                          "branch": branch},
+                status=ResourceState.Pending,
+                created_at=datetime.now().replace(microsecond=0),
+                last_updated_at=datetime.now().replace(microsecond=0)
+            )
+        )
+        if result is None:
             return None
         else:
-            self._add_resource(
-                ResourceRequest(resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
-                                metadata={"language": language,
-                                          "clone_url": clone_url,
-                                          "paths": paths,
-                                          "branch": branch}))
+            pending_resources = self._get_pending_resources_by_id(resource_id)
+            self._create_daemon(pending_resources)
             return resource_id
 
     def _is_update_allowed(self, resource_id: str) -> bool:
@@ -226,27 +248,28 @@ class ResourceService:
         self._create_daemon(pending_resource)
         return True
 
-    def _add_resource(self, resource):
-        if not isinstance(resource.resource_type, ResourceType):
-            raise ValueError("Invalid resource type")
-
+    def _add_resource(self, resource: Resource) -> Optional[str]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
             query = '''
-                INSERT INTO resources (id, resource_name, resource_type, metadata, created_at, last_updated_at)
-                VALUES (?, ?, ?, ?, (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME')), (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME')))
+                INSERT OR IGNORE INTO resources (id, resource_name, resource_type, metadata, created_at, last_updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
             '''
             values = (
                 resource.resource_id,
                 resource.resource_name,
                 resource.resource_type.value,
-                json.dumps(resource.metadata) if resource.metadata else None
+                json.dumps(resource.metadata) if resource.metadata else None,
+                resource.created_at,
+                resource.last_updated_at
             )
             cursor.execute(query, values)
             connection.commit()
 
-        pending_resources = self._get_pending_resources_by_id(resource.resource_id)
-        self._create_daemon(pending_resources)
+            if cursor.rowcount > 0:  # Check if a new row was inserted
+                return resource.resource_id
+            else:
+                return None
 
     def get_last_updated_at(self, resource_id: str) -> Optional[datetime]:
         with sqlite3.connect(self.db_path) as connection:
@@ -382,7 +405,7 @@ class ResourceService:
             query = '''
                 UPDATE resources
                 SET status = ?,
-                    last_updated_at = (DATETIME(CURRENT_TIMESTAMP, 'LOCALTIME'))
+                    last_updated_at = (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
                 WHERE id = ?
             '''
             cursor.execute(query, (state.value, resource_id))

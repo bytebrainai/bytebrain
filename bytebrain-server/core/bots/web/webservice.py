@@ -20,7 +20,7 @@ from config import load_config
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_service import DocumentService
 from core.docs.metadata_service import DocumentMetadataService
-from core.docs.resource_service import ResourceRequest, ResourceService, ResourceType, Resource
+from core.docs.resource_service import ResourceService, ResourceType, Resource
 from core.llm.chains import make_question_answering_chain
 from feedback_service import FeedbackService, FeedbackCreate
 
