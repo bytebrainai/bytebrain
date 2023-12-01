@@ -1,6 +1,7 @@
 import fnmatch
 import os
 import re
+import sys
 import tempfile
 import uuid
 from datetime import datetime
@@ -308,7 +309,7 @@ def load_docs_from_webpage(url: str,
 def load_docs_from_site(doc_source_id: str, doc_source_type: str, **kwargs) -> (List[UUID], List[Document]):
     # Set default values
     default_loader_params = {
-        "max_depth": None,
+        "max_depth": sys.maxsize,
         "use_async": True,
         "extractor": None,
         "exclude_dirs": None,
