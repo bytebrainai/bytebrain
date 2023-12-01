@@ -123,7 +123,7 @@ class ResourceService:
         self._create_daemon(pending_resource)
         return True
 
-    def index_website(self, resource_id, url: str):
+    def index_website_resource(self, resource_id, url: str):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
                                         doc_source_type=ResourceType.Website.value,
@@ -133,7 +133,7 @@ class ResourceService:
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
-    def index_webpage(self, resource_id, url: str):
+    def index_webpage_resource(self, resource_id, url: str):
         # TODO: when it can't download the resource why it proceeds?
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_webpage(url=url,
@@ -144,7 +144,7 @@ class ResourceService:
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
-    def index_youtube(self, resource_id, url: str):
+    def index_youtube_resource(self, resource_id, url: str):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_youtube_docs(url=url,
                                       doc_source_id=resource_id,
@@ -154,8 +154,8 @@ class ResourceService:
         self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
-    def index_github(self, resource_id, clone_url: str, language: str, paths: str,
-                     branch: Optional[str]):
+    def index_github_resource(self, resource_id, clone_url: str, language: str, paths: str,
+                              branch: Optional[str]):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_sourcecode_from_git_repo(clone_url=clone_url,
                                                   doc_source_id=resource_id,
@@ -172,21 +172,21 @@ class ResourceService:
         for resource_id, resource_name, resource_type, metadata, status in pending_resources:
             match resource_type:
                 case ResourceType.Website.value:
-                    self.index_website(resource_id=resource_id, url=json.loads(metadata)['url'])
-                    log.info(f"New website added {resource_name}")
+                    self.index_website_resource(resource_id=resource_id, url=json.loads(metadata)['url'])
+                    log.info(f"New website indexed: {resource_name}")
                 case ResourceType.Webpage.value:
-                    self.index_webpage(resource_id=resource_id, url=json.loads(metadata)['url'])
-                    log.info(f"New webpage added {resource_name}")
+                    self.index_webpage_resource(resource_id=resource_id, url=json.loads(metadata)['url'])
+                    log.info(f"New webpage indexed: {resource_name}")
                 case ResourceType.Youtube.value:
-                    self.index_youtube(resource_id=resource_id, url=json.loads(metadata)['url'])
-                    log.info(f"New youtube video added {resource_name}")
+                    self.index_youtube_resource(resource_id=resource_id, url=json.loads(metadata)['url'])
+                    log.info(f"New youtube video indexed: {resource_name}")
                 case ResourceType.GitHub.value:
-                    self.index_github(resource_id=resource_id,
-                                      clone_url=json.loads(metadata)['clone_url'],
-                                      language=json.loads(metadata)['language'],
-                                      paths=json.loads(metadata)['paths'],
-                                      branch=json.loads(metadata)['branch'])
-                    log.info(f"New GitHub source was added: {resource_name, json.loads(metadata)['language']}")
+                    self.index_github_resource(resource_id=resource_id,
+                                               clone_url=json.loads(metadata)['clone_url'],
+                                               language=json.loads(metadata)['language'],
+                                               paths=json.loads(metadata)['paths'],
+                                               branch=json.loads(metadata)['branch'])
+                    log.info(f"New GitHub repo indexed: {resource_name, json.loads(metadata)['language']}")
 
     def delete_resource(self, resource_id: str):
         ids = self.metadata_service.get_docs_ids_by_source_id(resource_id)
