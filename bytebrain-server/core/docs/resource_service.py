@@ -130,7 +130,7 @@ class ResourceService:
                                         url=url)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
-        self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
+        self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def index_webpage_resource(self, resource_id, url: str):
@@ -141,7 +141,7 @@ class ResourceService:
                                            doc_source_type=ResourceType.Webpage.value)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
-        self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
+        self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def index_youtube_resource(self, resource_id, url: str):
@@ -151,7 +151,7 @@ class ResourceService:
                                       doc_source_type=ResourceType.Youtube.value)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
-        self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
+        self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def index_github_resource(self, resource_id, clone_url: str, language: str, paths: str,
@@ -165,7 +165,7 @@ class ResourceService:
                                                   paths=paths)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
         self.vectorstore_service.index_docs(ids, docs)
-        self.metadata_service.save_docs_metadata(docs)  # TODO: do not pass docs, instead pass metadata
+        self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def _index_resources(self, pending_resources):

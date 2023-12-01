@@ -91,6 +91,7 @@ class DocumentMetadataService:
         except sqlite3.Error as e:
             print(e)
 
+    # TODO: do not pass docs, instead pass metadata
     def save_docs_metadata(self, documents: List[Document]):
         stored_data = [
             (x.metadata['doc_uuid'], x.metadata['doc_source_id'], x.metadata['doc_source_type'], datetime.now(),
