@@ -25,6 +25,7 @@ class Resource(BaseModel):
     resource_id: str
     resource_name: str
     resource_type: ResourceType
+    project_id: str
     metadata: dict
     status: ResourceState
     created_at: datetime
@@ -36,17 +37,18 @@ class ResourceDao:
         self.db_path = resource_db
         self._create_table()
 
-    def add_resource(self, resource_id, resource_name, resource_type, metadata) -> Optional[str]:
+    def add_resource(self, resource_id, resource_name, resource_type, project_id, metadata) -> Optional[str]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
             query = '''
-                INSERT OR IGNORE INTO resources (id, resource_name, resource_type, metadata, status, created_at, last_updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT OR IGNORE INTO resources (id, resource_name, resource_type, project_id, metadata, status, created_at, last_updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             '''
             values = (
                 resource_id,
                 resource_name,
                 resource_type.value,
+                project_id,
                 json.dumps(metadata) if metadata else None,
                 ResourceState.Pending.value,
                 datetime.now().replace(microsecond=0),
@@ -60,7 +62,7 @@ class ResourceDao:
             else:
                 return None
 
-    def delete_resource_from_table(self, resource_id):
+    def delete_resource(self, resource_id):
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
 
@@ -84,7 +86,7 @@ class ResourceDao:
 
             connection.commit()
 
-    def get_by_id(self, resource_id: str):
+    def get_by_id(self, resource_id: str) -> Optional[Resource]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
             query = '''
@@ -96,10 +98,11 @@ class ResourceDao:
 
             if row:
                 resource = Resource(resource_id=row[0], resource_name=row[1], resource_type=ResourceType(row[2]),
-                                    metadata=json.loads(row[3]),
-                                    status=ResourceState(row[4]),
-                                    created_at=datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S'),
-                                    last_updated_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'))
+                                    project_id=row[3],
+                                    metadata=json.loads(row[4]),
+                                    status=ResourceState(row[5]),
+                                    created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
+                                    last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
                 return resource
             else:
                 return None
@@ -112,6 +115,7 @@ class ResourceDao:
                     id TEXT PRIMARY KEY,
                     resource_name TEXT NOT NULL,
                     resource_type TEXT NOT NULL,
+                    project_id TEXT,
                     metadata JSON,
                     status TEXT DEFAULT '{ResourceState.Pending.value}',
                     created_at TIMESTAMP DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
@@ -132,11 +136,14 @@ class ResourceDao:
 
             resources = []
             for row in rows:
-                resource = Resource(resource_id=row[0], resource_name=row[1], resource_type=ResourceType(row[2]),
-                                    metadata=json.loads(row[3]),
-                                    status=ResourceState(row[4]),
-                                    created_at=datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S'),
-                                    last_updated_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'))
+                resource = Resource(resource_id=row[0],
+                                    resource_name=row[1],
+                                    resource_type=ResourceType(row[2]),
+                                    project_id=row[3],
+                                    metadata=json.loads(row[4]),
+                                    status=ResourceState(row[5]),
+                                    created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
+                                    last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
                 resources.append(resource)
 
             return resources
@@ -153,10 +160,11 @@ class ResourceDao:
             resources = []
             for row in rows:
                 resource = Resource(resource_id=row[0], resource_name=row[1], resource_type=ResourceType(row[2]),
-                                    metadata=json.loads(row[3]),
-                                    status=ResourceState(row[4]),
-                                    created_at=datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S'),
-                                    last_updated_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'))
+                                    project_id=row[3],
+                                    metadata=json.loads(row[4]),
+                                    status=ResourceState(row[5]),
+                                    created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
+                                    last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
                 resources.append(resource)
 
             return resources
@@ -178,7 +186,7 @@ class ResourceDao:
         cursor = conn.cursor()
 
         cursor.execute(
-            f'SELECT id, resource_name, resource_type, metadata, status FROM resources WHERE id=?',
+            f'SELECT id, resource_name, resource_type, project_id, metadata, status FROM resources WHERE id=?',
             (resource_id,))
         resource = cursor.fetchall()
 
@@ -202,9 +210,32 @@ class ResourceDao:
         cursor = conn.cursor()
 
         cursor.execute(
-            f'SELECT id, resource_name, resource_type, metadata, status FROM resources WHERE status != ?',
+            f'SELECT id, resource_name, resource_type,project_id , metadata, status FROM resources WHERE status != ?',
             (ResourceState.Finished.value,))
         unfinished_resources = cursor.fetchall()
 
         conn.close()
         return unfinished_resources
+
+    def get_resources_by_project_id(self, project_id) -> List[Resource]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.cursor()
+            query = '''SELECT * FROM resources WHERE project_id = ?'''
+            cursor.execute(query, (project_id,))
+            rows = cursor.fetchall()
+
+        resources = []
+        for row in rows:
+            resource = Resource(
+                resource_id=row[0],
+                resource_name=row[1],
+                resource_type=ResourceType(row[2]),
+                project_id=row[3],
+                metadata=json.loads(row[4]),
+                status=ResourceState(row[5]),
+                created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
+                last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S')
+            )
+            resources.append(resource)
+
+        return resources

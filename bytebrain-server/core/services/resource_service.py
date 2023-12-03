@@ -2,15 +2,15 @@ import json
 import threading
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from structlog import getLogger
 
+from core.dao.metadata_dao import DocumentMetadataService
+from core.dao.resource_dao import ResourceType, ResourceState, ResourceDao, Resource
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_loader import load_docs_from_site, load_docs_from_webpage, load_youtube_docs, \
     load_sourcecode_from_git_repo
-from core.docs.metadata_service import DocumentMetadataService
-from core.docs.resource_dao import ResourceType, ResourceState, Resource
 
 log = getLogger()
 
@@ -25,7 +25,7 @@ class ResourceService:
                  metadata_service: DocumentMetadataService):
         self.vectorstore_service = vectorstore_service
         self.metadata_service = metadata_service
-        self.resource_dao = resource_dao
+        self.resource_dao: ResourceDao = resource_dao
         self._create_daemon(self.resource_dao.get_unfinished_resources())
 
     def _create_daemon(self, pending_resources):
@@ -33,12 +33,13 @@ class ResourceService:
                                              kwargs={"pending_resources": pending_resources}, daemon=True)
         background_thread.start()
 
-    def submit_website_resource(self, name: str, url: str) -> Optional[str]:
-        resource_id = str(uuid.uuid5(self.WEBSITE_ID_NAMESPACE, name=url))
+    def submit_website_resource(self, name: str, url: str, project_id: str) -> Optional[str]:
+        resource_id = str(uuid.uuid5(self.WEBSITE_ID_NAMESPACE, name=url + project_id))
         result = self.resource_dao.add_resource(
             resource_id=resource_id,
             resource_name=name,
             resource_type=ResourceType.Website,
+            project_id=project_id,
             metadata={"url": url}
         )
         if result is None:
@@ -48,12 +49,13 @@ class ResourceService:
             self._create_daemon(pending_resources)
             return resource_id
 
-    def submit_webpage_resource(self, name: str, url: str) -> Optional[str]:
-        resource_id = str(uuid.uuid5(self.WEBPAGE_ID_NAMESPACE, name=url))
+    def submit_webpage_resource(self, name: str, url: str, project_id: str) -> Optional[str]:
+        resource_id = str(uuid.uuid5(self.WEBPAGE_ID_NAMESPACE, name=url + project_id))
         result = self.resource_dao.add_resource(
             resource_id=resource_id,
             resource_name=name,
             resource_type=ResourceType.Webpage,
+            project_id=project_id,
             metadata={"url": url}
         )
         if result is None:
@@ -63,12 +65,13 @@ class ResourceService:
             self._create_daemon(pending_resources)
             return resource_id
 
-    def submit_youtube_resource(self, name: str, url: str) -> Optional[str]:
-        resource_id = str(uuid.uuid5(self.YOUTUBE_ID_NAMESPACE, name=url))
+    def submit_youtube_resource(self, name: str, url: str, project_id: str) -> Optional[str]:
+        resource_id = str(uuid.uuid5(self.YOUTUBE_ID_NAMESPACE, name=url + project_id))
         result = self.resource_dao.add_resource(
             resource_id=resource_id,
             resource_name=name,
             resource_type=ResourceType.Youtube,
+            project_id=project_id,
             metadata={"url": url},
         )
         if result is None:
@@ -83,10 +86,12 @@ class ResourceService:
                                language: str,
                                clone_url: str,
                                paths: str,
-                               branch: Optional[str]) -> Optional[str]:
-        resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + paths))
+                               branch: Optional[str],
+                               project_id: str) -> Optional[str]:
+        resource_id = str(uuid.uuid5(self.GITHUB_ID_NAMESPACE, name=clone_url + language + paths + project_id))
         result = self.resource_dao.add_resource(
             resource_id=resource_id, resource_name=name, resource_type=ResourceType.GitHub,
+            project_id=project_id,
             metadata={
                 "language": language,
                 "clone_url": clone_url,
@@ -123,39 +128,39 @@ class ResourceService:
         self._create_daemon(pending_resource)
         return True
 
-    def index_website_resource(self, resource_id, url: str):
+    def index_website_resource(self, resource_id, url: str, project_id: str):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_site(doc_source_id=resource_id,
                                         doc_source_type=ResourceType.Website.value,
                                         url=url)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs)
+        self.vectorstore_service.index_docs(ids, docs, project_id)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
-    def index_webpage_resource(self, resource_id, url: str):
+    def index_webpage_resource(self, resource_id, url: str, project_id):
         # TODO: when it can't download the resource why it proceeds?
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_docs_from_webpage(url=url,
                                            doc_source_id=resource_id,
                                            doc_source_type=ResourceType.Webpage.value)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs)
+        self.vectorstore_service.index_docs(ids, docs, project_id)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
-    def index_youtube_resource(self, resource_id, url: str):
+    def index_youtube_resource(self, resource_id, url: str, project_id: str):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_youtube_docs(url=url,
                                       doc_source_id=resource_id,
                                       doc_source_type=ResourceType.Youtube.value)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs)
+        self.vectorstore_service.index_docs(ids, docs, project_id)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def index_github_resource(self, resource_id, clone_url: str, language: str, paths: str,
-                              branch: Optional[str]):
+                              branch: Optional[str], project_id: str):
         self.resource_dao.set_state(resource_id, ResourceState.Loading)
         ids, docs = load_sourcecode_from_git_repo(clone_url=clone_url,
                                                   doc_source_id=resource_id,
@@ -164,37 +169,60 @@ class ResourceService:
                                                   branch=branch,
                                                   paths=paths)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs)
+        self.vectorstore_service.index_docs(ids, docs, project_id)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
     def _index_resources(self, pending_resources):
-        for resource_id, resource_name, resource_type, metadata, status in pending_resources:
+        for resource_id, resource_name, resource_type, project_id, metadata, status in pending_resources:
             match resource_type:
                 case ResourceType.Website.value:
-                    self.index_website_resource(resource_id=resource_id, url=json.loads(metadata)['url'])
+                    self.index_website_resource(resource_id=resource_id, url=json.loads(metadata)['url'],
+                                                project_id=project_id)
                     log.info(f"New website indexed: {resource_name}")
                 case ResourceType.Webpage.value:
-                    self.index_webpage_resource(resource_id=resource_id, url=json.loads(metadata)['url'])
+                    self.index_webpage_resource(resource_id=resource_id, url=json.loads(metadata)['url'],
+                                                project_id=project_id)
                     log.info(f"New webpage indexed: {resource_name}")
                 case ResourceType.Youtube.value:
-                    self.index_youtube_resource(resource_id=resource_id, url=json.loads(metadata)['url'])
+                    self.index_youtube_resource(resource_id=resource_id, url=json.loads(metadata)['url'],
+                                                project_id=project_id)
                     log.info(f"New youtube video indexed: {resource_name}")
                 case ResourceType.GitHub.value:
                     self.index_github_resource(resource_id=resource_id,
                                                clone_url=json.loads(metadata)['clone_url'],
                                                language=json.loads(metadata)['language'],
                                                paths=json.loads(metadata)['paths'],
-                                               branch=json.loads(metadata)['branch'])
+                                               branch=json.loads(metadata)['branch'],
+                                               project_id=project_id)
                     log.info(f"New GitHub repo indexed: {resource_name, json.loads(metadata)['language']}")
 
     def delete_resource(self, resource_id: str):
+        resource = self.resource_dao.get_by_id(resource_id)
         ids = self.metadata_service.get_docs_ids_by_source_id(resource_id)
-        self.vectorstore_service.delete_docs(ids)
+        if resource:
+            self.vectorstore_service.delete_docs(ids, resource.project_id)
         self.metadata_service.delete_docs_by_resource_id(resource_id)
-        self.resource_dao.delete_resource_from_table(resource_id)
+        self.resource_dao.delete_resource(resource_id)
 
     def delete_all_resources(self):
         resource_ids = [resource.resource_id for resource in self.resource_dao.get_all_resources()]
         for resource_id in resource_ids:
             self.delete_resource(resource_id)
+
+    def delete_resources_by_project_id(self, project_id: str):
+        resources = self.resource_dao.get_resources_by_project_id(project_id)
+        for resource in resources:
+            self.delete_resource(resource.resource_id)
+
+    def get_resource_status(self, resource_id) -> Optional[ResourceState]:
+        return self.resource_dao.get_resource_status(resource_id)
+
+    def get_all_resources(self):
+        return self.resource_dao.get_all_resources()
+
+    def get_resources_of_type(self, resource_type: ResourceType) -> List[Resource]:
+        return self.resource_dao.get_resources_of_type(resource_type)
+
+    def get_resources_by_project_id(self, project_id) -> List[Resource]:
+        return self.resource_dao.get_resources_by_project_id(project_id)

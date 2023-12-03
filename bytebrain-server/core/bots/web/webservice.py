@@ -8,6 +8,7 @@ import uvicorn
 import weaviate
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from core.dao.feedback_dao import FeedbackDao, Feedback
 from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.vectorstores.weaviate import Weaviate
@@ -17,13 +18,14 @@ from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
+from core.dao.metadata_dao import DocumentMetadataService
+from core.dao.project_dao import ProjectDao, Project
+from core.dao.resource_dao import ResourceType, ResourceDao
 from core.docs.db.vectorstore_service import VectorStoreService
-from core.docs.document_service import DocumentService
-from core.docs.metadata_service import DocumentMetadataService
-from core.docs.resource_service import ResourceService
-from core.docs.resource_dao import ResourceType, Resource, ResourceDao
 from core.llm.chains import make_question_answering_chain
-from feedback_service import FeedbackService, FeedbackCreate
+from core.services.document_service import DocumentService
+from core.services.project_service import ProjectService
+from core.services.resource_service import ResourceService
 
 app = FastAPI()
 
@@ -58,14 +60,14 @@ cached_embedder = CacheBackedEmbeddings.from_bytes_store(
 # Weaviate setup
 client = weaviate.Client(url=config.weaviate_url)
 vector_store = Weaviate(client,
-                        index_name='Zio',
+                        index_name='Bytebrain',
                         text_key="text",
                         attributes=['source', 'doc_source_id', 'doc_title', 'doc_url'],
                         embedding=cached_embedder,
                         by_text=False)
 
 # Feedback service setup
-feedback_service = FeedbackService(config.feedbacks_db)
+feedback_service = FeedbackDao(config.feedbacks_db)
 
 # Resource service setup
 document_service = DocumentService(config.weaviate_url,
@@ -78,10 +80,13 @@ vectorstore_service = VectorStoreService(url=config.weaviate_url,
 resource_dao = ResourceDao(config.resources_db)
 resource_service = ResourceService(resource_dao, vectorstore_service, metadata_service)
 
+project_dao = ProjectDao(config.projects_db)
+project_service = ProjectService(project_dao, resource_service)
+
 
 # WebSocket endpoint for chat
-@app.websocket("/chat")
-async def websocket_chat_endpoint(websocket: WebSocket):
+@app.websocket("/chat/{project_id}")
+async def websocket_chat_endpoint(websocket: WebSocket, project_id: str):
     await websocket.accept()
     start_time = time.time()
     request_counter.inc()
@@ -89,19 +94,19 @@ async def websocket_chat_endpoint(websocket: WebSocket):
     qa = make_question_answering_chain(
         websocket=websocket,
         vector_store=vector_store,
-        prompt_template=config.webservice.prompt
+        prompt_template=config.webservice.prompt,
+        tenant=project_id
     )
 
     while True:
-        raw_data = await websocket.receive_text()
-        obj = json.loads(raw_data)
-        log.info("Received a new query!", query=obj)
+        query = json.loads(await websocket.receive_text())
+        log.info("Received a new query!", query=query)
 
         result: dict[str, Any] = await qa.acall(
             {
-                "question": obj["question"],
+                "question": query["question"],
                 "project_name": config.project_name,
-                "chat_history": obj["history"]
+                "chat_history": query["history"]
             },
             return_only_outputs=True
         )
@@ -172,8 +177,8 @@ async def metrics():
     return Response(generate_latest(registry), media_type="text/plain")
 
 
-@app.post("/feedback/", response_model=FeedbackCreate)
-def create_feedback(feedback: FeedbackCreate):
+@app.post("/feedback/", response_model=Feedback)
+def create_feedback(feedback: Feedback):
     feedback_service.add_feedback(feedback)
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
 
@@ -181,11 +186,17 @@ def create_feedback(feedback: FeedbackCreate):
 class WebsiteResourceRequest(BaseModel):
     name: str
     url: str
+    project_id: str
 
 
 @app.post("/resources/website")
 async def submit_new_website_resource(resource: WebsiteResourceRequest):
-    resource_id = resource_service.submit_website_resource(resource.name, resource.url)
+    project = project_service.get_project_by_id(resource.project_id)
+    if project is not None:
+        resource_id = resource_service.submit_website_resource(resource.name, resource.url, resource.project_id)
+    else:
+        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
+                            status_code=404)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -195,11 +206,17 @@ async def submit_new_website_resource(resource: WebsiteResourceRequest):
 class WebpageResourceRequest(BaseModel):
     name: str
     url: str
+    project_id: str
 
 
 @app.post("/resources/webpage")
-async def submit_new_website_resource(resource: WebpageResourceRequest):
-    resource_id = resource_service.submit_webpage_resource(resource.name, resource.url)
+async def submit_new_webpage_resource(resource: WebpageResourceRequest):
+    project = project_service.get_project_by_id(resource.project_id)
+    if project is not None:
+        resource_id = resource_service.submit_webpage_resource(resource.name, resource.url, resource.project_id)
+    else:
+        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
+                            status_code=404)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -209,11 +226,17 @@ async def submit_new_website_resource(resource: WebpageResourceRequest):
 class YoutubeResourceRequest(BaseModel):
     name: str
     url: str
+    project_id: str
 
 
 @app.post("/resources/youtube")
 async def submit_new_youtube_resource(resource: YoutubeResourceRequest):
-    resource_id = resource_service.submit_youtube_resource(resource.name, resource.url)
+    project = project_service.get_project_by_id(resource.project_id)
+    if project is not None:
+        resource_id = resource_service.submit_youtube_resource(resource.name, resource.url, resource.project_id)
+    else:
+        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
+                            status_code=404)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -248,16 +271,23 @@ class GithubResourceRequest(BaseModel):
     clone_url: str
     paths: Optional[str]
     branch: Optional[str]
+    project_id: str
 
 
 @app.post("/resources/github")
 async def submit_new_github_resource(resource: GithubResourceRequest):
     paths = resource.paths if resource.paths is not None else "*"
-    resource_id = resource_service.submit_github_resource(resource.name,
-                                                          resource.language.value,
-                                                          resource.clone_url,
-                                                          paths,
-                                                          resource.branch)
+    project = project_service.get_project_by_id(resource.project_id)
+    if project is not None:
+        resource_id = resource_service.submit_github_resource(resource.name,
+                                                              resource.language.value,
+                                                              resource.clone_url,
+                                                              paths,
+                                                              resource.branch,
+                                                              resource.project_id)
+    else:
+        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
+                            status_code=404)
     if resource_id:
         return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
     else:
@@ -266,7 +296,7 @@ async def submit_new_github_resource(resource: GithubResourceRequest):
 
 @app.get("/resources/{resource_id}")
 async def get_resource_status(resource_id: str):
-    status_option = resource_dao.get_resource_status(resource_id)
+    status_option = resource_service.get_resource_status(resource_id)
     match status_option:
         case None:
             return JSONResponse({"message": "Resource not found"}, status_code=404)
@@ -293,33 +323,28 @@ async def update_resource(resource_id: str):
 
 
 @app.get("/resources/")
-async def get_website_resources():
-    resources: list[Resource] = resource_dao.get_all_resources()
-    return resources
+async def get_all_resources():
+    return resource_service.get_all_resources()
 
 
 @app.get("/resources/website/")
 async def get_website_resources():
-    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.Website)
-    return resources
+    return resource_service.get_resources_of_type(ResourceType.Website)
 
 
 @app.get("/resources/webpage/")
 async def get_webpage_resources():
-    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.Webpage)
-    return resources
+    return resource_service.get_resources_of_type(ResourceType.Webpage)
 
 
 @app.get("/resources/youtube/")
 async def get_youtube_resources():
-    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.Webpage)
-    return resources
+    return resource_service.get_resources_of_type(ResourceType.Webpage)
 
 
 @app.get("/resources/github/")
 async def get_youtube_resources():
-    resources: list[Resource] = resource_dao.get_resources_of_type(ResourceType.GitHub)
-    return resources
+    return resource_service.get_resources_of_type(ResourceType.GitHub)
 
 
 @app.delete("/resources/{resource_id}", status_code=204)
@@ -328,8 +353,33 @@ async def delete_resource(resource_id: str):
 
 
 @app.delete("/resources/", status_code=204)
-async def delete_resource():
+async def delete_all_resources():
     resource_service.delete_all_resources()
+
+
+@app.post("/projects/", response_model=Project, response_model_exclude_none=True)
+async def create_project(body: Dict[str, str]):
+    return project_service.create_project(name=body['name'])
+
+
+@app.delete("/projects/{project_id}", status_code=204)
+async def delete_project(project_id):
+    project_service.delete_project(project_id)
+
+
+@app.get("/projects/")
+# TODO: exclude resources when its empty
+async def get_all_projects():
+    return project_service.get_all_projects()
+
+
+@app.get("/projects/{project_id}")
+async def get_project_by_id(project_id: str):
+    project = project_service.get_project_by_id(project_id)
+    if project:
+        return project
+    else:
+        return JSONResponse({"message": f"Project not found!", "project_id": project_id})
 
 
 # Main function

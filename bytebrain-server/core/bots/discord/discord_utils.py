@@ -7,7 +7,7 @@ from typing import Optional
 from discord.ext.commands import Bot
 from discord.guild import Guild
 
-from core.docs.metadata_service import DocumentMetadataService
+from core.dao.metadata_dao import DocumentMetadataService
 from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 

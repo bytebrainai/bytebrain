@@ -6,12 +6,12 @@ from typing import Any, List
 from pydantic.main import BaseModel
 
 
-class FeedbackCreate(BaseModel):
+class Feedback(BaseModel):
     chat_history: List[Any]
     is_useful: bool
 
 
-class FeedbackService:
+class FeedbackDao:
     def __init__(self, feedbacks_db):
         self.feedbacks_db = feedbacks_db
         self.create_feedback_db()
@@ -28,7 +28,7 @@ class FeedbackService:
                 )
             ''')
 
-    def add_feedback(self, feedback: FeedbackCreate):
+    def add_feedback(self, feedback: Feedback):
         created_at = datetime.utcnow()
         chat_history_json = json.dumps(feedback.chat_history)
 

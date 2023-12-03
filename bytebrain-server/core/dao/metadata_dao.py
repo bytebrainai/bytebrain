@@ -4,14 +4,37 @@ from datetime import datetime
 from sqlite3 import Connection
 from typing import Optional, List
 from uuid import UUID
+from structlog import getLogger
 
 from langchain.schema import Document
 
 
+class MetadataServiceError(Exception):
+    pass
+
+
+class TableCreationError(MetadataServiceError):
+    pass
+
+
+class InsertionError(MetadataServiceError):
+    pass
+
+
+class FetchError(MetadataServiceError):
+    pass
+
+
+class DeletionError(MetadataServiceError):
+    pass
+
+
 class DocumentMetadataService:
+
     def __init__(self, database_file: str):
         self.database_file = database_file
         self.create_table()
+        self.logger = getLogger(name=self.__class__.__name__)
 
     def create_connection(self) -> Optional[Connection]:
         try:
@@ -51,17 +74,23 @@ class DocumentMetadataService:
                 print(f"Error retrieving document IDs: {e}")
                 return []
 
-    def delete_docs_by_resource_id(self, resource_id: str):
+    def delete_docs_by_resource_id(self, resource_id: str) -> Optional[int]:
         with sqlite3.connect(self.database_file) as connection:
             try:
                 cursor = connection.cursor()
                 delete_query = "DELETE FROM stored_docs WHERE source_id = ?"
                 cursor.execute(delete_query, (resource_id,))
                 connection.commit()
-                print(f"Deleted {cursor.rowcount} rows with source_id {resource_id}")
+
+                if cursor.rowcount > 0:
+                    self.logger.info(f"Deleted {cursor.rowcount} rows with source_id {resource_id}")
+                    return cursor.rowcount
+                else:
+                    self.logger.warning(f"No rows found with source_id {resource_id}. Nothing deleted.")
+                    return None
 
             except sqlite3.Error as e:
-                print(f"Error deleting rows: {e}")
+                raise DeletionError(f"Error deleting documents by resource : {e}")
 
     def get_metadata_list(self, doc_source_type: str, doc_source_id: str) -> List[dict]:
         conn = self.create_connection()
@@ -77,7 +106,7 @@ class DocumentMetadataService:
             result = cur.fetchall()
             return [json.loads(item[4]) for item in result]
         except sqlite3.Error as e:
-            print("sqlite error: ", e)
+            raise FetchError(f"Error while fetching metadata for doc_source_id: {doc_source_id}: {e}")
 
     def insert_data(self, doc_uuid, doc_source_id, doc_source_type, created_at, metadata):
         try:
@@ -89,7 +118,7 @@ class DocumentMetadataService:
             ''', (str(doc_uuid), doc_source_id, doc_source_type, created_at, json.dumps(metadata)))
             conn.commit()
         except sqlite3.Error as e:
-            print(e)
+            raise InsertionError(f"Error occurred while inserting metadata {e}")
 
     # TODO: do not pass docs, instead pass metadata
     def save_docs_metadata(self, documents: List[Document]):
@@ -111,7 +140,7 @@ class DocumentMetadataService:
 
             conn.commit()
         except sqlite3.Error as e:
-            print(e)
+            raise InsertionError(f"Error occurred while batch insertion of metadata {e}")
 
     def fetch_last_item(self, doc_source_id: str):
         try:
@@ -125,12 +154,9 @@ class DocumentMetadataService:
                 LIMIT 1
             ''', (doc_source_id,))
 
-            result = cursor.fetchone()
+            return cursor.fetchone()
 
-            return result
-
-        except sqlite3.Error as e:
-            print(e)
+        except sqlite3.Error:
             return None
 
     def fetch_last_item_in_discord_channel(self, doc_source_id: str, channel_id: id):
@@ -146,10 +172,7 @@ class DocumentMetadataService:
                 LIMIT 1
             ''', (doc_source_id, channel_id))
 
-            result = cursor.fetchone()
+            return cursor.fetchone()
 
-            return result
-
-        except sqlite3.Error as e:
-            print(e)
+        except sqlite3.Error:
             return None

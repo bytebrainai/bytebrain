@@ -14,8 +14,8 @@ import discord_utils
 from config import load_config
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
-from core.docs.document_service import DocumentService
-from core.docs.metadata_service import DocumentMetadataService
+from core.services.document_service import DocumentService
+from core.dao.metadata_dao import DocumentMetadataService
 from core.llm.chains import make_question_answering_chain
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
