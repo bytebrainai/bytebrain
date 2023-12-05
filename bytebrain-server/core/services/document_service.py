@@ -22,16 +22,6 @@ class JobStatus(Enum):
     Finished = "finished"
 
 
-class AddWebsiteResource(BaseModel):
-    name: str
-    url: str
-
-
-class AddGitRepoResource(BaseModel):
-    name: str
-    clone_url: str
-
-
 class DocumentService:
 
     def __init__(self, weaviate_url, embeddings_dir, metadata_docs_db):
@@ -42,18 +32,34 @@ class DocumentService:
 
     def index_zio_project_docs(self):
         ids, docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
-        self.vectorstore_service.upsert_docs(ids, docs)
+
+        doc_source_type = docs[0].metadata['doc_source_type']
+        doc_source_id = docs[0].metadata['doc_source_id']
+        old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
+                                                                                          doc_source_id)
+        self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
         self.metadata_service.save_docs_metadata(docs)
 
     def index_zionomicon_book(self):
         ids, docs = load_zionomicon_docs(os.environ["ZIOCHAT_ZIONOMICON_DOCS_DIR"])
-        self.vectorstore_service.upsert_docs(ids, docs)
+
+        doc_source_type = docs[0].metadata['doc_source_type']
+        doc_source_id = docs[0].metadata['doc_source_id']
+        old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
+                                                                                          doc_source_id)
+        self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
         self.metadata_service.save_docs_metadata(docs)
 
     def index_zio_project_source_code(self):
         source_identifier = "github.com/zio/zio"
         ids, docs = load_source_code(os.environ["ZIOCHAT_ZIO_REPO_DIR"], "series/2.x", source_identifier)
-        self.vectorstore_service.upsert_docs(ids, docs)
+
+        doc_source_type = docs[0].metadata['doc_source_type']
+        doc_source_id = docs[0].metadata['doc_source_id']
+        old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
+                                                                                          doc_source_id)
+
+        self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
         self.metadata_service.save_docs_metadata(docs)
 
     def index_zio_ecosystem_source_code(self):
@@ -65,7 +71,12 @@ class DocumentService:
                 branch=None,
                 source_id=p['id']
             )
-            self.vectorstore_service.upsert_docs(ids, docs)
+
+            doc_source_type = docs[0].metadata['doc_source_type']
+            doc_source_id = docs[0].metadata['doc_source_id']
+            old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
+                                                                                              doc_source_id)
+            self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
             log.info(f"Indexed {p['id']} source code")
             self.metadata_service.save_docs_metadata(docs)
 
