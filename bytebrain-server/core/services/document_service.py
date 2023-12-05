@@ -12,8 +12,6 @@ from core.utils.github import zio_ecosystem_projects
 from core.utils.utils import clone_repo
 from core.utils.youtube import list_of_channel_videos
 
-log = getLogger()
-
 
 class JobStatus(Enum):
     Pending = "pending"
@@ -26,6 +24,7 @@ class DocumentService:
     def __init__(self, vectorstore_service: VectorStoreService, metadata_dao: MetadataDao):
         self.metadata_dao = metadata_dao
         self.vectorstore_service = vectorstore_service
+        self.log = getLogger(self.__class__.__name__)
 
     def index_zio_project_docs(self):
         ids, docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
@@ -62,7 +61,7 @@ class DocumentService:
     def index_zio_ecosystem_source_code(self):
         for p in zio_ecosystem_projects():
             project_dir = clone_repo(p['clone_url'])
-            log.info(f"Indexing {p['id']} source code")
+            self.log.info(f"Indexing {p['id']} source code")
             ids, docs = load_source_code(
                 repo_path=project_dir,
                 branch=None,
@@ -74,19 +73,19 @@ class DocumentService:
             old_metadata_list: List[Dict[any, any]] = self.metadata_dao.get_metadata_list(doc_source_type,
                                                                                           doc_source_id)
             self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
-            log.info(f"Indexed {p['id']} source code")
+            self.log.info(f"Indexed {p['id']} source code")
             self.metadata_dao.save_docs_metadata(docs)
 
     def index_youtube_video(self, video_id: str):
         try:
             ids, docs = load_youtube_docs_from_video_id(video_id)
-            log.info(f"Loaded youtube docs for {video_id}!")
+            self.log.info(f"Loaded youtube docs for {video_id}!")
             # TODO: use upsert instead of index_docs
             self.vectorstore_service.index_docs(ids, docs)
             self.metadata_dao.save_docs_metadata(docs)
-            log.info(f"Updated youtube docs for {video_id}!")
+            self.log.info(f"Updated youtube docs for {video_id}!")
         except Exception as e:
-            log.error(f"An exception occurred while indexing video id {video_id}: {type(e).__name__}: {e}")
+            self.log.error(f"An exception occurred while indexing video id {video_id}: {type(e).__name__}: {e}")
 
     def index_ziverge_youtube_channel(self):
         ziverge_channel_id = os.environ['YOUTUBE_CHANNEL_ID']
