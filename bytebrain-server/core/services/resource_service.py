@@ -8,9 +8,9 @@ from structlog import getLogger
 
 from core.dao.metadata_dao import MetadataDao
 from core.dao.resource_dao import ResourceType, ResourceState, ResourceDao, Resource
-from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_loader import load_docs_from_site, load_docs_from_webpage, load_youtube_docs, \
     load_sourcecode_from_git_repo
+from core.services.vectorstore_service import VectorStoreService
 
 
 class ResourceService:
@@ -119,7 +119,8 @@ class ResourceService:
 
     def submit_resource_update(self, resource_id: str) -> bool:
         if not self._is_update_allowed(resource_id):
-            self.logger.warn(f"Update request for resource {resource_id} rejected. Last update was less than 24 hours ago.")
+            self.log.warn(
+                f"Update request for resource {resource_id} rejected. Last update was less than 24 hours ago.")
             return False
 
         self.resource_dao.set_state(resource_id, ResourceState.Pending)

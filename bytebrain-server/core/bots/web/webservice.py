@@ -21,7 +21,7 @@ from config import load_config
 from core.dao.metadata_dao import MetadataDao
 from core.dao.project_dao import ProjectDao, Project
 from core.dao.resource_dao import ResourceType, ResourceDao
-from core.docs.db.vectorstore_service import VectorStoreService
+from core.services.vectorstore_service import VectorStoreService
 from core.llm.chains import make_question_answering_chain
 from core.services.document_service import DocumentService
 from core.services.project_service import ProjectService

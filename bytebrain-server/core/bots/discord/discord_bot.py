@@ -12,7 +12,7 @@ from structlog import getLogger
 
 import discord_utils
 from config import load_config
-from core.docs.db.vectorstore_service import VectorStoreService
+from core.services.vectorstore_service import VectorStoreService
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
 from core.services.document_service import DocumentService
 from core.dao.metadata_dao import MetadataDao
