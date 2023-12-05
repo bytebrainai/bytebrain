@@ -12,8 +12,6 @@ from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_loader import load_docs_from_site, load_docs_from_webpage, load_youtube_docs, \
     load_sourcecode_from_git_repo
 
-log = getLogger()
-
 
 class ResourceService:
     WEBSITE_ID_NAMESPACE = uuid.UUID('f6eea9d5-8b70-11ee-b7b1-6c02e09469ba')
@@ -27,6 +25,7 @@ class ResourceService:
         self.metadata_service = metadata_service
         self.resource_dao: ResourceDao = resource_dao
         self._create_daemon(self.resource_dao.get_unfinished_resources())
+        self.log = getLogger(name=self.__class__.__name__)
 
     def _create_daemon(self, pending_resources):
         background_thread = threading.Thread(target=self._index_resources,
@@ -120,7 +119,7 @@ class ResourceService:
 
     def submit_resource_update(self, resource_id: str) -> bool:
         if not self._is_update_allowed(resource_id):
-            log.warn(f"Update request for resource {resource_id} rejected. Last update was less than 24 hours ago.")
+            self.logger.warn(f"Update request for resource {resource_id} rejected. Last update was less than 24 hours ago.")
             return False
 
         self.resource_dao.set_state(resource_id, ResourceState.Pending)
@@ -179,15 +178,15 @@ class ResourceService:
                 case ResourceType.Website.value:
                     self.index_website_resource(resource_id=resource_id, url=json.loads(metadata)['url'],
                                                 project_id=project_id)
-                    log.info(f"New website indexed: {resource_name}")
+                    self.log.info(f"New website indexed: {resource_name}")
                 case ResourceType.Webpage.value:
                     self.index_webpage_resource(resource_id=resource_id, url=json.loads(metadata)['url'],
                                                 project_id=project_id)
-                    log.info(f"New webpage indexed: {resource_name}")
+                    self.log.info(f"New webpage indexed: {resource_name}")
                 case ResourceType.Youtube.value:
                     self.index_youtube_resource(resource_id=resource_id, url=json.loads(metadata)['url'],
                                                 project_id=project_id)
-                    log.info(f"New youtube video indexed: {resource_name}")
+                    self.log.info(f"New youtube video indexed: {resource_name}")
                 case ResourceType.GitHub.value:
                     self.index_github_resource(resource_id=resource_id,
                                                clone_url=json.loads(metadata)['clone_url'],
@@ -195,7 +194,7 @@ class ResourceService:
                                                paths=json.loads(metadata)['paths'],
                                                branch=json.loads(metadata)['branch'],
                                                project_id=project_id)
-                    log.info(f"New GitHub repo indexed: {resource_name, json.loads(metadata)['language']}")
+                    self.log.info(f"New GitHub repo indexed: {resource_name, json.loads(metadata)['language']}")
 
     def delete_resource(self, resource_id: str):
         resource = self.resource_dao.get_by_id(resource_id)
