@@ -11,7 +11,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
-from langchain.schema import BaseRetriever
 from langchain.vectorstores import Chroma
 from langchain.vectorstores.base import VectorStore
 
@@ -71,27 +70,6 @@ def get_chat_history(chat_history) -> str:
     return "\n\n".join(chat_history)
 
 
-def make_qa_with_stuffed_docs_chain(document_retriever: BaseRetriever, websocket: Optional[WebSocket] = None,
-                                    stuff_template: Optional[str] = None):
-    llm = ChatOpenAI(
-        client=OpenAI,
-        streaming=False,
-        callbacks=[StreamingStdOutCallbackHandler()],
-        temperature=0,
-        verbose=True
-    )
-    qa = ConversationalRetrievalChain(
-        retriever=document_retriever,
-        combine_docs_chain=qa_with_stuffed_docs_chain(websocket, stuff_template),
-        question_generator=condense_question_chain(llm),
-        get_chat_history=get_chat_history,
-        callbacks=[StdOutCallbackHandler()],
-        return_source_documents=True,
-        max_tokens_limit=3600,
-    )
-    return qa
-
-
 def make_doc_search(persistent_dir: str):
     upgrade_sqlite_version()
     return Chroma(
@@ -118,9 +96,21 @@ def make_question_answering_chain(
     # or
     # search_type="mmr",
     document_retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
-    return make_qa_with_stuffed_docs_chain(document_retriever=document_retriever, websocket=websocket,
-                                           stuff_template=prompt_template)
 
-
-def generate_prompt(prompt_template: str, query: str) -> str:
-    return prompt_template.replace("{query}", query)
+    llm = ChatOpenAI(
+        client=OpenAI,
+        streaming=False,
+        callbacks=[StreamingStdOutCallbackHandler()],
+        temperature=0,
+        verbose=True
+    )
+    qa = ConversationalRetrievalChain(
+        retriever=document_retriever,
+        combine_docs_chain=qa_with_stuffed_docs_chain(websocket, prompt_template),
+        question_generator=condense_question_chain(llm),
+        get_chat_history=get_chat_history,
+        callbacks=[StdOutCallbackHandler()],
+        return_source_documents=True,
+        max_tokens_limit=3600,
+    )
+    return qa
