@@ -29,7 +29,7 @@ class DeletionError(MetadataServiceError):
     pass
 
 
-class DocumentMetadataService:
+class MetadataDao:
 
     def __init__(self, database_file: str):
         self.database_file = database_file

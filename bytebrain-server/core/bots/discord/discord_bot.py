@@ -15,14 +15,14 @@ from config import load_config
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.discord_loader import dump_channel_history, fetch_message_thread
 from core.services.document_service import DocumentService
-from core.dao.metadata_dao import DocumentMetadataService
+from core.dao.metadata_dao import MetadataDao
 from core.llm.chains import make_question_answering_chain
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks
 
 config = load_config()
-stored_docs = DocumentMetadataService(config.metadata_docs_db)
+stored_docs = MetadataDao(config.metadata_docs_db)
 db = VectorStoreService(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, metadata_service=stored_docs)
 indexer = DocumentService(config.weaviate_url, config.embeddings_dir, config.metadata_docs_db)
 

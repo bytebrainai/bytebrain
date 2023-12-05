@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from structlog import getLogger
 
-from core.dao.metadata_dao import DocumentMetadataService
+from core.dao.metadata_dao import MetadataDao
 from core.dao.resource_dao import ResourceType, ResourceState, ResourceDao, Resource
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_loader import load_docs_from_site, load_docs_from_webpage, load_youtube_docs, \
@@ -22,7 +22,7 @@ class ResourceService:
     GITHUB_ID_NAMESPACE = uuid.UUID('b734ee40-169b-4c9e-9dd0-6bede6e6dfa3')
 
     def __init__(self, resource_dao, vectorstore_service: VectorStoreService,
-                 metadata_service: DocumentMetadataService):
+                 metadata_service: MetadataDao):
         self.vectorstore_service = vectorstore_service
         self.metadata_service = metadata_service
         self.resource_dao: ResourceDao = resource_dao

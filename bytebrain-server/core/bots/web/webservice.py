@@ -18,7 +18,7 @@ from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 
 from config import load_config
-from core.dao.metadata_dao import DocumentMetadataService
+from core.dao.metadata_dao import MetadataDao
 from core.dao.project_dao import ProjectDao, Project
 from core.dao.resource_dao import ResourceType, ResourceDao
 from core.docs.db.vectorstore_service import VectorStoreService
@@ -73,7 +73,7 @@ feedback_service = FeedbackDao(config.feedbacks_db)
 document_service = DocumentService(config.weaviate_url,
                                    config.embeddings_dir,
                                    config.metadata_docs_db)
-metadata_service = DocumentMetadataService(config.metadata_docs_db)
+metadata_service = MetadataDao(config.metadata_docs_db)
 vectorstore_service = VectorStoreService(url=config.weaviate_url,
                                          embeddings_dir=config.embeddings_dir,
                                          metadata_service=metadata_service)

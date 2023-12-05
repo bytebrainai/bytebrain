@@ -7,7 +7,7 @@ from config import load_config
 from core.bots.discord.discord_utils import first_message_of_last_indexed_page
 from core.docs.db.vectorstore_service import VectorStoreService
 from core.docs.document_loader import *
-from core.dao.metadata_dao import DocumentMetadataService
+from core.dao.metadata_dao import MetadataDao
 from core.models.discord.DiscordMessage import DiscordMessage
 from core.utils.github import zio_ecosystem_projects
 from core.utils.utils import clone_repo
@@ -35,7 +35,7 @@ class AddGitRepoResource(BaseModel):
 class DocumentService:
 
     def __init__(self, weaviate_url, embeddings_dir, metadata_docs_db):
-        self.metadata_service = DocumentMetadataService(metadata_docs_db)
+        self.metadata_service = MetadataDao(metadata_docs_db)
         self.vectorstore_service = VectorStoreService(url=weaviate_url,
                                                       embeddings_dir=embeddings_dir,
                                                       metadata_service=self.metadata_service)
