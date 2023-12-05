@@ -1,13 +1,8 @@
-import os
 from typing import List, Dict, Optional
 from uuid import UUID
 
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
-from langchain.storage import LocalFileStore
-from langchain.vectorstores import Weaviate
-from weaviate import Client
+from langchain.vectorstores import VectorStore
 
 from core.docs.document_loader import generate_uuid
 from core.utils.utils import create_dict_from_keys_and_values
@@ -15,21 +10,12 @@ from core.utils.utils import identify_changed_files
 
 
 class VectorStoreService:
-    def __init__(self, url: str, embeddings_dir: str):
-        self.index_name = "Bytebrain"
-        self.text_key = "text"
-        os.environ['WEAVIATE_URL'] = url
-        self.embeddings_dir = embeddings_dir
-        self.weaviate_client = Client(url=url)
-        underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-        fs = LocalFileStore(self.embeddings_dir)
-        self.cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-            underlying_embeddings, fs, namespace=underlying_embeddings.model
-        )
-        self.weaviate = Weaviate(self.weaviate_client, index_name=self.index_name, text_key="text",
-                                 attributes=['source'],
-                                 embedding=self.cached_embedder,
-                                 by_text=False)
+    def __init__(self, weaviate: VectorStore, weaviate_client, embedder, index_name, text_key):
+        self.weaviate = weaviate
+        self.embedder = embedder
+        self.weaviate_client = weaviate_client
+        self.index_name = index_name
+        self.text_key = text_key
 
     def delete_docs(self, ids: List[UUID], tenant: Optional[str]):
         # TODO: use batch operations like delete_objects if possible!
@@ -42,7 +28,7 @@ class VectorStoreService:
         # self.weaviate_client.schema.add_class_tenants(class_name=self.index_name, tenants=[Tenant(tenant)])
         self.weaviate.from_documents(
             documents=docs,
-            embedding=self.cached_embedder,
+            embedding=self.embedder,
             index_name=self.index_name,
             text_key=self.text_key,
             uuids=uuids,

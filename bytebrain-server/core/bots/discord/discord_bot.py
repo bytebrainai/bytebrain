@@ -8,23 +8,50 @@ import chat_exporter
 import discord
 from discord.ext import commands, tasks
 from discord.ext.commands import Bot
+from langchain.embeddings import CacheBackedEmbeddings
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.storage import LocalFileStore
+from langchain.vectorstores import VectorStore
+from langchain.vectorstores import Weaviate
 from structlog import getLogger
+from weaviate import Client
 
 import discord_utils
 from config import load_config
-from core.services.vectorstore_service import VectorStoreService
-from core.docs.discord_loader import dump_channel_history, fetch_message_thread
-from core.services.document_service import DocumentService
 from core.dao.metadata_dao import MetadataDao
+from core.docs.discord_loader import dump_channel_history, fetch_message_thread
 from core.llm.chains import make_question_answering_chain
+from core.services.document_service import DocumentService
+from core.services.vectorstore_service import VectorStoreService
 from core.utils.utils import annotate_history_with_turns_v2
 from core.utils.utils import split_string_preserve_suprimum_number_of_lines
 from discord_utils import remove_discord_mention, send_and_log, send_message_in_chunks
 
 config = load_config()
 stored_docs = MetadataDao(config.metadata_docs_db)
-db = VectorStoreService(url=config.weaviate_url, embeddings_dir=config.embeddings_dir, metadata_service=stored_docs)
-indexer = DocumentService(config.weaviate_url, config.embeddings_dir, config.metadata_docs_db)
+
+
+os.environ['WEAVIATE_URL'] = config.weaviate_url
+embeddings_dir = config.embeddings_dir
+weaviate_client = Client(url=config.weaviate_url)
+underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
+fs = LocalFileStore(config.embeddings_dir)
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    underlying_embeddings, fs, namespace=underlying_embeddings.model
+)
+index_name = 'Zio'
+text_key = "text"
+
+weaviate: VectorStore = Weaviate(weaviate_client,
+                                 index_name=index_name,
+                                 text_key=text_key,
+                                 attributes=['source'],
+                                 embedding=cached_embedder,
+                                 by_text=False)
+
+vectorstore_service = VectorStoreService(weaviate, weaviate_client, cached_embedder, index_name, text_key)
+metadata_dao = MetadataDao(config.metadata_docs_db)
+indexer = DocumentService(vectorstore_service, metadata_dao)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -154,8 +181,9 @@ async def on_message(message):
             log.info(f"received message from {message.channel} channel")
             qa = make_question_answering_chain(
                 websocket=None,
-                vector_store=db.weaviate,
-                prompt_template=config.discord.prompt
+                vector_store=weaviate,
+                prompt_template=config.discord.prompt,
+                tenant = None
             )
 
             chat_history = ["FULL CHAT HISTORY:"] + annotate_history_with_turns_v2(

@@ -23,31 +23,29 @@ class JobStatus(Enum):
 
 class DocumentService:
 
-    def __init__(self, weaviate_url, embeddings_dir, metadata_docs_db):
-        self.metadata_service = MetadataDao(metadata_docs_db)
-        self.vectorstore_service = VectorStoreService(url=weaviate_url,
-                                                      embeddings_dir=embeddings_dir,
-                                                      metadata_service=self.metadata_service)
+    def __init__(self, vectorstore_service: VectorStoreService, metadata_dao: MetadataDao):
+        self.metadata_dao = metadata_dao
+        self.vectorstore_service = vectorstore_service
 
     def index_zio_project_docs(self):
         ids, docs = load_zio_website_docs(os.environ["ZIOCHAT_DOCS_DIR"])
 
         doc_source_type = docs[0].metadata['doc_source_type']
         doc_source_id = docs[0].metadata['doc_source_id']
-        old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
-                                                                                          doc_source_id)
+        old_metadata_list: List[Dict[any, any]] = self.metadata_dao.get_metadata_list(doc_source_type,
+                                                                                      doc_source_id)
         self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
-        self.metadata_service.save_docs_metadata(docs)
+        self.metadata_dao.save_docs_metadata(docs)
 
     def index_zionomicon_book(self):
         ids, docs = load_zionomicon_docs(os.environ["ZIOCHAT_ZIONOMICON_DOCS_DIR"])
 
         doc_source_type = docs[0].metadata['doc_source_type']
         doc_source_id = docs[0].metadata['doc_source_id']
-        old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
-                                                                                          doc_source_id)
+        old_metadata_list: List[Dict[any, any]] = self.metadata_dao.get_metadata_list(doc_source_type,
+                                                                                      doc_source_id)
         self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
-        self.metadata_service.save_docs_metadata(docs)
+        self.metadata_dao.save_docs_metadata(docs)
 
     def index_zio_project_source_code(self):
         source_identifier = "github.com/zio/zio"
@@ -55,11 +53,11 @@ class DocumentService:
 
         doc_source_type = docs[0].metadata['doc_source_type']
         doc_source_id = docs[0].metadata['doc_source_id']
-        old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
-                                                                                          doc_source_id)
+        old_metadata_list: List[Dict[any, any]] = self.metadata_dao.get_metadata_list(doc_source_type,
+                                                                                      doc_source_id)
 
         self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
-        self.metadata_service.save_docs_metadata(docs)
+        self.metadata_dao.save_docs_metadata(docs)
 
     def index_zio_ecosystem_source_code(self):
         for p in zio_ecosystem_projects():
@@ -73,11 +71,11 @@ class DocumentService:
 
             doc_source_type = docs[0].metadata['doc_source_type']
             doc_source_id = docs[0].metadata['doc_source_id']
-            old_metadata_list: List[Dict[any, any]] = self.metadata_service.get_metadata_list(doc_source_type,
-                                                                                              doc_source_id)
+            old_metadata_list: List[Dict[any, any]] = self.metadata_dao.get_metadata_list(doc_source_type,
+                                                                                          doc_source_id)
             self.vectorstore_service.upsert_docs(ids, docs, old_metadata_list)
             log.info(f"Indexed {p['id']} source code")
-            self.metadata_service.save_docs_metadata(docs)
+            self.metadata_dao.save_docs_metadata(docs)
 
     def index_youtube_video(self, video_id: str):
         try:
@@ -85,7 +83,7 @@ class DocumentService:
             log.info(f"Loaded youtube docs for {video_id}!")
             # TODO: use upsert instead of index_docs
             self.vectorstore_service.index_docs(ids, docs)
-            self.metadata_service.save_docs_metadata(docs)
+            self.metadata_dao.save_docs_metadata(docs)
             log.info(f"Updated youtube docs for {video_id}!")
         except Exception as e:
             log.error(f"An exception occurred while indexing video id {video_id}: {type(e).__name__}: {e}")
@@ -104,18 +102,20 @@ class DocumentService:
             common_length: Optional[int],
             discord_cache_dir: str,
             bot: Bot):
-        last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id, self.metadata_service, bot)
+        last: DiscordMessage | None = await first_message_of_last_indexed_page(channel_id, self.metadata_dao, bot)
         ids, docs = await load_discord_channel_messages(channel_id, after, last, window_size, common_length,
                                                         discord_cache_dir, bot)
 
         self.vectorstore_service.index_docs(ids, docs)
-        self.metadata_service.save_docs_metadata(documents=docs)
+        self.metadata_dao.save_docs_metadata(documents=docs)
         return len(docs)
 
 
 def index_all():
     config = load_config()
-    indexer = DocumentService(config.weaviate_url, config.embeddings_dir, config.metadata_docs_db)
+    vectorstore_service = VectorStoreService(config.weaviate_url, config.embeddings_dir)
+    metadata_dao = MetadataDao(config.metadata_docs_db)
+    indexer = DocumentService(vectorstore_service, metadata_dao)
 
     indexer.index_zio_project_docs()
     print("index_zio_project_docs finished")

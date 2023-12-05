@@ -1,31 +1,34 @@
 import asyncio
 import json
+import os
 import time
 from enum import Enum
 from typing import Any, List, Dict, Optional
 
+from langchain.vectorstores import VectorStore
 import uvicorn
-import weaviate
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from core.dao.feedback_dao import FeedbackDao, Feedback
-from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
+from langchain.embeddings import CacheBackedEmbeddings
+from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.storage import LocalFileStore
-from langchain.vectorstores.weaviate import Weaviate
+from langchain.vectorstores import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
 from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
+from weaviate import Client
 
 from config import load_config
+from core.dao.feedback_dao import FeedbackDao, Feedback
 from core.dao.metadata_dao import MetadataDao
 from core.dao.project_dao import ProjectDao, Project
 from core.dao.resource_dao import ResourceType, ResourceDao
-from core.services.vectorstore_service import VectorStoreService
 from core.llm.chains import make_question_answering_chain
 from core.services.document_service import DocumentService
 from core.services.project_service import ProjectService
 from core.services.resource_service import ResourceService
+from core.services.vectorstore_service import VectorStoreService
 
 app = FastAPI()
 
@@ -50,36 +53,39 @@ response_counter = Counter("responses_total", "Total responses", registry=regist
 response_time_histogram = Histogram("response_latency", "Response latency (seconds)",
                                     labelnames=["path"], registry=registry)
 
-# Embeddings setup
+# Feedback service setup
+feedback_service = FeedbackDao(config.feedbacks_db)
+
+# Vectorstore setup
+index_name = 'Bytebrain'
+text_key = "text"
+os.environ['WEAVIATE_URL'] = config.weaviate_url
+embeddings_dir = config.embeddings_dir
+weaviate_client = Client(url=config.weaviate_url)
 underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
 fs = LocalFileStore(config.embeddings_dir)
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     underlying_embeddings, fs, namespace=underlying_embeddings.model
 )
+weaviate: VectorStore = Weaviate(weaviate_client,
+                                 index_name=index_name,
+                                 text_key=text_key,
+                                 attributes=['source'],
+                                 embedding=cached_embedder,
+                                 by_text=False)
 
-# Weaviate setup
-client = weaviate.Client(url=config.weaviate_url)
-vector_store = Weaviate(client,
-                        index_name='Bytebrain',
-                        text_key="text",
-                        attributes=['source', 'doc_source_id', 'doc_title', 'doc_url'],
-                        embedding=cached_embedder,
-                        by_text=False)
-
-# Feedback service setup
-feedback_service = FeedbackDao(config.feedbacks_db)
+# Vectorstore service setup
+vectorstore_service = VectorStoreService(weaviate, weaviate_client, cached_embedder, index_name, text_key)
 
 # Resource service setup
-document_service = DocumentService(config.weaviate_url,
-                                   config.embeddings_dir,
-                                   config.metadata_docs_db)
-metadata_service = MetadataDao(config.metadata_docs_db)
-vectorstore_service = VectorStoreService(url=config.weaviate_url,
-                                         embeddings_dir=config.embeddings_dir,
-                                         metadata_service=metadata_service)
+metadata_dao = MetadataDao(config.metadata_docs_db)
 resource_dao = ResourceDao(config.resources_db)
-resource_service = ResourceService(resource_dao, vectorstore_service, metadata_service)
+resource_service = ResourceService(resource_dao, vectorstore_service, metadata_dao)
 
+# Document service setup
+document_service = DocumentService(vectorstore_service, metadata_dao)
+
+# Project service setup
 project_dao = ProjectDao(config.projects_db)
 project_service = ProjectService(project_dao, resource_service)
 
@@ -93,7 +99,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, project_id: str):
 
     qa = make_question_answering_chain(
         websocket=websocket,
-        vector_store=vector_store,
+        vector_store=weaviate,
         prompt_template=config.webservice.prompt,
         tenant=project_id
     )

@@ -105,23 +105,22 @@ def make_question_answering_chain(
         vector_store: VectorStore,
         prompt_template: str,
         tenant: str = None):
-    document_retriever = vector_store.as_retriever(
-        # TODO: Find the best options for retrieving docs
-        # search_type="similarity_score_threshold",
-        # search_kwargs={'score_threshold': 0.8}
-        # or
-        # search_type="mmr",
-        search_kwargs={
-            'k': 10,
-            'fetch_k': 30,
-            'tenant': tenant
-        }
-    )
+    search_kwargs = {
+        'k': 10,
+        'fetch_k': 30
+    }
+    if tenant:
+        search_kwargs['tenant'] = tenant
+
+    # TODO: Find the best options for retrieving docs
+    # search_type="similarity_score_threshold",
+    # search_kwargs={'score_threshold': 0.8}
+    # or
+    # search_type="mmr",
+    document_retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
     return make_qa_with_stuffed_docs_chain(document_retriever=document_retriever, websocket=websocket,
                                            stuff_template=prompt_template)
 
 
 def generate_prompt(prompt_template: str, query: str) -> str:
     return prompt_template.replace("{query}", query)
-
-
