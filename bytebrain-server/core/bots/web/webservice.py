@@ -333,24 +333,9 @@ async def get_all_resources():
     return resource_service.get_all_resources()
 
 
-@app.get("/resources/website/")
-async def get_website_resources():
-    return resource_service.get_resources_of_type(ResourceType.Website)
-
-
-@app.get("/resources/webpage/")
-async def get_webpage_resources():
-    return resource_service.get_resources_of_type(ResourceType.Webpage)
-
-
-@app.get("/resources/youtube/")
-async def get_youtube_resources():
-    return resource_service.get_resources_of_type(ResourceType.Webpage)
-
-
-@app.get("/resources/github/")
-async def get_youtube_resources():
-    return resource_service.get_resources_of_type(ResourceType.GitHub)
+@app.get("/resources/{resource_type}/")
+async def get_website_resources(resource_type: ResourceType):
+    return resource_service.get_resources_of_type(resource_type)
 
 
 @app.delete("/resources/{resource_id}", status_code=204)
