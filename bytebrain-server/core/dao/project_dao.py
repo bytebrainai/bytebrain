@@ -10,12 +10,13 @@ from core.dao.resource_dao import Resource
 class Project(BaseModel):
     id: str
     name: str
-    resources: Optional[Resource] = None
+    resources: Optional[list[Resource]] = None
 
     @classmethod
     def create(cls, name: str):
         # Use uuid4 to generate a random UUID
         return cls(id=str(uuid.uuid4()), name=name)
+
 
 class ProjectDao:
     def __init__(self, db_path):

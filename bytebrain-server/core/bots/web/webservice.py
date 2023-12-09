@@ -195,6 +195,7 @@ class WebsiteResourceRequest(BaseModel):
     project_id: str
 
 
+# TODO: use resource_type instead of separate apis for each resource
 @app.post("/resources/website")
 async def submit_new_website_resource(resource: WebsiteResourceRequest):
     project = project_service.get_project_by_id(resource.project_id)
@@ -276,7 +277,7 @@ class GithubResourceRequest(BaseModel):
     language: Language
     clone_url: str
     paths: Optional[str]
-    branch: Optional[str]
+    branch: str = "main"
     project_id: str
 
 
@@ -358,9 +359,9 @@ async def delete_project(project_id):
     project_service.delete_project(project_id)
 
 
-@app.get("/projects/")
+@app.get("/projects/", response_model=list[Project])
 # TODO: exclude resources when its empty
-async def get_all_projects():
+async def get_all_projects() -> Any:
     return project_service.get_all_projects()
 
 
