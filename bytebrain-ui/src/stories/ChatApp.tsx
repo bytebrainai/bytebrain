@@ -5,6 +5,7 @@ interface ChatAppProps {
   websocketHost?: string;
   websocketPort?: string;
   websocketEndpoint: string;
+  projectId: string;
 }
 
 const ChatApp: React.FC<ChatAppProps> = (props) => {
@@ -28,6 +29,7 @@ const ChatApp: React.FC<ChatAppProps> = (props) => {
         websocketHost={props.websocketHost}
         websocketPort={props.websocketPort}
         websocketEndpoint={props.websocketEndpoint}
+        projectId={props.projectId}
       />
     </>
   );

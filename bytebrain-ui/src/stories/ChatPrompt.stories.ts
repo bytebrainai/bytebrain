@@ -17,41 +17,45 @@ export default {
     title: { name: "Title", control: { type: "text" } },
     defaultQuestion: { name: "Default Question", control: { type: "text" } },
     websocketEndpoint: { name: "Websocket Endpoint", control: { type: "text" } },
+    projectId: { name: "Project ID", control: { type: "text" } },
   },
 };
 
-export const ZIOChat =  {
+export const ZIOChat = {
   args: {
     title: "ZIO Chat",
     defaultQuestion: "What are the befenits of using ZIO?",
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: '/chat',
+    projectId: '<project_id>',
     welcomeMessages: welcome_messages,
     fullScreen: true,
   }
 }
 
-export const DummyZIOChat =  {
+export const DummyZIOChat = {
   args: {
     title: "Dummy ZIO Chat",
     defaultQuestion: "What are the befenits of using ZIO?",
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: '/dummy_chat',
+    projectId: '',
     welcomeMessages: welcome_messages,
     fullScreen: true,
   }
 }
 
 
-export const ZIOChatProduction =  {
+export const ZIOChatProduction = {
   args: {
     title: "ZIO Chat",
     defaultQuestion: "What are the befenits of using ZIO?",
     websocketHost: "chat.zio.dev",
     websocketPort: "80",
     websocketEndpoint: '/chat',
+    projectId: '<project_id>',
     welcomeMessages: welcome_messages,
     fullScreen: true,
   }

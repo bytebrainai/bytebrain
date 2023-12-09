@@ -24,6 +24,7 @@ interface PopupChatWindowProps {
   websocketHost?: string;
   websocketPort?: string;
   websocketEndpoint?: string;
+  projectId: string;
 }
 
 const PopupChatWindow: React.FC<PopupChatWindowProps> = ({
@@ -31,7 +32,8 @@ const PopupChatWindow: React.FC<PopupChatWindowProps> = ({
   onClose,
   websocketHost,
   websocketPort,
-  websocketEndpoint
+  websocketEndpoint,
+  projectId
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,6 +59,7 @@ const PopupChatWindow: React.FC<PopupChatWindowProps> = ({
         websocketHost={websocketHost || "localhost"}
         websocketPort={websocketPort || "8081"}
         websocketEndpoint={websocketEndpoint || "/chat"}
+        projectId={projectId}
         welcomeMessages={welcome_messages}
         fullScreen={false}
       />

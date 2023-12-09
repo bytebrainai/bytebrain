@@ -10,6 +10,7 @@ interface ChatPromptProps {
   websocketHost?: string;
   websocketPort?: string;
   websocketEndpoint: string;
+  projectId: string;
   welcomeMessages: string[];
   fullScreen?: boolean;
 }
@@ -27,6 +28,7 @@ export const ChatPrompt = (props: ChatPromptProps) => {
     websocketHost,
     websocketPort,
     websocketEndpoint,
+    projectId,
     welcomeMessages,
     fullScreen,
   } = props
@@ -66,7 +68,7 @@ export const ChatPrompt = (props: ChatPromptProps) => {
   }
 
   const handleClick = () => {
-    const ws = new WebSocket(protocol + host + port + websocketEndpoint);
+    const ws = new WebSocket(protocol + host + port + websocketEndpoint + "/" + projectId);
     ws.onopen = (event) => {
       setMessages(messages => messages.concat([
         {

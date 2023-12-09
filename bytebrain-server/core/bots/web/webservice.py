@@ -5,19 +5,20 @@ import time
 from enum import Enum
 from typing import Any, List, Dict, Optional
 
-from langchain.vectorstores import VectorStore
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.storage import LocalFileStore
+from langchain.vectorstores import VectorStore
 from langchain.vectorstores import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
 from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 from weaviate import Client
+from websockets.exceptions import WebSocketException
 
 from config import load_config
 from core.dao.feedback_dao import FeedbackDao, Feedback
@@ -90,40 +91,65 @@ project_dao = ProjectDao(config.projects_db)
 project_service = ProjectService(project_dao, resource_service)
 
 
+class ProjectNotFoundException(WebSocketException):
+    def __init__(self, project_id, message, *args):
+        super().__init__(*args)
+        self.project_id = project_id
+        self.message = message
+
+
 # WebSocket endpoint for chat
 @app.websocket("/chat/{project_id}")
 async def websocket_chat_endpoint(websocket: WebSocket, project_id: str):
-    await websocket.accept()
-    start_time = time.time()
-    request_counter.inc()
+    try:
+        await websocket.accept()
 
-    qa = make_question_answering_chain(
-        websocket=websocket,
-        vector_store=weaviate,
-        prompt_template=config.webservice.prompt,
-        tenant=project_id
-    )
+        if project_service.get_project_by_id(project_id) is None:
+            raise ProjectNotFoundException(message="Project not found!", project_id=project_id)
 
-    while True:
-        query = json.loads(await websocket.receive_text())
-        log.info("Received a new query!", query=query)
+        start_time = time.time()
+        request_counter.inc()
 
-        result: dict[str, Any] = await qa.acall(
-            {
-                "question": query["question"],
-                "project_name": config.project_name,
-                "chat_history": query["history"]
-            },
-            return_only_outputs=True
+        qa = make_question_answering_chain(
+            websocket=websocket,
+            vector_store=weaviate,
+            prompt_template=config.webservice.prompt,
+            tenant=project_id
         )
 
-        source_documents = extract_source_documents(result)
-        unique_refs = extract_references(source_documents)
+        while True:
+            query = json.loads(await websocket.receive_text())
+            log.info("Received a new query!", query=query)
 
-        await websocket.send_json({"token": "", "completed": True, "references": unique_refs[:3]})
-        duration = time.time() - start_time
-        response_time_histogram.labels(path="/chat").observe(duration)
-        response_counter.inc()
+            result: dict[str, Any] = await qa.acall(
+                {
+                    "question": query["question"],
+                    "project_name": config.project_name,
+                    "chat_history": query["history"]
+                },
+                return_only_outputs=True
+            )
+
+            source_documents = extract_source_documents(result)
+            unique_refs = extract_references(source_documents)
+
+            await websocket.send_json({"token": "", "completed": True, "references": unique_refs[:3]})
+            duration = time.time() - start_time
+            response_time_histogram.labels(path="/chat").observe(duration)
+            response_counter.inc()
+
+    except ProjectNotFoundException as e:
+        # Handle HTTP exceptions (e.g., project not found)
+        await websocket.send_json({"error": e.message})
+        await websocket.close()
+        log.error("WebSocket closed!", cause=e.message, project_id=e.project_id)
+
+    except Exception as e:
+        # Handle other exceptions
+        error_message = "Internal server error"
+        await websocket.send_json({"error": error_message})
+        await websocket.close(code=1011)
+        log.error(f"WebSocket error!", cause=str(e))
 
 
 def extract_references(source_documents) -> List[Dict[str, Any]]:
@@ -154,7 +180,7 @@ def extract_source_documents(result) -> list[dict[str, Any]]:
 
 
 # WebSocket endpoint for dummy chat
-@app.websocket("/dummy_chat")
+@app.websocket("/dummy_chat/{project_id}")
 async def websocket_dummy_chat_endpoint(websocket: WebSocket):
     await websocket.accept()
     while True:
