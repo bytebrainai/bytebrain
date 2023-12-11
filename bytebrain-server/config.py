@@ -29,6 +29,7 @@ class ByteBrainConfig:
     background_jobs_db: str
     resources_db: str
     projects_db: str
+    users_db: str
     embeddings_dir: Optional[str]
     discord_cache_dir: Optional[str]
     weaviate_url: Optional[str]
@@ -47,6 +48,7 @@ def load_config() -> ByteBrainConfig:
     background_jobs_db = config['background_jobs_db']
     resources_db = config['resources_db']
     projects_db = config['projects_db']
+    users_db = config['users_db']
     embeddings_dir = config['embeddings_dir']
     discord_cache_dir = config['discord_cache_dir']
     weaviate_url = config['weaviate_url'] \
@@ -61,6 +63,7 @@ def load_config() -> ByteBrainConfig:
                            background_jobs_db,
                            resources_db,
                            projects_db,
+                           users_db,
                            embeddings_dir,
                            discord_cache_dir,
                            weaviate_url,

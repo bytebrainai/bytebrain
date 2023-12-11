@@ -3,11 +3,13 @@ import json
 import os
 import time
 from enum import Enum
-from typing import Any, List, Dict, Optional
+from typing import Any, List
+from typing import Dict
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.storage import LocalFileStore
@@ -21,10 +23,12 @@ from weaviate import Client
 from websockets.exceptions import WebSocketException
 
 from config import load_config
+from core.bots.web.auth import *
 from core.dao.feedback_dao import FeedbackDao, Feedback
 from core.dao.metadata_dao import MetadataDao
 from core.dao.project_dao import ProjectDao, Project
-from core.dao.resource_dao import ResourceType, ResourceDao
+from core.dao.resource_dao import ResourceDao
+from core.dao.user_dao import UserInDB, UserDao, User
 from core.llm.chains import make_question_answering_chain
 from core.services.document_service import DocumentService
 from core.services.project_service import ProjectService
@@ -89,6 +93,15 @@ document_service = DocumentService(vectorstore_service, metadata_dao)
 # Project service setup
 project_dao = ProjectDao(config.projects_db)
 project_service = ProjectService(project_dao, resource_service)
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+def user_dao():
+    return UserDao()
 
 
 class ProjectNotFoundException(WebSocketException):
@@ -222,11 +235,18 @@ class WebsiteResourceRequest(BaseModel):
 
 
 # TODO: use resource_type instead of separate apis for each resource
-@app.post("/resources/website")
-async def submit_new_website_resource(resource: WebsiteResourceRequest):
+@app.post("/resources/website", tags=["Resources"])
+async def submit_new_website_resource(resource: WebsiteResourceRequest,
+                                      current_user: Annotated[User, Depends(get_current_active_user)]):
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        resource_id = resource_service.submit_website_resource(resource.name, resource.url, resource.project_id)
+        if project.username == current_user.username:
+            resource_id = resource_service.submit_website_resource(resource.name, resource.url, resource.project_id)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not have permission to add resource to the specified project!"
+            )
     else:
         return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
                             status_code=404)
@@ -242,11 +262,18 @@ class WebpageResourceRequest(BaseModel):
     project_id: str
 
 
-@app.post("/resources/webpage")
-async def submit_new_webpage_resource(resource: WebpageResourceRequest):
+@app.post("/resources/webpage", tags=["Resources"])
+async def submit_new_webpage_resource(resource: WebpageResourceRequest,
+                                      current_user: Annotated[User, Depends(get_current_active_user)]):
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        resource_id = resource_service.submit_webpage_resource(resource.name, resource.url, resource.project_id)
+        if project.username == current_user.username:
+            resource_id = resource_service.submit_webpage_resource(resource.name, resource.url, resource.project_id)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not have permission to add resource to the specified project!"
+            )
     else:
         return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
                             status_code=404)
@@ -262,11 +289,18 @@ class YoutubeResourceRequest(BaseModel):
     project_id: str
 
 
-@app.post("/resources/youtube")
-async def submit_new_youtube_resource(resource: YoutubeResourceRequest):
+@app.post("/resources/youtube", tags=["Resources"])
+async def submit_new_youtube_resource(resource: YoutubeResourceRequest,
+                                      current_user: Annotated[User, Depends(get_current_active_user)]):
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        resource_id = resource_service.submit_youtube_resource(resource.name, resource.url, resource.project_id)
+        if project.username == current_user.username:
+            resource_id = resource_service.submit_youtube_resource(resource.name, resource.url, resource.project_id)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not have permission to add resource to the specified project!"
+            )
     else:
         return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
                             status_code=404)
@@ -307,17 +341,24 @@ class GithubResourceRequest(BaseModel):
     project_id: str
 
 
-@app.post("/resources/github")
-async def submit_new_github_resource(resource: GithubResourceRequest):
+@app.post("/resources/github", tags=["Resources"])
+async def submit_new_github_resource(resource: GithubResourceRequest,
+                                     current_user: Annotated[User, Depends(get_current_active_user)]):
     paths = resource.paths if resource.paths is not None else "*"
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        resource_id = resource_service.submit_github_resource(resource.name,
-                                                              resource.language.value,
-                                                              resource.clone_url,
-                                                              paths,
-                                                              resource.branch,
-                                                              resource.project_id)
+        if project.username == current_user.username:
+            resource_id = resource_service.submit_github_resource(resource.name,
+                                                                  resource.language.value,
+                                                                  resource.clone_url,
+                                                                  paths,
+                                                                  resource.branch,
+                                                                  resource.project_id)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not have permission to add resource to specified project!"
+            )
     else:
         return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
                             status_code=404)
@@ -327,77 +368,141 @@ async def submit_new_github_resource(resource: GithubResourceRequest):
         return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
 
 
-@app.get("/resources/{resource_id}")
-async def get_resource_status(resource_id: str):
-    status_option = resource_service.get_resource_status(resource_id)
-    match status_option:
-        case None:
-            return JSONResponse({"message": "Resource not found"}, status_code=404)
-        case status:
-            return JSONResponse({"status": status.value})
-
-
 class UpdateRequest(BaseModel):
     request_id: str
 
 
-@app.put("/resources/{resource_id}")
-async def update_resource(resource_id: str):
-    if resource_service.submit_resource_update(resource_id):
-        return JSONResponse({
-            "resource_id": resource_id,
-            "message": "The update request has been submitted successfully."
-        })
+@app.put("/resources/{resource_id}", tags=["Resources"])
+async def update_resource(
+        resource_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user)]):
+    resource = resource_service.get_resource_by_id(resource_id)
+    project = project_service.get_project_by_id(resource.project_id)
+    if project.username == current_user.username:
+        if resource_service.submit_resource_update(resource_id):
+            return JSONResponse({
+                "resource_id": resource_id,
+                "message": "The update request has been submitted successfully."
+            })
+        else:
+            return JSONResponse({
+                "resource_id": resource_id,
+                "message": f"Update request is forbidden. Last update was less than 24 hours ago."
+            }, status_code=403)
     else:
-        return JSONResponse({
-            "resource_id": resource_id,
-            "message": f"Update request is forbidden. Last update was less than 24 hours ago."
-        }, status_code=403)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have permission to update this resource!"
+        )
 
 
-@app.get("/resources/")
-async def get_all_resources():
-    return resource_service.get_all_resources()
+@app.delete("/resources/{resource_id}", status_code=204, tags=["Resources"])
+async def delete_resource(resource_id: str,
+                          current_user: Annotated[User, Depends(get_current_active_user)]):
+    resource = resource_service.get_resource_by_id(resource_id)
+    if resource is not None:
+        project = project_service.get_project_by_id(resource.project_id)
+        if project is not None:
+            if project.username == current_user.username:
+                resource_service.delete_resource(resource_id)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have permission to delete the resource!"
+                )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resource not found!"
+        )
 
 
-@app.get("/resources/{resource_type}/")
-async def get_website_resources(resource_type: ResourceType):
-    return resource_service.get_resources_of_type(resource_type)
+class ProjectCreation(BaseModel):
+    name: str
 
 
-@app.delete("/resources/{resource_id}", status_code=204)
-async def delete_resource(resource_id: str):
-    resource_service.delete_resource(resource_id)
+@app.post("/projects/", response_model=Project, response_model_exclude_none=True, tags=["Projects"])
+async def create_project(project: ProjectCreation,
+                         current_user: Annotated[User, Depends(get_current_active_user)]):
+    return project_service.create_project(name=project.name, username=current_user.username)
 
 
-@app.delete("/resources/", status_code=204)
-async def delete_all_resources():
-    resource_service.delete_all_resources()
+@app.delete("/projects/{project_id}", status_code=204, tags=["Projects"])
+async def delete_project(
+        project_id,
+        current_user: Annotated[User, Depends(get_current_active_user)]):
+    project_service.delete_project(project_id, current_user.username)
 
 
-@app.post("/projects/", response_model=Project, response_model_exclude_none=True)
-async def create_project(body: Dict[str, str]):
-    return project_service.create_project(name=body['name'])
+@app.delete("/projects/", status_code=204, tags=["Projects"])
+async def delete_all_project(
+        current_user: Annotated[User, Depends(get_current_active_user)]):
+    project_service.delete_projects_owned_by(current_user.username)
 
 
-@app.delete("/projects/{project_id}", status_code=204)
-async def delete_project(project_id):
-    project_service.delete_project(project_id)
-
-
-@app.get("/projects/", response_model=list[Project])
+@app.get("/projects/", response_model=list[Project], tags=["Projects"])
 # TODO: exclude resources when its empty
-async def get_all_projects() -> Any:
-    return project_service.get_all_projects()
+async def get_all_projects(current_user: Annotated[User, Depends(get_current_active_user)]) -> Any:
+    return project_service.get_all_projects(current_user.username)
 
 
-@app.get("/projects/{project_id}")
-async def get_project_by_id(project_id: str):
+@app.get("/projects/{project_id}", tags=["Projects"])
+async def get_project_by_id(project_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
     project = project_service.get_project_by_id(project_id)
-    if project:
-        return project
+    if project.username == current_user.username:
+        if project:
+            return project
+        else:
+            return JSONResponse({"message": f"Project not found!", "project_id": project_id})
     else:
-        return JSONResponse({"message": f"Project not found!", "project_id": project_id})
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have permission to this project!"
+        )
+
+
+@app.post("/token", response_model=Token, tags=['Authentication'])
+async def login_for_access_token(
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        user_dao: Annotated[UserDao, Depends(user_dao)]
+):
+    user = authenticate_user(form_data.username, form_data.password, user_dao)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/users/me/", response_model=User, tags=["Authentication"])
+async def read_users_me(
+        current_user: Annotated[User, Depends(get_current_active_user)]
+):
+    return current_user
+
+
+@app.post("/register", response_model=Dict[str, str], tags=["Authentication"])
+async def register(
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        user_dao: Annotated[UserDao, Depends(user_dao)]
+):
+    existing_user = user_dao.get_user(form_data.username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered",
+        )
+
+    hashed_password = get_password_hash(form_data.password)
+    user_dao.save_user(UserInDB(username=form_data.username, hashed_password=hashed_password))
+
+    return {"username": form_data.username}
 
 
 # Main function

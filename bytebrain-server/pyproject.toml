@@ -28,6 +28,9 @@ weaviate-client = "^3.24.2"
 fastapi-utils = "^0.2.1"
 libmagic = "^1.0"
 python-magic = "^0.4.27"
+python-multipart = "^0.0.6"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

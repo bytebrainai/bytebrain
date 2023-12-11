@@ -1,5 +1,8 @@
 from typing import Optional, List
 
+from fastapi import HTTPException
+from fastapi import status
+
 from core.dao.project_dao import ProjectDao, Project
 from core.dao.resource_dao import Resource
 from core.services.resource_service import ResourceService
@@ -16,17 +19,35 @@ class ProjectService:
         self.project_dao = project_dao
         self.resource_service = resource_service
 
-    def delete_project(self, project_id: str):
-        self.resource_service.delete_resources_by_project_id(project_id)
-        self.project_dao.delete_project(project_id)
+    def delete_projects_owned_by(self, username: str):
+        projects_to_delete = self.project_dao.get_all_projects(username)
+        for project in projects_to_delete:
+            self.delete_project(project.id, username)
 
-    def create_project(self, name: str) -> Project:
-        project = Project.create(name)
+    def delete_project(self, project_id: str, requesting_username: str):
+        project_to_delete = self.project_dao.get_project_by_id(project_id)
+        if project_to_delete is not None:
+            if project_to_delete.username == requesting_username:
+                self.resource_service.delete_resources_by_project_id(project_id)
+                self.project_dao.delete_project(project_id)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have permission to delete the project!"
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Project not found!"
+            )
+
+    def create_project(self, name: str, username: str) -> Project:
+        project = Project.create(name, username)
         self.project_dao.create_project(project)
         return project
 
-    def get_all_projects(self) -> list[Project]:
-        projects = self.project_dao.get_all_projects()
+    def get_all_projects(self, username: str) -> list[Project]:
+        projects = self.project_dao.get_all_projects(username)
 
         def get_project_with_resources(project):
             project.resources = self.resource_service.get_resources_by_project_id(project.id)

@@ -224,5 +224,8 @@ class ResourceService:
     def get_resources_of_type(self, resource_type: ResourceType) -> List[Resource]:
         return self.resource_dao.get_resources_of_type(resource_type)
 
+    def get_resource_by_id(self, resource_id: str):
+        return self.resource_dao.get_by_id(resource_id)
+
     def get_resources_by_project_id(self, project_id) -> List[Resource]:
         return self.resource_dao.get_resources_by_project_id(project_id)
