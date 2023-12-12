@@ -1,42 +1,34 @@
 import asyncio
 import json
-import os
 import time
-from enum import Enum
 from typing import Any, List
 from typing import Dict
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.storage import LocalFileStore
-from langchain.vectorstores import VectorStore
-from langchain.vectorstores import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
 from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
-from weaviate import Client
 from websockets.exceptions import WebSocketException
 
 from config import load_config
 from core.bots.web.auth import *
+from core.bots.web.dependencies import feedback_service
+from core.bots.web.dependencies import project_service
+from core.bots.web.dependencies import weaviate
 from core.bots.web.routers.auth import auth_router
-from core.dao.feedback_dao import FeedbackDao, Feedback
-from core.dao.metadata_dao import MetadataDao
-from core.dao.project_dao import ProjectDao, Project
-from core.dao.resource_dao import ResourceDao
+from core.bots.web.routers.resources import resources_router
+from core.dao.feedback_dao import Feedback
+from core.dao.project_dao import Project
 from core.dao.user_dao import User
 from core.llm.chains import make_question_answering_chain
-from core.services.document_service import DocumentService
 from core.services.project_service import ProjectService
-from core.services.resource_service import ResourceService
-from core.services.vectorstore_service import VectorStoreService
 
 app = FastAPI()
 app.include_router(auth_router)
+app.include_router(resources_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,42 +51,6 @@ response_counter = Counter("responses_total", "Total responses", registry=regist
 response_time_histogram = Histogram("response_latency", "Response latency (seconds)",
                                     labelnames=["path"], registry=registry)
 
-# Feedback service setup
-feedback_service = FeedbackDao(config.feedbacks_db)
-
-# Vectorstore setup
-index_name = 'Bytebrain'
-text_key = "text"
-os.environ['WEAVIATE_URL'] = config.weaviate_url
-embeddings_dir = config.embeddings_dir
-weaviate_client = Client(url=config.weaviate_url)
-underlying_embeddings: OpenAIEmbeddings = OpenAIEmbeddings()
-fs = LocalFileStore(config.embeddings_dir)
-cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    underlying_embeddings, fs, namespace=underlying_embeddings.model
-)
-weaviate: VectorStore = Weaviate(weaviate_client,
-                                 index_name=index_name,
-                                 text_key=text_key,
-                                 attributes=['source'],
-                                 embedding=cached_embedder,
-                                 by_text=False)
-
-# Vectorstore service setup
-vectorstore_service = VectorStoreService(weaviate, weaviate_client, cached_embedder, index_name, text_key)
-
-# Resource service setup
-metadata_dao = MetadataDao(config.metadata_docs_db)
-resource_dao = ResourceDao(config.resources_db)
-resource_service = ResourceService(resource_dao, vectorstore_service, metadata_dao)
-
-# Document service setup
-document_service = DocumentService(vectorstore_service, metadata_dao)
-
-# Project service setup
-project_dao = ProjectDao(config.projects_db)
-project_service = ProjectService(project_dao, resource_service)
-
 
 class ProjectNotFoundException(WebSocketException):
     def __init__(self, project_id, message, *args):
@@ -105,7 +61,8 @@ class ProjectNotFoundException(WebSocketException):
 
 # WebSocket endpoint for chat
 @app.websocket("/chat/{project_id}")
-async def websocket_chat_endpoint(websocket: WebSocket, project_id: str):
+async def websocket_chat_endpoint(websocket: WebSocket, project_id: str,
+                                  project_service: Annotated[ProjectService, Depends(project_service)]):
     try:
         await websocket.accept()
 
@@ -220,226 +177,42 @@ def create_feedback(feedback: Feedback):
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
 
 
-class WebsiteResourceRequest(BaseModel):
-    name: str
-    url: str
-    project_id: str
-
-
-# TODO: use resource_type instead of separate apis for each resource
-@app.post("/resources/website", tags=["Resources"])
-async def submit_new_website_resource(resource: WebsiteResourceRequest,
-                                      current_user: Annotated[User, Depends(get_current_active_user)]):
-    project = project_service.get_project_by_id(resource.project_id)
-    if project is not None:
-        if project.username == current_user.username:
-            resource_id = resource_service.submit_website_resource(resource.name, resource.url, resource.project_id)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User does not have permission to add resource to the specified project!"
-            )
-    else:
-        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
-                            status_code=404)
-    if resource_id:
-        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
-    else:
-        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
-
-
-class WebpageResourceRequest(BaseModel):
-    name: str
-    url: str
-    project_id: str
-
-
-@app.post("/resources/webpage", tags=["Resources"])
-async def submit_new_webpage_resource(resource: WebpageResourceRequest,
-                                      current_user: Annotated[User, Depends(get_current_active_user)]):
-    project = project_service.get_project_by_id(resource.project_id)
-    if project is not None:
-        if project.username == current_user.username:
-            resource_id = resource_service.submit_webpage_resource(resource.name, resource.url, resource.project_id)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User does not have permission to add resource to the specified project!"
-            )
-    else:
-        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
-                            status_code=404)
-    if resource_id:
-        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
-    else:
-        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
-
-
-class YoutubeResourceRequest(BaseModel):
-    name: str
-    url: str
-    project_id: str
-
-
-@app.post("/resources/youtube", tags=["Resources"])
-async def submit_new_youtube_resource(resource: YoutubeResourceRequest,
-                                      current_user: Annotated[User, Depends(get_current_active_user)]):
-    project = project_service.get_project_by_id(resource.project_id)
-    if project is not None:
-        if project.username == current_user.username:
-            resource_id = resource_service.submit_youtube_resource(resource.name, resource.url, resource.project_id)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User does not have permission to add resource to the specified project!"
-            )
-    else:
-        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
-                            status_code=404)
-    if resource_id:
-        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
-    else:
-        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
-
-
-class Language(str, Enum):
-    CPP = "cpp"
-    GO = "go"
-    JAVA = "java"
-    KOTLIN = "kotlin"
-    JS = "js"
-    TS = "ts"
-    PHP = "php"
-    PROTO = "proto"
-    PYTHON = "python"
-    RST = "rst"
-    RUBY = "ruby"
-    RUST = "rust"
-    SCALA = "scala"
-    SWIFT = "swift"
-    MARKDOWN = "markdown"
-    LATEX = "latex"
-    HTML = "html"
-    SOL = "sol"
-    CSHARP = "csharp"
-
-
-class GithubResourceRequest(BaseModel):
-    name: str
-    language: Language
-    clone_url: str
-    paths: Optional[str]
-    branch: str = "main"
-    project_id: str
-
-
-@app.post("/resources/github", tags=["Resources"])
-async def submit_new_github_resource(resource: GithubResourceRequest,
-                                     current_user: Annotated[User, Depends(get_current_active_user)]):
-    paths = resource.paths if resource.paths is not None else "*"
-    project = project_service.get_project_by_id(resource.project_id)
-    if project is not None:
-        if project.username == current_user.username:
-            resource_id = resource_service.submit_github_resource(resource.name,
-                                                                  resource.language.value,
-                                                                  resource.clone_url,
-                                                                  paths,
-                                                                  resource.branch,
-                                                                  resource.project_id)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User does not have permission to add resource to specified project!"
-            )
-    else:
-        return JSONResponse({"message": "This project_id does not exist!", "project_id": resource.project_id},
-                            status_code=404)
-    if resource_id:
-        return JSONResponse({"resource_id": resource_id, "status": "pending"}, status_code=202)
-    else:
-        return JSONResponse({"message": "This resource is already submitted"}, status_code=409)
-
-
-class UpdateRequest(BaseModel):
-    request_id: str
-
-
-@app.put("/resources/{resource_id}", tags=["Resources"])
-async def update_resource(
-        resource_id: str,
-        current_user: Annotated[User, Depends(get_current_active_user)]):
-    resource = resource_service.get_resource_by_id(resource_id)
-    project = project_service.get_project_by_id(resource.project_id)
-    if project.username == current_user.username:
-        if resource_service.submit_resource_update(resource_id):
-            return JSONResponse({
-                "resource_id": resource_id,
-                "message": "The update request has been submitted successfully."
-            })
-        else:
-            return JSONResponse({
-                "resource_id": resource_id,
-                "message": f"Update request is forbidden. Last update was less than 24 hours ago."
-            }, status_code=403)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have permission to update this resource!"
-        )
-
-
-@app.delete("/resources/{resource_id}", status_code=204, tags=["Resources"])
-async def delete_resource(resource_id: str,
-                          current_user: Annotated[User, Depends(get_current_active_user)]):
-    resource = resource_service.get_resource_by_id(resource_id)
-    if resource is not None:
-        project = project_service.get_project_by_id(resource.project_id)
-        if project is not None:
-            if project.username == current_user.username:
-                resource_service.delete_resource(resource_id)
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="User does not have permission to delete the resource!"
-                )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Resource not found!"
-        )
-
-
 class ProjectCreation(BaseModel):
     name: str
 
 
 @app.post("/projects/", response_model=Project, response_model_exclude_none=True, tags=["Projects"])
 async def create_project(project: ProjectCreation,
-                         current_user: Annotated[User, Depends(get_current_active_user)]):
+                         current_user: Annotated[User, Depends(get_current_active_user)],
+                         project_service: Annotated[ProjectService, Depends(project_service)]):
     return project_service.create_project(name=project.name, username=current_user.username)
 
 
 @app.delete("/projects/{project_id}", status_code=204, tags=["Projects"])
 async def delete_project(
         project_id,
-        current_user: Annotated[User, Depends(get_current_active_user)]):
+        current_user: Annotated[User, Depends(get_current_active_user)],
+        project_service: Annotated[ProjectService, Depends(project_service)]):
     project_service.delete_project(project_id, current_user.username)
 
 
 @app.delete("/projects/", status_code=204, tags=["Projects"])
 async def delete_all_project(
-        current_user: Annotated[User, Depends(get_current_active_user)]):
+        current_user: Annotated[User, Depends(get_current_active_user)],
+        project_service: Annotated[ProjectService, Depends(project_service)]):
     project_service.delete_projects_owned_by(current_user.username)
 
 
 @app.get("/projects/", response_model=list[Project], tags=["Projects"])
 # TODO: exclude resources when its empty
-async def get_all_projects(current_user: Annotated[User, Depends(get_current_active_user)]) -> Any:
+async def get_all_projects(current_user: Annotated[User, Depends(get_current_active_user)],
+                           project_service: Annotated[ProjectService, Depends(project_service)]) -> Any:
     return project_service.get_all_projects(current_user.username)
 
 
 @app.get("/projects/{project_id}", tags=["Projects"])
-async def get_project_by_id(project_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
+async def get_project_by_id(project_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
+                            project_service: Annotated[ProjectService, Depends(project_service)]):
     project = project_service.get_project_by_id(project_id)
     if project.username == current_user.username:
         if project:
