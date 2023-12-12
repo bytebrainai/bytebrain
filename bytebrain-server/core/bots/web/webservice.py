@@ -9,7 +9,6 @@ from typing import Dict
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.storage import LocalFileStore
@@ -24,11 +23,12 @@ from websockets.exceptions import WebSocketException
 
 from config import load_config
 from core.bots.web.auth import *
+from core.bots.web.routers.auth import auth_router
 from core.dao.feedback_dao import FeedbackDao, Feedback
 from core.dao.metadata_dao import MetadataDao
 from core.dao.project_dao import ProjectDao, Project
 from core.dao.resource_dao import ResourceDao
-from core.dao.user_dao import UserInDB, UserDao, User
+from core.dao.user_dao import User
 from core.llm.chains import make_question_answering_chain
 from core.services.document_service import DocumentService
 from core.services.project_service import ProjectService
@@ -36,6 +36,7 @@ from core.services.resource_service import ResourceService
 from core.services.vectorstore_service import VectorStoreService
 
 app = FastAPI()
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -93,15 +94,6 @@ document_service = DocumentService(vectorstore_service, metadata_dao)
 # Project service setup
 project_dao = ProjectDao(config.projects_db)
 project_service = ProjectService(project_dao, resource_service)
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-def user_dao():
-    return UserDao()
 
 
 class ProjectNotFoundException(WebSocketException):
@@ -459,50 +451,6 @@ async def get_project_by_id(project_id: str, current_user: Annotated[User, Depen
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User does not have permission to this project!"
         )
-
-
-@app.post("/token", response_model=Token, tags=['Authentication'])
-async def login_for_access_token(
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-        user_dao: Annotated[UserDao, Depends(user_dao)]
-):
-    user = authenticate_user(form_data.username, form_data.password, user_dao)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-@app.get("/users/me/", response_model=User, tags=["Authentication"])
-async def read_users_me(
-        current_user: Annotated[User, Depends(get_current_active_user)]
-):
-    return current_user
-
-
-@app.post("/register", response_model=Dict[str, str], tags=["Authentication"])
-async def register(
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-        user_dao: Annotated[UserDao, Depends(user_dao)]
-):
-    existing_user = user_dao.get_user(form_data.username)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered",
-        )
-
-    hashed_password = get_password_hash(form_data.password)
-    user_dao.save_user(UserInDB(username=form_data.username, hashed_password=hashed_password))
-
-    return {"username": form_data.username}
 
 
 # Main function
