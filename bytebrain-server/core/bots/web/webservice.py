@@ -8,7 +8,6 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
-from pydantic.main import BaseModel
 from starlette.responses import Response, JSONResponse
 from structlog import getLogger
 from websockets.exceptions import WebSocketException
@@ -20,15 +19,15 @@ from core.bots.web.dependencies import project_service
 from core.bots.web.dependencies import weaviate
 from core.bots.web.routers.auth import auth_router
 from core.bots.web.routers.resources import resources_router
+from core.bots.web.routers.projects import projects_router
 from core.dao.feedback_dao import Feedback
-from core.dao.project_dao import Project
-from core.dao.user_dao import User
 from core.llm.chains import make_question_answering_chain
 from core.services.project_service import ProjectService
 
 app = FastAPI()
 app.include_router(auth_router)
 app.include_router(resources_router)
+app.include_router(projects_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -175,55 +174,6 @@ async def metrics():
 def create_feedback(feedback: Feedback):
     feedback_service.add_feedback(feedback)
     return JSONResponse(content={"message": "Feedback received"}, status_code=200)
-
-
-class ProjectCreation(BaseModel):
-    name: str
-
-
-@app.post("/projects/", response_model=Project, response_model_exclude_none=True, tags=["Projects"])
-async def create_project(project: ProjectCreation,
-                         current_user: Annotated[User, Depends(get_current_active_user)],
-                         project_service: Annotated[ProjectService, Depends(project_service)]):
-    return project_service.create_project(name=project.name, username=current_user.username)
-
-
-@app.delete("/projects/{project_id}", status_code=204, tags=["Projects"])
-async def delete_project(
-        project_id,
-        current_user: Annotated[User, Depends(get_current_active_user)],
-        project_service: Annotated[ProjectService, Depends(project_service)]):
-    project_service.delete_project(project_id, current_user.username)
-
-
-@app.delete("/projects/", status_code=204, tags=["Projects"])
-async def delete_all_project(
-        current_user: Annotated[User, Depends(get_current_active_user)],
-        project_service: Annotated[ProjectService, Depends(project_service)]):
-    project_service.delete_projects_owned_by(current_user.username)
-
-
-@app.get("/projects/", response_model=list[Project], tags=["Projects"])
-# TODO: exclude resources when its empty
-async def get_all_projects(current_user: Annotated[User, Depends(get_current_active_user)],
-                           project_service: Annotated[ProjectService, Depends(project_service)]) -> Any:
-    return project_service.get_all_projects(current_user.username)
-
-
-@app.get("/projects/{project_id}", tags=["Projects"])
-async def get_project_by_id(project_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
-                            project_service: Annotated[ProjectService, Depends(project_service)]):
-    project = project_service.get_project_by_id(project_id)
-    if project.username == current_user.username:
-        if project:
-            return project
-        else:
-            return JSONResponse({"message": f"Project not found!", "project_id": project_id})
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have permission to this project!"
-        )
 
 
 # Main function
