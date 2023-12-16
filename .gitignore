@@ -4,5 +4,8 @@
 env.sh
 .env
 /bytebrain-server/embeddings-cache/
+/bytebrain-server/cache
 /bytebrain-server/db/
 /bytebrain-server/backups/
+/bytebrain-server/.venv.org/
+/db/*
