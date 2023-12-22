@@ -1,6 +1,9 @@
 from typing import Dict
 
+import httpx
 from fastapi import APIRouter
+from fastapi import Header
+from fastapi import Query
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic.main import BaseModel
 
@@ -57,3 +60,40 @@ async def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+import os
+
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+
+
+@router.get("/getAccessToken", tags=["Authorization"])
+async def get_access_token(code: str = Query(...)):
+    url = f"https://github.com/login/oauth/access_token"
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "code": code,
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, data=data, headers={
+            "Accept": "application/json"
+        })
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Error calling API: {response.status_code}")
+
+
+@router.get("/getUserData", tags=["Authorization"])
+async def get_user_data(Authorization: str = Header(...)):
+    url = f"https://api.github.com/user"
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers={
+            "Authorization": Authorization
+        })
+        if response.status_code == 200:
+            print(response.json())
+            return response.json()
+        else:
+            raise Exception(f"Error calling API: {response.status_code}")

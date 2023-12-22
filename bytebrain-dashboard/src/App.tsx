@@ -4,11 +4,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, PlusCircleIcon } from "lucide-react";
+import { ChevronLeft, Codepen, MoreHorizontal, PlusCircleIcon } from "lucide-react";
+import moment from 'moment';
+import { useEffect } from "react";
 import { BrowserRouter, Link, NavLink, Route, Routes } from "react-router-dom";
 import { DataTable } from "./app/data-table";
-import { ChevronLeft } from "lucide-react";
-import moment from 'moment'
 
 import {
   Dialog,
@@ -50,9 +50,9 @@ import {
 
 
 
-import { cn } from "@/lib/utils"
-import { Icons } from "@/components/icons"
-import { UserAuthForm } from "@/authentication/components/user-auth-form"
+import { UserAuthForm } from "@/authentication/components/user-auth-form";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
 
 
 function LoginPage() {
@@ -409,7 +409,7 @@ function Resources() {
     name: string
     type: "Website" | "Webpage" | "Github" | "Youtube"
     status: "Pending" | "Success" | "Failed"
-    created_at: string
+    updated_at: string
   }
 
 
@@ -435,7 +435,7 @@ function Resources() {
       header: "Last Update",
       cell: ({ row }) => {
         const resource = row.original
-        const parsedDate = moment(resource.created_at).format("YYYY-MM-DD mm:ss")
+        const parsedDate = moment(resource.updated_at).format("YYYY-MM-DD mm:ss")
 
         return parsedDate
       },
@@ -705,7 +705,7 @@ function Signup() {
             <blockquote className="space-y-2">
               <p className="text-lg">
                 &ldquo;Our team found ByteBrain AI a game-changer. It’s like a Swiss Army knife for navigating technical documents.
-.&rdquo;
+                .&rdquo;
               </p>
               <footer className="text-sm">Adam Fraser</footer>
             </blockquote>
@@ -746,6 +746,98 @@ function Signup() {
   )
 }
 
+const CLIENT_ID = "c9345d9e244bb69e4c59"
+
+function loginWithGithub(): void {
+  window.location.assign("https://github.com/login/oauth/authorize?client_id=" + CLIENT_ID)
+}
+
+
+
+
+function AuthApp() {
+  const [rerender, setRerender] = React.useState(false)
+  const [userData, setUserData] = React.useState({ "name": "guest" })
+
+  useEffect(() => {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const codeParam = urlParams.get('code')
+    console.log(codeParam)
+
+    if (codeParam && (localStorage.getItem("accessToken") == null)) {
+      async function getAccessToken() {
+        await fetch("http://localhost:8081/getAccessToken?code=" + codeParam, {
+          method: "GET",
+
+        }).then((response) => {
+          return response.json();
+        }).then((data) => {
+          console.log(data)
+          if (data.access_token) {
+            localStorage.setItem("accessToken", data.access_token)
+            getUserData()
+            setRerender(!rerender)
+          }
+        })
+      }
+      getAccessToken();
+    }
+
+    if (!codeParam && localStorage.getItem("accessToken")) {
+      getUserData()
+    }
+  }, [])
+
+
+  async function getUserData() {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken) {
+      try {
+        await fetch("http://localhost:8081/getUserData", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).then((response) => {
+          return response.json();
+        }).then((data) => {
+          setUserData(data)
+        })
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    }
+  }
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        {
+          localStorage.getItem("accessToken") ? (
+            <>
+              <h1>Hello {userData.name}</h1>
+              <button onClick={() => {
+                localStorage.removeItem("accessToken")
+                setRerender(!rerender)
+              }}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <button onClick={loginWithGithub}>
+              Login with Github
+            </button>
+          )
+        }
+      </header>
+    </div>
+  )
+
+}
+
+
+
 function App() {
   return (
     <>
@@ -758,6 +850,7 @@ function App() {
             <Route path="/resources" element={<Resources />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/auth" element={<AuthApp />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

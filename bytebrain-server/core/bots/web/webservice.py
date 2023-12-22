@@ -16,6 +16,8 @@ app.include_router(projects_router)
 app.include_router(chat_router)
 app.include_router(feedbacks_router)
 
+origins = ['http://localhost:5173']
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
