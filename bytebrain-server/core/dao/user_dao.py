@@ -7,12 +7,14 @@ import config
 
 
 class User(BaseModel):
-    username: str
-    disabled: bool | None = None
+    id: str
+    email: str
+    full_name: Optional[str] = None
+    enabled: bool | None = None
 
 
 class UserInDB(User):
-    hashed_password: str
+    hashed_password: Optional[str]
 
 
 class UserDao:
@@ -30,10 +32,12 @@ class UserDao:
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                hashed_password TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                full_name TEXT,
+                hashed_password TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                enabled BOOLEAN DEFAULT FALSE NOT NULL
             )
         """)
         conn.commit()
@@ -44,21 +48,40 @@ class UserDao:
             cursor = connection.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (username, hashed_password)
-                VALUES (?, ?)
+                INSERT INTO users (id, email, full_name, enabled, hashed_password)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (user.username, user.hashed_password),
+                (user.id, user.email, user.full_name, user.enabled, user.hashed_password),
             )
             connection.commit()
 
-    def get_user(self, username: str) -> Optional[UserInDB]:
+    def get_user_with_password(self, email: str) -> Optional[UserInDB]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
 
-            cursor.execute("SELECT * FROM users WHERE username=?", (username,))
+            cursor.execute("SELECT * FROM users WHERE email=?", (email,))
             user = cursor.fetchone()
 
         if user:
-            return UserInDB(username=user[1], hashed_password=user[2])
+            return UserInDB(id=user[0], email=user[1], full_name=user[2], hashed_password=user[3])
         else:
             return None
+
+    def get_user(self, email: str) -> Optional[User]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("SELECT * FROM users WHERE email=?", (email,))
+            user = cursor.fetchone()
+
+        if user:
+            return User(id=user[0], email=user[1], full_name=user[2])
+        else:
+            return None
+
+    def set_enabled(self, id: str, value: bool):
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("UPDATE users SET enabled=? WHERE id=?", (value, id))
+            connection.commit()

@@ -13,17 +13,16 @@ function loginWithGithub(): void {
 
 export function AuthApp() {
   const [rerender, setRerender] = React.useState(false);
-  const [userData, setUserData] = React.useState({ name: "guest" });
+  const [userData, setUserData] = React.useState({ 'full_name': 'Guest' });
 
   useEffect(() => {
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const codeParam = urlParams.get("code");
-    console.log(codeParam);
 
     if (codeParam && localStorage.getItem("accessToken") == null) {
       async function getAccessToken() {
-        await fetch("http://localhost:8081/getAccessToken?code=" + codeParam, {
+        await fetch("http://localhost:8081/auth/github/access_token?code=" + codeParam, {
           method: "GET",
         })
           .then((response) => {
@@ -43,6 +42,7 @@ export function AuthApp() {
 
     if (!codeParam && localStorage.getItem("accessToken")) {
       getUserData();
+      setRerender(!rerender);
     }
   }, []);
 
@@ -73,7 +73,7 @@ export function AuthApp() {
       <header className="App-header">
         {localStorage.getItem("accessToken") ? (
           <>
-            <h1>Hello {userData.name}</h1>
+            <h1>Hello {userData.full_name}</h1>
             <button
               onClick={() => {
                 localStorage.removeItem("accessToken");

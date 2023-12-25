@@ -4,12 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import load_config
 from core.bots.web.routers.auth import auth_router
+from core.bots.web.routers.users import users_router
 from core.bots.web.routers.chat import chat_router
 from core.bots.web.routers.feedbacks import feedbacks_router
 from core.bots.web.routers.projects import projects_router
 from core.bots.web.routers.resources import resources_router
 
 app = FastAPI()
+app.include_router(users_router)
 app.include_router(auth_router)
 app.include_router(resources_router)
 app.include_router(projects_router)

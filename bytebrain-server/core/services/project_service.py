@@ -19,15 +19,15 @@ class ProjectService:
         self.project_dao = project_dao
         self.resource_service = resource_service
 
-    def delete_projects_owned_by(self, username: str):
-        projects_to_delete = self.project_dao.get_all_projects(username)
+    def delete_projects_owned_by(self, user_id: str):
+        projects_to_delete = self.project_dao.get_all_projects(user_id)
         for project in projects_to_delete:
-            self.delete_project(project.id, username)
+            self.delete_project(project.id, user_id)
 
-    def delete_project(self, project_id: str, requesting_username: str):
+    def delete_project(self, project_id: str, user_id: str):
         project_to_delete = self.project_dao.get_project_by_id(project_id)
         if project_to_delete is not None:
-            if project_to_delete.username == requesting_username:
+            if project_to_delete.user_id == user_id:
                 self.resource_service.delete_resources_by_project_id(project_id)
                 self.project_dao.delete_project(project_id)
             else:
@@ -41,13 +41,13 @@ class ProjectService:
                 detail="Project not found!"
             )
 
-    def create_project(self, name: str, username: str) -> Project:
-        project = Project.create(name, username)
+    def create_project(self, name: str, user_id: str) -> Project:
+        project = Project.create(name, user_id)
         self.project_dao.create_project(project)
         return project
 
-    def get_all_projects(self, username: str) -> list[Project]:
-        projects = self.project_dao.get_all_projects(username)
+    def get_all_projects(self, user_id: str) -> list[Project]:
+        projects = self.project_dao.get_all_projects(user_id)
 
         def get_project_with_resources(project):
             project.resources = self.resource_service.get_resources_by_project_id(project.id)

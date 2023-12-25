@@ -17,7 +17,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/access_token")
 
 
 def verify_password(plain_password, hashed_password) -> bool:
@@ -28,8 +28,8 @@ def get_password_hash(password) -> str:
     return pwd_context.hash(password)
 
 
-def authenticate_user(username: str, password: str, user_dao: Annotated[UserDao, Depends()]) -> Optional[UserInDB]:
-    user = user_dao.get_user(username)
+def authenticate_user(email: str, password: str, user_dao: Annotated[UserDao, Depends()]) -> Optional[UserInDB]:
+    user = user_dao.get_user_with_password(email)
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -48,6 +48,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
+def create_access_token_by_email(email: str) -> dict:
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
                            user_dao: Annotated[UserDao, Depends()]) -> Optional[UserInDB]:
     credentials_exception = HTTPException(
@@ -57,12 +65,12 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user: Optional[UserInDB] = user_dao.get_user(username=username)
+    user: Optional[UserInDB] = user_dao.get_user(email=email)
     if user is None:
         raise credentials_exception
     return user
@@ -71,6 +79,6 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
 async def get_current_active_user(
         current_user: Annotated[User, Depends(get_current_user)]
 ):
-    if current_user.disabled:
+    if current_user.enabled is False:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

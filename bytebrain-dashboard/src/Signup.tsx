@@ -1,12 +1,13 @@
+import { UserAuthForm } from "@/authentication/components/user-auth-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+
+import { cn } from "@/lib/utils";
 
 import "./App.css";
 
 ("use client");
 
-import { UserAuthForm } from "@/authentication/components/user-auth-form";
-import { cn } from "@/lib/utils";
 
 export function Signup() {
   return (

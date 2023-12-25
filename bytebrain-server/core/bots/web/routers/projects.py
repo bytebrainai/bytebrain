@@ -21,7 +21,7 @@ class ProjectCreation(BaseModel):
 async def create_project(project: ProjectCreation,
                          current_user: Annotated[User, Depends(get_current_active_user)],
                          project_service: Annotated[ProjectService, Depends(project_service)]):
-    return project_service.create_project(name=project.name, username=current_user.username)
+    return project_service.create_project(name=project.name, user_id=current_user.id)
 
 
 @router.delete("/projects/{project_id}", status_code=204, tags=["Projects"])
@@ -29,28 +29,28 @@ async def delete_project(
         project_id,
         current_user: Annotated[User, Depends(get_current_active_user)],
         project_service: Annotated[ProjectService, Depends(project_service)]):
-    project_service.delete_project(project_id, current_user.username)
+    project_service.delete_project(project_id, current_user.email)
 
 
 @router.delete("/projects/", status_code=204, tags=["Projects"])
 async def delete_all_project(
         current_user: Annotated[User, Depends(get_current_active_user)],
         project_service: Annotated[ProjectService, Depends(project_service)]):
-    project_service.delete_projects_owned_by(current_user.username)
+    project_service.delete_projects_owned_by(current_user.email)
 
 
 @router.get("/projects/", response_model=list[Project], tags=["Projects"])
 # TODO: exclude resources when its empty
 async def get_all_projects(current_user: Annotated[User, Depends(get_current_active_user)],
                            project_service: Annotated[ProjectService, Depends(project_service)]) -> Any:
-    return project_service.get_all_projects(current_user.username)
+    return project_service.get_all_projects(current_user.email)
 
 
 @router.get("/projects/{project_id}", tags=["Projects"])
 async def get_project_by_id(project_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
                             project_service: Annotated[ProjectService, Depends(project_service)]):
     project = project_service.get_project_by_id(project_id)
-    if project.username == current_user.username:
+    if project.user_id == current_user.id:
         if project:
             return project
         else:

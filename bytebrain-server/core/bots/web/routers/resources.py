@@ -27,7 +27,7 @@ async def submit_new_website_resource(resource: WebsiteResourceRequest,
                                       resource_service: Annotated[ResourceService, Depends(resource_service)]):
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        if project.username == current_user.username:
+        if project.user_id == current_user.id:
             resource_id = resource_service.submit_website_resource(resource.name, resource.url, resource.project_id)
         else:
             raise HTTPException(
@@ -56,7 +56,7 @@ async def submit_new_webpage_resource(resource: WebpageResourceRequest,
                                       resource_service: Annotated[ResourceService, Depends(resource_service)]):
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        if project.username == current_user.username:
+        if project.user_id == current_user.id:
             resource_id = resource_service.submit_webpage_resource(resource.name, resource.url, resource.project_id)
         else:
             raise HTTPException(
@@ -85,7 +85,7 @@ async def submit_new_youtube_resource(resource: YoutubeResourceRequest,
                                       resource_service: Annotated[ResourceService, Depends(resource_service)]):
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        if project.username == current_user.username:
+        if project.user_id == current_user.id:
             resource_id = resource_service.submit_youtube_resource(resource.name, resource.url, resource.project_id)
         else:
             raise HTTPException(
@@ -140,7 +140,7 @@ async def submit_new_github_resource(resource: GithubResourceRequest,
     paths = resource.paths if resource.paths is not None else "*"
     project = project_service.get_project_by_id(resource.project_id)
     if project is not None:
-        if project.username == current_user.username:
+        if project.user_id == current_user.id:
             resource_id = resource_service.submit_github_resource(resource.name,
                                                                   resource.language.value,
                                                                   resource.clone_url,
@@ -173,7 +173,7 @@ async def update_resource(
         resource_service: Annotated[ResourceService, Depends(resource_service)]):
     resource = resource_service.get_resource_by_id(resource_id)
     project = project_service.get_project_by_id(resource.project_id)
-    if project.username == current_user.username:
+    if project.user_id == current_user.id:
         if resource_service.submit_resource_update(resource_id):
             return JSONResponse({
                 "resource_id": resource_id,
@@ -200,7 +200,7 @@ async def delete_resource(resource_id: str,
     if resource is not None:
         project = project_service.get_project_by_id(resource.project_id)
         if project is not None:
-            if project.username == current_user.username:
+            if project.user_id == current_user.id:
                 resource_service.delete_resource(resource_id)
             else:
                 raise HTTPException(
