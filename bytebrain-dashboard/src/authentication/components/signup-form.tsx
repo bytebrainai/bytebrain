@@ -5,13 +5,38 @@ import React, { useEffect } from "react";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
 
 interface SignupFormProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 const CLIENT_ID = "c9345d9e244bb69e4c59";
+
+const formSchema = z.object({
+  full_name: z.string()
+    .min(3, { message: "Full name must be at least 3 characters long." })
+    .max(20, { message: "Full name must be at most 50 characters long." })
+    .regex(/^[a-zA-Z\s]*$/, { message: "Full name must only contain alphabets." }),
+  username: z.string().email({ message: "Invalid email address." }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters long." })
+    .max(20, { message: "Password must be at most 20 characters long." }),
+});
+
 
 export function loginWithGithub(): void {
   window.location.assign(
@@ -20,13 +45,43 @@ export function loginWithGithub(): void {
 }
 
 export function SignupForm({ className, ...props }: SignupFormProps) {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [formData, setFormData] = React.useState({
-    username: "",
-    password: "",
-    full_name: "",
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
   });
   const { toast } = useToast();
+
+
+  async function onSubmitForm(values: z.infer<typeof formSchema>) {
+
+    const access_token: Result<string> = await signup(
+      values.username,
+      values.password,
+      values.full_name
+    );
+
+    if (access_token.success && localStorage.getItem("accessToken") == null) {
+      localStorage.setItem("accessToken", access_token.data);
+      toast({
+        description: "Successfully signed-up",
+      });
+      setTimeout(() => {
+        window.location.assign("http://localhost:5173");
+      }, 2000);
+    } else if (!access_token.success && access_token.error === 'UserAlreadyExists') {
+      toast({
+        description: "User already exists!",
+      });
+    } else {
+      toast({
+        description: "Failed to sign-up",
+      });
+    }
+
+  }
 
   useEffect(() => {
     const fetchAndStoreAccessToken = async () => {
@@ -60,101 +115,88 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
     }
   }, []);
 
-  async function handleSignupSubmittion() {
-    const access_token: Result<string> = await signup(
-      formData.username,
-      formData.password,
-      formData.full_name
-    );
-
-    if (access_token.success && localStorage.getItem("accessToken") == null) {
-      localStorage.setItem("accessToken", access_token.data);
-      toast({
-        description: "Successfully signed-up",
-      });
-      setTimeout(() => {
-        window.location.assign("http://localhost:5173");
-      }, 2000);
-    } else {
-      toast({
-        description: "Failed to sign-up",
-      });
-    }
-  }
-
-  async function onSubmit(event: React.SyntheticEvent) {
-    event.preventDefault();
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-  }
-
-  const handleChange = (e: any) => {
-    console.log(e.target.id, e.target.value);
-    const { id, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [id]: value,
-    }));
-  };
 
   return (
     <div className={cn("grid gap-6", className)} {...props}>
-      <form onSubmit={onSubmit}>
-        <div className="grid gap-2">
-          <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="full_name">
-              Full Name
-            </Label>
-            <Input
-              id="full_name"
-              placeholder="Full Name"
-              type="full_name"
-              value={formData.full_name}
-              autoCapitalize="none"
-              autoComplete="full_name"
-              autoCorrect="off"
-              disabled={isLoading}
-              onChange={handleChange}
-            />
-            <Label className="sr-only" htmlFor="email">
-              Email
-            </Label>
-            <Input
-              id="username"
-              placeholder="Email Address"
-              type="email"
-              value={formData.username}
-              autoCapitalize="none"
-              // autoComplete="email"
-              autoCorrect="off"
-              disabled={isLoading}
-              onChange={handleChange}
-            />
-            <Label className="sr-only" htmlFor="password">
-              Password
-            </Label>
-            <Input
-              id="password"
-              placeholder="Password"
-              type="password"
-              value={formData.password}
-              autoCapitalize="none"
-              autoCorrect="off"
-              disabled={isLoading}
-              onChange={handleChange}
-            />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmitForm)}>
+          <div className="grid gap-2">
+            <div className="grid gap-1">
+
+              <FormField
+                control={form.control}
+                name="full_name"
+                render={({ field, formState }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Full Name"
+                        autoCapitalize="none"
+                        autoComplete="true"
+                        autoCorrect="off"
+                        disabled={formState.isSubmitting}
+                      ></Input>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field, formState }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Email Address"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        disabled={formState.isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field, formState }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Password"
+                        type="password"
+                        autoCapitalize="none"
+                        autoComplete="true"
+                        autoCorrect="off"
+                        onClick={() => {
+                          console.log(field);
+                        }}
+                        disabled={formState.isSubmitting}
+                      ></Input>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button disabled={form.formState.isSubmitting} >
+              {form.formState.isLoading && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Sign-up with Email
+            </Button>
           </div>
-          <Button disabled={isLoading} onClick={handleSignupSubmittion}>
-            {isLoading && (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Sign-up with Email
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Form>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
@@ -168,10 +210,10 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
       <Button
         variant="outline"
         type="button"
-        disabled={isLoading}
+        disabled={form.formState.isSubmitting}
         onClick={loginWithGithub}
       >
-        {isLoading ? (
+        {form.formState.isSubmitting ? (
           <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Icons.gitHub className="mr-2 h-4 w-4" />
@@ -202,13 +244,13 @@ export type Success<T> = {
 };
 
 // Define a custom type for failure
-export type Failure = {
+export type Failure<T> = {
   success: false;
-  error: any;
+  error: T;
 };
 
 // Define a union type for both success and failure
-export type Result<T> = Success<T> | Failure;
+export type Result<T> = Success<T> | Failure<T>;
 
 export async function signup(
   username: string,
@@ -234,9 +276,14 @@ export async function signup(
       headers: headers,
       body: new URLSearchParams(data),
     });
+
+    if (response.status === 409) {
+      return { success: false, error: "UserAlreadyExists" };
+    }
+
     const responseData = await response.json();
     return { success: true, data: responseData.access_token };
   } catch (error) {
-    return { success: false, error: error };
+    return { success: false, error: JSON.stringify(error) };
   }
 }

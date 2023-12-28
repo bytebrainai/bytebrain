@@ -47,7 +47,7 @@ async def register(
     existing_user = user_dao.get_user(form_data.username)  # TODO: use email instead of username
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="This user is already registered",
         )
 
