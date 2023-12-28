@@ -5,7 +5,9 @@ import { AuthApp } from "./AuthApp";
 import { LoginPage } from "./LoginPage";
 import { Projects } from "./Projects";
 import { Resources } from "./Resources";
+import { RootApp } from "./RootApp";
 import { Signup } from "./Signup";
+import { Toaster } from "./components/ui/toaster";
 
 ("use client");
 
@@ -17,11 +19,13 @@ function App() {
           <Routes>
             <Route path="/projects" element={<Projects />} />
             <Route path="/resources" element={<Resources />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth" element={<AuthApp />} />
+            <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth" element={<LoginPage />} />
+            <Route path="/" element={<Projects />} />
           </Routes>
         </BrowserRouter>
+        <Toaster />
       </ThemeProvider>
     </>
   );

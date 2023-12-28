@@ -2,6 +2,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { Link } from "react-router-dom";
 
 import "./App.css";
+import Profile from "./Profile";
 
 ("use client");
 
@@ -41,7 +42,7 @@ export function NavBar() {
           href="/"
           data-bcup-haslogintext="no"
         >
-          <span className="hidden sm:inline-block">Profile</span>
+          <Profile />
         </a>
       </div>
     </div>

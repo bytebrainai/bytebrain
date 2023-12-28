@@ -1,14 +1,12 @@
+import { Icons } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-
 import "./App.css";
+import { SigninForm } from "./authentication/components/signin-form";
 
 ("use client");
-
-import { UserAuthForm } from "@/authentication/components/user-auth-form";
-import { Icons } from "@/components/icons";
-import { cn } from "@/lib/utils";
 
 export function LoginPage() {
   return (
@@ -35,10 +33,10 @@ export function LoginPage() {
             Enter your email to sign in to your account
           </p>
         </div>
-        <UserAuthForm />
+        <SigninForm />
         <p className="px-8 text-center text-sm text-muted-foreground">
           <Link
-            to="/signup"
+            to="/auth/signup"
             className="hover:text-brand underline underline-offset-4"
           >
             Don&apos;t have an account? Sign Up
