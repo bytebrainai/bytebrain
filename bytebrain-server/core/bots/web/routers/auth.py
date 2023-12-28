@@ -39,7 +39,7 @@ class OAuth2PasswordRequestForm:
         self.client_secret = client_secret
 
 
-@router.post("/register", response_model=Dict[str, str], tags=["Authentication"])
+@router.post("/auth/signup", response_model=Dict[str, str], tags=["Authentication"])
 async def register(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
         user_dao: Annotated[UserDao, Depends(UserDao)]
@@ -61,8 +61,7 @@ async def register(
             hashed_password=hashed_password
         )
     )
-
-    return {"email": form_data.username}  # TODO: use email instead of username
+    return create_access_token_by_email(form_data.username)
 
 
 class Token(BaseModel):
