@@ -5,23 +5,64 @@ import React, { useEffect } from "react";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { loginWithGithub, getAccessToken, signup, Result } from "./signup-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { getAccessToken, loginWithGithub } from "./signup-form";
 
-interface SigninFormProps extends React.HTMLAttributes<HTMLDivElement> { }
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
-const CLIENT_ID = "c9345d9e244bb69e4c59";
+interface SigninFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
+const formSchema = z.object({
+  username: z.string().email({ message: "Invalid email address." }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters long." })
+    .max(20, { message: "Password must be at most 20 characters long." }),
+});
 
 export function SigninForm({ className, ...props }: SigninFormProps) {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [formData, setFormData] = React.useState({
-    username: "",
-    password: "",
-    full_name: "",
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
   });
+
+  async function onSubmitForm(values: z.infer<typeof formSchema>) {
+    const access_token = await login(values.username, values.password);
+
+    if (access_token.success && localStorage.getItem("accessToken") == null) {
+      console.log(access_token);
+      localStorage.setItem("accessToken", access_token.data);
+      toast({
+        description: "Successfully logged-in",
+      });
+      setTimeout(() => {
+        window.location.assign("http://localhost:5173");
+      }, 2000);
+    } else if (!access_token.success && access_token.error === "Unauthorized") {
+      toast({
+        description: "Username or password is incorrect!",
+      });
+    } else {
+      toast({
+        description: "There was an error logging in. Please try again.",
+      });
+    }
+  }
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,87 +97,65 @@ export function SigninForm({ className, ...props }: SigninFormProps) {
     }
   }, []);
 
-  async function handleSignupSubmittion() {
-    const access_token: Result<string> = await login(
-      formData.username,
-      formData.password
-    );
-
-    if (access_token.success && localStorage.getItem("accessToken") == null) {
-      console.log(access_token)
-      localStorage.setItem("accessToken", access_token.data);
-      toast({
-        description: "Successfully logged-in",
-      });
-      setTimeout(() => {
-        window.location.assign("http://localhost:5173");
-      }, 2000);
-    } else {
-      toast({
-        description: "Failed to log-in",
-      });
-    }
-  }
-
-  async function onSubmit(event: React.SyntheticEvent) {
-    event.preventDefault();
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-  }
-
-  const handleChange = (e: any) => {
-    console.log(e.target.id, e.target.value);
-    const { id, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [id]: value,
-    }));
-  };
-
   return (
     <div className={cn("grid gap-6", className)} {...props}>
-      <form onSubmit={onSubmit}>
-        <div className="grid gap-2">
-          <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="email">
-              Email
-            </Label>
-            <Input
-              id="username"
-              placeholder="Email Address"
-              type="email"
-              value={formData.username}
-              autoCapitalize="none"
-              // autoComplete="email"
-              autoCorrect="off"
-              disabled={isLoading}
-              onChange={handleChange}
-            />
-            <Label className="sr-only" htmlFor="password">
-              Password
-            </Label>
-            <Input
-              id="password"
-              placeholder="Password"
-              type="password"
-              value={formData.password}
-              autoCapitalize="none"
-              autoCorrect="off"
-              disabled={isLoading}
-              onChange={handleChange}
-            />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmitForm)}>
+          <div className="grid gap-2">
+            <div className="grid gap-1">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field, formState }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Email Address"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        disabled={formState.isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field, formState }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Password"
+                        type="password"
+                        autoCapitalize="none"
+                        autoComplete="true"
+                        autoCorrect="off"
+                        onClick={() => {
+                          console.log(field);
+                        }}
+                        disabled={formState.isSubmitting}
+                      ></Input>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Login with Email
+            </Button>
           </div>
-          <Button disabled={isLoading} onClick={handleSignupSubmittion}>
-            {isLoading && (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Login with Email
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Form>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
@@ -150,10 +169,10 @@ export function SigninForm({ className, ...props }: SigninFormProps) {
       <Button
         variant="outline"
         type="button"
-        disabled={isLoading}
+        disabled={form.formState.isSubmitting}
         onClick={loginWithGithub}
       >
-        {isLoading ? (
+        {form.formState.isSubmitting ? (
           <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Icons.gitHub className="mr-2 h-4 w-4" />
@@ -164,12 +183,12 @@ export function SigninForm({ className, ...props }: SigninFormProps) {
   );
 }
 
-
-
 async function login(
   username: string,
-  password: string,
-): Promise<Result<string>> {
+  password: string
+): Promise<
+  { success: true; data: string } | { success: false; error: string }
+> {
   const url = "http://127.0.0.1:8081/auth/access_token";
 
   const headers = {
@@ -188,9 +207,13 @@ async function login(
       headers: headers,
       body: new URLSearchParams(data),
     });
+
+    if (response.status === 401) {
+      return { success: false, error: "Unauthorized" };
+    }
     const responseData = await response.json();
     return { success: true, data: responseData.access_token };
   } catch (error) {
-    return { success: false, error: error };
+    return { success: false, error: JSON.stringify(error) };
   }
 }
