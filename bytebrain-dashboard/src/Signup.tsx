@@ -59,7 +59,7 @@ export function Signup() {
             <blockquote className="space-y-2">
               <p className="text-lg">
                 &ldquo;Our team found ByteBrain AI a game-changer. It’s like a
-                Swiss Army knife for navigating technical documents. .&rdquo;
+                Swiss Army knife for navigating technical documents.&rdquo;
               </p>
               <footer className="text-sm">Adam Fraser</footer>
             </blockquote>

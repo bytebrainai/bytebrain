@@ -29,7 +29,7 @@ const formSchema = z.object({
   full_name: z.string()
     .min(3, { message: "Full name must be at least 3 characters long." })
     .max(20, { message: "Full name must be at most 50 characters long." })
-    .regex(/^[a-zA-Z\s]*$/, { message: "Full name must only contain alphabets." }),
+    .regex(/^[A-Za-z]+(?: [A-Za-z]+)*$/, { message: "Full name must only contain alphabets." }),
   username: z.string().email({ message: "Invalid email address." }),
   password: z
     .string()
@@ -46,6 +46,7 @@ export function loginWithGithub(): void {
 
 export function SignupForm({ className, ...props }: SignupFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
+    mode: "onSubmit",
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
@@ -53,6 +54,7 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
     },
   });
   const { toast } = useToast();
+
 
 
   async function onSubmitForm(values: z.infer<typeof formSchema>) {
@@ -66,7 +68,7 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
     if (access_token.success && localStorage.getItem("accessToken") == null) {
       localStorage.setItem("accessToken", access_token.data);
       toast({
-        description: "Successfully signed-up",
+        description: "There was an error signing up. Please try again!"
       });
       setTimeout(() => {
         window.location.assign("http://localhost:5173");
@@ -77,7 +79,7 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
       });
     } else {
       toast({
-        description: "Failed to sign-up",
+        description: "There was an error signing up. Please try again!"
       });
     }
 

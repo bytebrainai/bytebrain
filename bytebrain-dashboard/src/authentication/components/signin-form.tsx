@@ -58,7 +58,7 @@ export function SigninForm({ className, ...props }: SigninFormProps) {
       });
     } else {
       toast({
-        description: "There was an error logging in. Please try again.",
+        description: "There was an error logging in. Please try again!",
       });
     }
   }
@@ -84,7 +84,7 @@ export function SigninForm({ className, ...props }: SigninFormProps) {
           }, 2000);
         } else {
           toast({
-            description: "Failed to log-in",
+            description: "There was an error logging in. Please try again!",
           });
         }
       }
