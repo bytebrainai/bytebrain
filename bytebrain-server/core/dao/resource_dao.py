@@ -29,7 +29,7 @@ class Resource(BaseModel):
     metadata: dict
     status: ResourceState
     created_at: datetime
-    last_updated_at: datetime
+    updated_at: datetime
 
 
 class ResourceDao:
@@ -40,6 +40,7 @@ class ResourceDao:
     def add_resource(self, resource_id, resource_name, resource_type, project_id, metadata) -> Optional[str]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.cursor()
+            # TODO: refactor last_updated_at to updated_at
             query = '''
                 INSERT OR IGNORE INTO resources (id, resource_name, resource_type, project_id, metadata, status, created_at, last_updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -102,7 +103,7 @@ class ResourceDao:
                                     metadata=json.loads(row[4]),
                                     status=ResourceState(row[5]),
                                     created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
-                                    last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
+                                    updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
                 return resource
             else:
                 return None
@@ -143,7 +144,7 @@ class ResourceDao:
                                     metadata=json.loads(row[4]),
                                     status=ResourceState(row[5]),
                                     created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
-                                    last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
+                                    updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
                 resources.append(resource)
 
             return resources
@@ -164,7 +165,7 @@ class ResourceDao:
                                     metadata=json.loads(row[4]),
                                     status=ResourceState(row[5]),
                                     created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
-                                    last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
+                                    updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S'))
                 resources.append(resource)
 
             return resources
@@ -234,7 +235,7 @@ class ResourceDao:
                 metadata=json.loads(row[4]),
                 status=ResourceState(row[5]),
                 created_at=datetime.strptime(row[6], '%Y-%m-%d %H:%M:%S'),
-                last_updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S')
+                updated_at=datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S')
             )
             resources.append(resource)
 
