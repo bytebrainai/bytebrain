@@ -40,9 +40,6 @@ import "./App.css";
 export function Projects() {
   const [open, setOpen] = useState(false);
 
-  console.log("rendering...");
-
-
   const formSchema = z.object({
     name: z.string()
       .min(3, { message: "Project name must be at least 3 characters long." })
@@ -93,7 +90,6 @@ export function Projects() {
   };
 
   const [projects, setProject] = useState<Project[]>([]);
-  const [render, setRender] = useState(false);
 
   interface Result<T, E> {
     value: T | null;
