@@ -318,9 +318,24 @@ export function Resources(props: any) {
     },
   });
 
+
+  const webpageFormSchema = z.object({
+    name: z.string(),
+    url: z.string().url({ message: "Invalid URL" }),
+  });
+
+  const webpageForm = useForm<z.infer<typeof webpageFormSchema>>({
+    mode: "onSubmit",
+    resolver: zodResolver(webpageFormSchema),
+    defaultValues: {
+      name: "",
+      url: "",
+    },
+  });
+
   async function createWebsiteResource(access_token: string, name: string, url: string, project_id: string): Promise<Result<Resource, Error>> {
     try {
-      const response = await fetch(`http://localhost:8081/resources/website`, {
+      const response = await fetch(`http://localhost:8081/resources/webpage`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -346,7 +361,6 @@ export function Resources(props: any) {
     }
   }
 
-
   async function onSubmitWebsiteForm(values: z.infer<typeof websiteFormSchema>) {
     console.log(values)
     const access_token = localStorage.getItem("accessToken");
@@ -369,6 +383,58 @@ export function Resources(props: any) {
       );
     }
   }
+
+  async function createWebpageResource(access_token: string, name: string, url: string, project_id: string): Promise<Result<Resource, Error>> {
+    try {
+      const response = await fetch(`http://localhost:8081/resources/webpage`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          url: url,
+          project_id: project_id,
+        })
+      })
+      if (response.ok) {
+        const responseData = await response.json();
+        return { value: responseData, error: null };
+      } else {
+        if (response.status === 401) {
+          return { value: null, error: new Unauthorized() }
+        }
+        return { value: null, error: Error(response.statusText) };
+      }
+    } catch (error) {
+      return { value: null, error: Error(JSON.stringify(error)) };
+    }
+  }
+
+  async function onSubmitWebpageForm(values: z.infer<typeof webpageFormSchema>) {
+    const access_token = localStorage.getItem("accessToken");
+    if (access_token) {
+      const result = await createWebpageResource(access_token, values.name, values.url, project.id);
+      if (result.value) {
+        toast({
+          description: "Successfully created resource",
+        });
+        updateProject();
+        setOpen(false);
+      } else {
+        toast({
+          description: "There was an error creating resource. Please try again!",
+        });
+      }
+    } else {
+      window.location.assign(
+        "http://localhost:5173/auth/login"
+      );
+    }
+  }
+
+
 
   const [open, setOpen] = useState(false);
 
@@ -396,7 +462,7 @@ export function Resources(props: any) {
                   <TabsList>
                     <TabsTrigger value="website">Website</TabsTrigger>
                     <TabsTrigger value="webpage">Webpage</TabsTrigger>
-                    <TabsTrigger value="github">Github</TabsTrigger>
+                    <TabsTrigger value="github">GitHub</TabsTrigger>
                     <TabsTrigger value="youtube">Youtube</TabsTrigger>
                   </TabsList>
                   <TabsContent value="website" className="pt-3">
@@ -465,20 +531,67 @@ export function Resources(props: any) {
                   </TabsContent>
                   <TabsContent value="webpage" className="pt-3">
                     Crawl a url and ingest it.
-                    <div className="grid w-full items-center gap-4 pt-5">
-                      <div className="flex flex-col space-y-1.5">
-                        <Label htmlFor="name" className="font-extrabold pb-2">
-                          Name
-                        </Label>
-                        <Input id="name" placeholder="Name of Data Source" />
-                      </div>
-                      <div className="flex flex-col space-y-1.5 pt-4">
-                        <Label htmlFor="url" className="font-extrabold pb-2">
-                          URL
-                        </Label>
-                        <Input id="url" placeholder="Webpage URL" />
-                      </div>
-                    </div>
+                    <Form {...webpageForm}>
+                      <form onSubmit={webpageForm.handleSubmit(onSubmitWebpageForm)}>
+                        <div className="grid w-full items-center gap-4 pt-5">
+                          <div className="flex flex-col space-y-1.5">
+                            <FormField
+                              control={webpageForm.control}
+                              name="name"
+                              render={({ field, formState }) => (
+                                <FormItem>
+                                  <FormLabel className="sr-only">Resource Name</FormLabel>
+                                  <FormControl>
+                                    <>
+                                      <Label htmlFor="name" className="font-extrabold pb-2">
+                                        Name
+                                      </Label>
+                                      <Input
+                                        {...field}
+                                        placeholder="Resource Name"
+                                        autoCapitalize="none"
+                                        autoComplete="true"
+                                        autoCorrect="off"
+                                        disabled={formState.isSubmitting}
+                                      />
+                                    </>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={webpageForm.control}
+                              name="url"
+                              render={({ field, formState }) => (
+                                <FormItem className="pt-4">
+                                  <FormLabel className="sr-only">Website URL</FormLabel>
+                                  <FormControl>
+                                    <>
+                                      <Label htmlFor="name" className="font-extrabold pb-2">
+                                        URL
+                                      </Label>
+                                      <Input
+                                        {...field}
+                                        placeholder="Website URL"
+                                        autoCapitalize="none"
+                                        autoComplete="true"
+                                        autoCorrect="off"
+                                        disabled={formState.isSubmitting}
+                                      />
+                                    </>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex pt-3 pb-3">
+                              <Button className="justify-items-center">Create</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                    </Form>
                   </TabsContent>
                   <TabsContent value="github" className="pt-3">
                     Clone a public repository and ingest it.
@@ -535,6 +648,64 @@ export function Resources(props: any) {
                   </TabsContent>
                   <TabsContent value="youtube" className="pt-3">
                     Fetch Youtube's subtitle and ingest it.
+
+
+
+                    <div className="grid w-full items-center gap-4 pt-5">
+                      <div className="flex items-center flex-row pt-1">
+                        <Label
+                          htmlFor="name"
+                          className="font-extrabold w-1/5"
+                        >
+                          Name
+                        </Label>
+                        <Input id="name" placeholder="Name of Data Source" />
+                      </div>
+                      <div className="flex flex-col pt-1">
+                        <Label htmlFor="url" className="font-extrabold pb-2">
+                          Clone URL
+                        </Label>
+                        <Input
+                          id="url"
+                          placeholder="https://github.com/<namespace>/<project_name>.git"
+                        />
+                      </div>
+                      <div className="flex items-center flex-row pt-2">
+                        <Label
+                          htmlFor="branch"
+                          className="font-extrabold w-1/5"
+                        >
+                          Branch
+                        </Label>
+                        <Input id="branch" placeholder="main" className="" />
+                      </div>
+                      <div className="flex items-center justify-between flex-row pt-2">
+                        <Label
+                          htmlFor="path"
+                          className="font-extrabold pb-2 w-1/5"
+                        >
+                          Path
+                        </Label>
+                        <Input
+                          id="path"
+                          placeholder="Glob Pattern, e.g. /docs/**/*.md"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between flex-row pt-1">
+                        <Label
+                          htmlFor="path"
+                          className="font-extrabold w-2/5"
+                        >
+                          Language
+                        </Label>
+                        <ComboboxDemo />
+                      </div>
+                    </div>
+
+
+
+
+
                     <div className="grid w-full items-center gap-4 pt-5">
                       <div className="flex flex-col space-y-1.5">
                         <Label htmlFor="name" className="font-extrabold pb-2">
