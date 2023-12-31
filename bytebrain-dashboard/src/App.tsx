@@ -18,7 +18,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/projects" element={<Projects />} />
-            <Route path="/resources" element={<Resources />} />
+            <Route path="/projects/:project_id/resources" element={<Resources />}/>
             <Route path="/auth/signup" element={<Signup />} />
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth" element={<LoginPage />} />

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,13 +21,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
+import { useLoaderData, useLocation, useParams } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import "./App.css";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { NavBar } from "./NavBar";
+import { Project, Resource, ResourceType, ResourceStatus, Result, Unauthorized } from "./Projects"
 
 ("use client");
 
@@ -176,26 +178,71 @@ export function ComboboxDemo() {
   );
 }
 
-export function Resources() {
-  type Resource = {
-    id: string;
-    name: string;
-    type: "Website" | "Webpage" | "Github" | "Youtube";
-    status: "Pending" | "Success" | "Failed";
-    updated_at: string;
-  };
+export function Resources(props: any) {
+  const location = useLocation();
+  const [project, setProject] = React.useState<Project | null>(null);
+  const { project_id } = useParams();
+
+  async function getProject(access_token: string): Promise<Result<Project, Error>> {
+    try {
+      const response = await fetch(`http://localhost:8081/projects/${project_id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      })
+      if (response.ok) {
+        const responseData = await response.json();
+        return { value: responseData, error: null };
+      } else {
+        if (response.status === 401) {
+          return { value: null, error: new Unauthorized() }
+        }
+        return { value: null, error: Error(response.statusText) };
+      }
+    } catch (error) {
+      return { value: null, error: Error(JSON.stringify(error)) };
+    }
+  }
+
+  const { toast } = useToast();
+
+  function updateProject() {
+    const access_token = localStorage.getItem("accessToken");
+    if (access_token) {
+      getProject(access_token).then((result) => {
+        if (result.value) {
+          setProject(result.value);
+        } else {
+          toast({
+            description: "There was an error fetching projects. Please try again!",
+          });
+        }
+      });
+    } else {
+      window.location.assign(
+        "http://localhost:5173/auth/login"
+      );
+
+    }
+
+  }
+
+  React.useEffect(() => {
+    updateProject();
+  }, []);
 
   const resourcesColumns: ColumnDef<Resource>[] = [
     {
-      accessorKey: "id",
+      accessorKey: "resource_id",
       header: "ID",
     },
     {
-      accessorKey: "name",
+      accessorKey: "resource_name",
       header: "Name",
     },
     {
-      accessorKey: "type",
+      accessorKey: "resource_type",
       header: "Type",
     },
     {
@@ -229,7 +276,7 @@ export function Resources() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => {}}>Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { }}>Delete</DropdownMenuItem>
               <DropdownMenuItem>Renew Ingestion</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>View Indexed Documents</DropdownMenuItem>
@@ -240,36 +287,6 @@ export function Resources() {
     },
   ];
 
-  const resources: Resource[] = [
-    {
-      id: "1",
-      name: "Website 1",
-      type: "Website",
-      status: "Pending",
-      updated_at: "2022-01-01T00:00:00Z",
-    },
-    {
-      id: "2",
-      name: "Webpage 1",
-      type: "Webpage",
-      status: "Success",
-      updated_at: "2022-01-02T00:00:00Z",
-    },
-    {
-      id: "3",
-      name: "Github Repo 1",
-      type: "Github",
-      status: "Failed",
-      updated_at: "2022-01-03T00:00:00Z",
-    },
-    {
-      id: "4",
-      name: "Youtube Video 1",
-      type: "Youtube",
-      status: "Success",
-      updated_at: "2022-01-04T00:00:00Z",
-    },
-  ];
 
   return (
     <>
@@ -420,7 +437,7 @@ export function Resources() {
       </div>
 
       <div className="container mx-auto py-10">
-        <DataTable columns={resourcesColumns} data={resources} />
+        <DataTable columns={resourcesColumns} data={project ? project.resources : []} />
       </div>
     </>
   );

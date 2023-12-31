@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import moment from "moment";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,30 +14,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/use-toast";
-import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, PlusCircleIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
-import { DataTable } from "./app/data-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { NavBar } from "./NavBar";
 import {
   Form,
   FormControl,
   FormField, FormItem, FormLabel,
   FormMessage
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal, PlusCircleIcon } from "lucide-react";
+import moment from "moment";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { NavLink } from "react-router-dom";
 import * as z from "zod";
+import { NavBar } from "./NavBar";
+import { DataTable } from "./app/data-table";
 
 import "./App.css";
 
@@ -57,50 +57,8 @@ export function Projects() {
   });
 
 
-  enum ResourceType {
-    Website = "website",
-    Webpage = "webpage",
-    Youtube = "youtube",
-    GitHub = "github",
-  }
-
-  enum ResourceStatus {
-    Pending = "pending",
-    Loading = "loading",
-    Indexing = "indexing",
-    Finished = "finished",
-  }
-
-  type Resource = {
-    resource_id: string,
-    resource_name: string,
-    resource_type: ResourceType,
-    project_id: string,
-    metadata: string,
-    status: ResourceStatus,
-    created_at: string,
-    updated_at: string,
-  }
-
-  type Project = {
-    id: string;
-    name: string;
-    user_id: string,
-    created_at: string,
-  };
-
   const [projects, setProject] = useState<Project[]>([]);
 
-  interface Result<T, E> {
-    value: T | null;
-    error: E | null;
-  }
-
-  class Unauthorized extends Error {
-    constructor() {
-      super('Invalid username or password');
-    }
-  }
 
   async function onSubmitForm(data: z.infer<typeof formSchema>) {
     const project = await createProject(data.name, data.description);
@@ -117,10 +75,7 @@ export function Projects() {
     }
   }
 
-  async function getProjects(): Promise<Result<Project[], Error>> {
-
-    const access_token = localStorage.getItem("accessToken");
-
+  async function getProjects(access_token: string): Promise<Result<Project[], Error>> {
     try {
       const response = await fetch("http://localhost:8081/projects", {
         method: "GET",
@@ -207,15 +162,24 @@ export function Projects() {
 
 
   function updateProjects() {
-    getProjects().then((result) => {
-      if (result.value) {
-        setProject(result.value);
-      } else {
-        toast({
-          description: "There was an error fetching projects. Please try again!",
-        });
-      }
-    });
+    const access_token = localStorage.getItem("accessToken");
+    if (access_token) {
+      getProjects(access_token).then((result) => {
+        if (result.value) {
+          setProject(result.value);
+        } else {
+          toast({
+            description: "There was an error fetching projects. Please try again!",
+          });
+        }
+      });
+    } else {
+      window.location.assign(
+        "http://localhost:5173/auth/login"
+      );
+
+    }
+
   }
 
   useEffect(() => {
@@ -264,7 +228,7 @@ export function Projects() {
               }}>Delete</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
-                <NavLink to="/resources">Manage Resources</NavLink>
+                <NavLink to={"/projects/" + project.id + "/resources/"}>Manage Resources</NavLink>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -360,3 +324,47 @@ export function Projects() {
 }
 
 export default Projects;
+
+export enum ResourceType {
+  Website = "website",
+  Webpage = "webpage",
+  Youtube = "youtube",
+  GitHub = "github",
+}
+
+export enum ResourceStatus {
+  Pending = "pending",
+  Loading = "loading",
+  Indexing = "indexing",
+  Finished = "finished",
+}
+
+export type Resource = {
+  resource_id: string,
+  resource_name: string,
+  resource_type: ResourceType,
+  project_id: string,
+  metadata: string,
+  status: ResourceStatus,
+  created_at: string,
+  updated_at: string,
+}
+
+export type Project = {
+  id: string;
+  name: string;
+  user_id: string,
+  resources: Resource[],
+  created_at: string,
+};
+
+export interface Result<T, E> {
+  value: T | null;
+  error: E | null;
+}
+
+export class Unauthorized extends Error {
+  constructor() {
+    super('Invalid username or password');
+  }
+}
