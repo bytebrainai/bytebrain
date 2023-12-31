@@ -1,5 +1,6 @@
 import sqlite3
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -11,12 +12,13 @@ class Project(BaseModel):
     id: str
     name: str
     user_id: str
-    resources: Optional[list[Resource]] = None
+    resources: Optional[list[Resource]] = None  # TODO: we can use simple type: list[Resource]
+    created_at: datetime
 
     @classmethod
     def create(cls, name: str, user_id: str):
         # Use uuid4 to generate a random UUID
-        return cls(id=str(uuid.uuid4()), name=name, user_id=user_id)
+        return cls(id=str(uuid.uuid4()), name=name, user_id=user_id, created_at=datetime.now().replace(microsecond=0))
 
 
 class ProjectDao:
@@ -31,12 +33,13 @@ class ProjectDao:
                 CREATE TABLE IF NOT EXISTS projects (
                     id TEXT PRIMARY KEY,
                     name TEXT,
-                    user_id TEXT
+                    user_id TEXT,
+                    created_at TIMESTAMP DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
                 )
             ''')
             conn.commit()
 
-    def create_project(self, project: Project):
+    def create_project(self, project: Project):  # TODO: rename to save_project
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -49,12 +52,13 @@ class ProjectDao:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, name, user_id FROM projects WHERE id = ?
+                SELECT id, name, user_id, created_at FROM projects WHERE id = ?
             ''', (project_id,))
             result = cursor.fetchone()
 
             if result:
-                return Project(id=result[0], name=result[1], user_id=result[2])
+                return Project(id=result[0], name=result[1], user_id=result[2],
+                               created_at=datetime.strptime(result[3], '%Y-%m-%d %H:%M:%S'))
             else:
                 return None
 
@@ -62,12 +66,13 @@ class ProjectDao:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, name, user_id FROM projects
+                SELECT id, name, user_id, created_at FROM projects
                     WHERE user_id = ?
             ''', (user_id,))
             results = cursor.fetchall()
 
-            return [Project(id=result[0], name=result[1], user_id=result[2]) for result in results]
+            return [Project(id=result[0], name=result[1], user_id=result[2],
+                            created_at=datetime.strptime(result[3], '%Y-%m-%d %H:%M:%S')) for result in results]
 
     def update_project(self, project: Project):
         with sqlite3.connect(self.db_path) as conn:

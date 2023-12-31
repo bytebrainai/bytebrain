@@ -29,21 +29,21 @@ async def delete_project(
         project_id,
         current_user: Annotated[User, Depends(get_current_active_user)],
         project_service: Annotated[ProjectService, Depends(project_service)]):
-    project_service.delete_project(project_id, current_user.email)
+    project_service.delete_project(project_id, current_user.id)
 
 
 @router.delete("/projects/", status_code=204, tags=["Projects"])
 async def delete_all_project(
         current_user: Annotated[User, Depends(get_current_active_user)],
         project_service: Annotated[ProjectService, Depends(project_service)]):
-    project_service.delete_projects_owned_by(current_user.email)
+    project_service.delete_projects_owned_by(current_user.id)
 
 
 @router.get("/projects/", response_model=list[Project], tags=["Projects"])
 # TODO: exclude resources when its empty
 async def get_all_projects(current_user: Annotated[User, Depends(get_current_active_user)],
                            project_service: Annotated[ProjectService, Depends(project_service)]) -> Any:
-    return project_service.get_all_projects(current_user.email)
+    return project_service.get_all_projects(current_user.id)
 
 
 @router.get("/projects/{project_id}", tags=["Projects"])
