@@ -34,7 +34,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useLocation, useParams } from 'react-router-dom';
 
 import "./App.css";
@@ -333,6 +332,43 @@ export function Resources(props: any) {
     },
   });
 
+
+  const githubFormSchema = z.object({
+    name: z.string(),
+    language: z.string(),
+    clone_url: z.string().url({ message: "Invalid URL" }),
+    paths: z.string(),
+    branch: z.string(),
+  });
+
+  const githubForm = useForm<z.infer<typeof githubFormSchema>>({
+    mode: "onSubmit",
+    resolver: zodResolver(githubFormSchema),
+    defaultValues: {
+      name: "",
+      language: "",
+      clone_url: "",
+      paths: "",
+      branch: "",
+    },
+  });
+
+
+  const youtubeFormSchema = z.object({
+    name: z.string(),
+    url: z.string().url({ message: "Invalid URL" }),
+  });
+
+  const youtubeForm = useForm<z.infer<typeof websiteFormSchema>>({
+    mode: "onSubmit",
+    resolver: zodResolver(youtubeFormSchema),
+    defaultValues: {
+      name: "",
+      url: "",
+    },
+  });
+
+
   async function createWebsiteResource(access_token: string, name: string, url: string, project_id: string): Promise<Result<Resource, Error>> {
     try {
       const response = await fetch(`http://localhost:8081/resources/webpage`, {
@@ -435,6 +471,129 @@ export function Resources(props: any) {
   }
 
 
+  async function createGitHubResource(
+    access_token: string,
+    name: string,
+    language: string,
+    clone_url: string,
+    project_id: string,
+    paths: string,
+    branch: string): Promise<Result<Resource, Error>> {
+    try {
+      const response = await fetch(`http://localhost:8081/resources/github`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          language: language,
+          clone_url: clone_url,
+          project_id: project_id,
+          paths: paths,
+          branch: branch,
+        })
+      })
+      if (response.ok) {
+        const responseData = await response.json();
+        return { value: responseData, error: null };
+      } else {
+        if (response.status === 401) {
+          return { value: null, error: new Unauthorized() }
+        }
+        return { value: null, error: Error(response.statusText) };
+      }
+    } catch (error) {
+      return { value: null, error: Error(JSON.stringify(error)) };
+    }
+  }
+
+  async function onSubmitGitHubForm(values: z.infer<typeof githubFormSchema>) {
+    console.log(values)
+
+    const access_token = localStorage.getItem("accessToken");
+    if (access_token) {
+      const result = await createGitHubResource(
+        access_token,
+        values.name,
+        values.language,
+        values.clone_url,
+        project.id,
+        values.paths,
+        values.branch);
+      if (result.value) {
+        toast({
+          description: "Successfully created resource",
+        });
+        updateProject();
+        setOpen(false);
+      } else {
+        toast({
+          description: "There was an error creating resource. Please try again!",
+        });
+      }
+    } else {
+      window.location.assign(
+        "http://localhost:5173/auth/login"
+      );
+    }
+  }
+
+  async function createYoutubeResource(
+    access_token: string,
+    name: string,
+    url: string,
+    project_id: string): Promise<Result<Resource, Error>> {
+    try {
+      const response = await fetch(`http://localhost:8081/resources/youtube`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          url: url,
+          project_id: project_id,
+        })
+      })
+      if (response.ok) {
+        const responseData = await response.json();
+        return { value: responseData, error: null };
+      } else {
+        if (response.status === 401) {
+          return { value: null, error: new Unauthorized() }
+        }
+        return { value: null, error: Error(response.statusText) };
+      }
+    } catch (error) {
+      return { value: null, error: Error(JSON.stringify(error)) };
+    }
+  }
+
+  async function onSubmitYoutubeForm(values: z.infer<typeof websiteFormSchema>) {
+    console.log(values)
+    const access_token = localStorage.getItem("accessToken");
+    if (access_token) {
+      const result = await createYoutubeResource(access_token, values.name, values.url, project.id);
+      if (result.value) {
+        toast({
+          description: "Successfully created resource",
+        });
+        updateProject();
+        setOpen(false);
+      } else {
+        toast({
+          description: "There was an error creating resource. Please try again!",
+        });
+      }
+    } else {
+      window.location.assign(
+        "http://localhost:5173/auth/login"
+      );
+    }
+  }
 
   const [open, setOpen] = useState(false);
 
@@ -476,21 +635,16 @@ export function Resources(props: any) {
                               name="name"
                               render={({ field, formState }) => (
                                 <FormItem>
-                                  <FormLabel className="sr-only">Resource Name</FormLabel>
+                                  <FormLabel className="font-extrabold pb-2">Name</FormLabel>
                                   <FormControl>
-                                    <>
-                                      <Label htmlFor="name" className="font-extrabold pb-2">
-                                        Name
-                                      </Label>
-                                      <Input
-                                        {...field}
-                                        placeholder="Resource Name"
-                                        autoCapitalize="none"
-                                        autoComplete="true"
-                                        autoCorrect="off"
-                                        disabled={formState.isSubmitting}
-                                      />
-                                    </>
+                                    <Input
+                                      {...field}
+                                      placeholder="Resource Name"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -501,21 +655,16 @@ export function Resources(props: any) {
                               name="url"
                               render={({ field, formState }) => (
                                 <FormItem className="pt-4">
-                                  <FormLabel className="sr-only">Website URL</FormLabel>
+                                  <FormLabel className="font-extrabold pb-2">URL</FormLabel>
                                   <FormControl>
-                                    <>
-                                      <Label htmlFor="name" className="font-extrabold pb-2">
-                                        URL
-                                      </Label>
-                                      <Input
-                                        {...field}
-                                        placeholder="Website URL"
-                                        autoCapitalize="none"
-                                        autoComplete="true"
-                                        autoCorrect="off"
-                                        disabled={formState.isSubmitting}
-                                      />
-                                    </>
+                                    <Input
+                                      {...field}
+                                      placeholder="Website URL"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -540,21 +689,16 @@ export function Resources(props: any) {
                               name="name"
                               render={({ field, formState }) => (
                                 <FormItem>
-                                  <FormLabel className="sr-only">Resource Name</FormLabel>
+                                  <FormLabel className="font-extrabold pb-2">Name</FormLabel>
                                   <FormControl>
-                                    <>
-                                      <Label htmlFor="name" className="font-extrabold pb-2">
-                                        Name
-                                      </Label>
-                                      <Input
-                                        {...field}
-                                        placeholder="Resource Name"
-                                        autoCapitalize="none"
-                                        autoComplete="true"
-                                        autoCorrect="off"
-                                        disabled={formState.isSubmitting}
-                                      />
-                                    </>
+                                    <Input
+                                      {...field}
+                                      placeholder="Resource Name"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -565,28 +709,23 @@ export function Resources(props: any) {
                               name="url"
                               render={({ field, formState }) => (
                                 <FormItem className="pt-4">
-                                  <FormLabel className="sr-only">Website URL</FormLabel>
+                                  <FormLabel className="font-extrabold pb-2">URL</FormLabel>
                                   <FormControl>
-                                    <>
-                                      <Label htmlFor="name" className="font-extrabold pb-2">
-                                        URL
-                                      </Label>
-                                      <Input
-                                        {...field}
-                                        placeholder="Website URL"
-                                        autoCapitalize="none"
-                                        autoComplete="true"
-                                        autoCorrect="off"
-                                        disabled={formState.isSubmitting}
-                                      />
-                                    </>
+                                    <Input
+                                      {...field}
+                                      placeholder="Website URL"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                             <div className="flex pt-3 pb-3">
-                              <Button className="justify-items-center">Create</Button>
+                              <Button type="submit" className="justify-items-center">Create</Button>
                             </div>
                           </div>
                         </div>
@@ -595,134 +734,210 @@ export function Resources(props: any) {
                   </TabsContent>
                   <TabsContent value="github" className="pt-3">
                     Clone a public repository and ingest it.
-                    <div className="grid w-full items-center gap-4 pt-5">
-                      <div className="flex items-center flex-row pt-1">
-                        <Label
-                          htmlFor="name"
-                          className="font-extrabold w-1/5"
-                        >
-                          Name
-                        </Label>
-                        <Input id="name" placeholder="Name of Data Source" />
-                      </div>
-                      <div className="flex flex-col pt-1">
-                        <Label htmlFor="url" className="font-extrabold pb-2">
-                          Clone URL
-                        </Label>
-                        <Input
-                          id="url"
-                          placeholder="https://github.com/<namespace>/<project_name>.git"
-                        />
-                      </div>
-                      <div className="flex items-center flex-row pt-2">
-                        <Label
-                          htmlFor="branch"
-                          className="font-extrabold w-1/5"
-                        >
-                          Branch
-                        </Label>
-                        <Input id="branch" placeholder="main" className="" />
-                      </div>
-                      <div className="flex items-center justify-between flex-row pt-2">
-                        <Label
-                          htmlFor="path"
-                          className="font-extrabold pb-2 w-1/5"
-                        >
-                          Path
-                        </Label>
-                        <Input
-                          id="path"
-                          placeholder="Glob Pattern, e.g. /docs/**/*.md"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between flex-row pt-1">
-                        <Label
-                          htmlFor="path"
-                          className="font-extrabold w-2/5"
-                        >
-                          Language
-                        </Label>
-                        <ComboboxDemo />
-                      </div>
-                    </div>
+                    <Form {...githubForm}>
+                      <form onSubmit={githubForm.handleSubmit(onSubmitGitHubForm)}>
+                        <div className="grid w-full items-center gap-4 pt-5">
+                          <div className="flex flex-col space-y-1.5">
+                            <FormField
+                              control={githubForm.control}
+                              name="name"
+                              render={({ field, formState }) => (
+                                <FormItem>
+                                  <FormLabel className="font-extrabold pb-2">Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="Resource Name"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={githubForm.control}
+                              name="clone_url"
+                              render={({ field, formState }) => (
+                                <FormItem className="pt-4">
+                                  <FormLabel className="font-extrabold pb-2">Clone URL</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="https://github.com/<namespace>/<project_name>.git"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={githubForm.control}
+                              name="branch"
+                              render={({ field, formState }) => (
+                                <FormItem className="pt-4 items-center flex flex-row">
+                                  <FormLabel className="font-extrabold w-1/5">Branch</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="main"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={githubForm.control}
+                              name="paths"
+                              render={({ field, formState }) => (
+                                <FormItem className="pt-4 items-center flex flex-row">
+                                  <FormLabel className="font-extrabold w-1/5">Path</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="Glob Pattern, e.g. /docs/**/*.md"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={githubForm.control}
+                              name="language"
+                              render={({ field }) => (
+                                <FormItem className="pt-4 items-center flex flex-row">
+                                  <FormLabel className="font-extrabold w-1/5">Language</FormLabel>
+
+
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          className={cn(
+                                            "w-[200px] justify-between",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value
+                                            ? frameworks.find(
+                                              (language) => language.value === field.value
+                                            )?.label
+                                            : "Select language"}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[200px] p-0">
+                                      <Command>
+                                        <CommandInput placeholder="Search language..." />
+                                        <CommandEmpty>No framework found.</CommandEmpty>
+                                        <CommandGroup className="h-52">
+                                          {frameworks.map((framework) => (
+                                            <CommandItem
+                                              key={framework.value}
+                                              value={framework.value}
+                                              onSelect={() => {
+                                                githubForm.setValue("language", framework.value);
+                                              }}
+                                            >
+                                              <Check
+                                                className={cn(
+                                                  "mr-2 h-4 w-4",
+                                                  field.value === framework.value ? "opacity-100" : "opacity-0"
+                                                )}
+                                              />
+                                              {framework.label}
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </Command>
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex pt-3 pb-3">
+                              <Button type="submit" className="justify-items-center">Create</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                    </Form>
                   </TabsContent>
                   <TabsContent value="youtube" className="pt-3">
                     Fetch Youtube's subtitle and ingest it.
-
-
-
-                    <div className="grid w-full items-center gap-4 pt-5">
-                      <div className="flex items-center flex-row pt-1">
-                        <Label
-                          htmlFor="name"
-                          className="font-extrabold w-1/5"
-                        >
-                          Name
-                        </Label>
-                        <Input id="name" placeholder="Name of Data Source" />
-                      </div>
-                      <div className="flex flex-col pt-1">
-                        <Label htmlFor="url" className="font-extrabold pb-2">
-                          Clone URL
-                        </Label>
-                        <Input
-                          id="url"
-                          placeholder="https://github.com/<namespace>/<project_name>.git"
-                        />
-                      </div>
-                      <div className="flex items-center flex-row pt-2">
-                        <Label
-                          htmlFor="branch"
-                          className="font-extrabold w-1/5"
-                        >
-                          Branch
-                        </Label>
-                        <Input id="branch" placeholder="main" className="" />
-                      </div>
-                      <div className="flex items-center justify-between flex-row pt-2">
-                        <Label
-                          htmlFor="path"
-                          className="font-extrabold pb-2 w-1/5"
-                        >
-                          Path
-                        </Label>
-                        <Input
-                          id="path"
-                          placeholder="Glob Pattern, e.g. /docs/**/*.md"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between flex-row pt-1">
-                        <Label
-                          htmlFor="path"
-                          className="font-extrabold w-2/5"
-                        >
-                          Language
-                        </Label>
-                        <ComboboxDemo />
-                      </div>
-                    </div>
-
-
-
-
-
-                    <div className="grid w-full items-center gap-4 pt-5">
-                      <div className="flex flex-col space-y-1.5">
-                        <Label htmlFor="name" className="font-extrabold pb-2">
-                          Name
-                        </Label>
-                        <Input id="name" placeholder="Name of Data Source" />
-                      </div>
-                      <div className="flex flex-col space-y-1.5 pt-4">
-                        <Label htmlFor="url" className="font-extrabold pb-2">
-                          Youtube URL
-                        </Label>
-                        <Input
-                          id="url"
-                          placeholder="https://www.youtube.com/watch?v=<video_id>"
-                        />
-                      </div>
-                    </div>
+                    <Form {...youtubeForm}>
+                      <form onSubmit={youtubeForm.handleSubmit(onSubmitYoutubeForm)}>
+                        <div className="grid w-full items-center gap-4 pt-5">
+                          <div className="flex flex-col space-y-1.5">
+                            <FormField
+                              control={youtubeForm.control}
+                              name="name"
+                              render={({ field, formState }) => (
+                                <FormItem>
+                                  <FormLabel className="font-extrabold pb-2">Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="Resource Name"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={youtubeForm.control}
+                              name="url"
+                              render={({ field, formState }) => (
+                                <FormItem>
+                                  <FormLabel className="font-extrabold pb-2">Youtube Url</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="https://www.youtube.com/watch?v=<video_id>"
+                                      autoCapitalize="none"
+                                      autoComplete="true"
+                                      autoCorrect="off"
+                                      disabled={formState.isSubmitting}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex pt-3 pb-3">
+                              <Button type="submit" className="justify-items-center">Create</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                    </Form>
                   </TabsContent>
                 </Tabs>
               </DialogDescription>
