@@ -18,7 +18,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, PlusCircleIcon } from "lucide-react";
+import { ArrowUpWideNarrow, MoreHorizontal, PlusCircleIcon } from "lucide-react";
 import moment from "moment";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -190,7 +190,7 @@ export function ComboboxDemo() {
 }
 
 export function Resources(props: any) {
-  const location = useLocation();
+  const [rerender, setRerender] = React.useState(false);
   const [project, setProject] = React.useState<Project>({
     id: "",
     name: "",
@@ -247,7 +247,49 @@ export function Resources(props: any) {
 
   React.useEffect(() => {
     updateProject();
-  }, []);
+  }, [rerender]);
+
+
+  async function deleteResource(id: string): Promise<Result<boolean, Error>> {
+
+    const access_token = localStorage.getItem("accessToken");
+
+    try {
+      const response = await fetch(`http://localhost:8081/resources/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      })
+      if (response.status === 204) {
+        toast({
+          description: "Successfully deleted the resource",
+        });
+        return { value: true, error: null };
+      } else if (response.status === 401) {
+        window.location.assign(
+          "http://localhost:5173/auth/login"
+        );
+        return { value: false, error: new Unauthorized() }
+      } else if (response.status === 404) {
+        toast({
+          description: "Specified resouce not found for deletion!",
+        });
+      }
+      toast({
+        description: "There was an error deleting the resource. Please try again!",
+      });
+      return { value: false, error: Error(response.statusText) };
+    } catch (error) {
+      toast({
+        description: "There was an error deleting the resource. Please try again!",
+      });
+      return { value: false, error: Error(JSON.stringify(error)) };
+    }
+
+  }
+
+
 
   const resourcesColumns: ColumnDef<Resource>[] = [
     {
@@ -261,10 +303,18 @@ export function Resources(props: any) {
     {
       accessorKey: "resource_type",
       header: "Type",
+      cell: (info) => {
+        const value = (info.getValue() as string)
+        return value.charAt(0).toUpperCase() + value.slice(1)
+      }
     },
     {
       accessorKey: "status",
       header: "Status",
+      cell: (info) => {
+        const value = (info.getValue() as string)
+        return value.charAt(0).toUpperCase() + value.slice(1)
+      }
     },
     {
       accessorKey: "updated_at",
@@ -291,7 +341,10 @@ export function Resources(props: any) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => { }}>Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                deleteResource(resource.resource_id);
+                setRerender(!rerender);
+              }}>Delete</DropdownMenuItem>
               <DropdownMenuItem>Renew Ingestion</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>View Indexed Documents</DropdownMenuItem>
@@ -336,7 +389,7 @@ export function Resources(props: any) {
   const githubFormSchema = z.object({
     name: z.string(),
     language: z.string(),
-    clone_url: z.string().url({ message: "Invalid URL" }),
+    clone_url: z.string().regex(new RegExp(/https:\/\/github.com\/.*\.git/), "Invalid Clone URL"),
     paths: z.string(),
     branch: z.string(),
   });
@@ -371,7 +424,7 @@ export function Resources(props: any) {
 
   async function createWebsiteResource(access_token: string, name: string, url: string, project_id: string): Promise<Result<Resource, Error>> {
     try {
-      const response = await fetch(`http://localhost:8081/resources/webpage`, {
+      const response = await fetch(`http://localhost:8081/resources/website`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -388,6 +441,9 @@ export function Resources(props: any) {
         return { value: responseData, error: null };
       } else {
         if (response.status === 401) {
+          window.location.assign(
+            "http://localhost:5173/auth/login"
+          );
           return { value: null, error: new Unauthorized() }
         }
         return { value: null, error: Error(response.statusText) };
@@ -528,6 +584,10 @@ export function Resources(props: any) {
         });
         updateProject();
         setOpen(false);
+      } else if (result.error && result.error instanceof Unauthorized) {
+        window.location.assign(
+          "http://localhost:5173/auth/login"
+        );
       } else {
         toast({
           description: "There was an error creating resource. Please try again!",
