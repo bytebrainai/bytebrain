@@ -990,6 +990,20 @@ gitdb = ">=4.0.1,<5"
 test = ["black", "coverage[toml]", "ddt (>=1.1.1,!=1.4.3)", "mock", "mypy", "pre-commit", "pytest", "pytest-cov", "pytest-instafail", "pytest-subtests", "pytest-sugar"]
 
 [[package]]
+name = "globmatch"
+version = "2.0.0"
+description = "Matching paths against globs"
+optional = false
+python-versions = "*"
+files = [
+    {file = "globmatch-2.0.0-py2.py3-none-any.whl", hash = "sha256:7aef5c66b112f1fcbbacae029e426555e31c7e7556c8542f35931db9b1a9b1d3"},
+    {file = "globmatch-2.0.0.tar.gz", hash = "sha256:f02e51158f4c6112a3ea8c691f7ff6510791e9caf10fc4e62cc8d013d224bf9d"},
+]
+
+[package.extras]
+test = ["pytest (>=4.6)", "pytest-cov"]
+
+[[package]]
 name = "google-api-core"
 version = "2.14.0"
 description = "Google API client core library"
@@ -3618,4 +3632,4 @@ requests = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.12"
-content-hash = "71c744758b8235ae612d1af03a87c4385aec58db0074e854d343a0ac493dfb58"
+content-hash = "46ad6df27060f6a6b24f19f98104fca7f2dee9254b2c068ca6f224be6a8ffd6d"

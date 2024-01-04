@@ -1,4 +1,3 @@
-import fnmatch
 import os
 import re
 import sys
@@ -20,6 +19,7 @@ from langchain.schema import Document
 from langchain.text_splitter import Language
 from langchain.text_splitter import MarkdownTextSplitter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from wcmatch import glob
 
 from core.docs.discord_loader import dump_channel_history
 from core.models.discord.ChannelHistory import ChannelHistory
@@ -98,7 +98,8 @@ def load_sourcecode_from_git_repo(
     file_filter: Optional[Callable[[str], bool]] = None
     if paths:
         try:
-            file_filter = lambda file_path: fnmatch.fnmatch(file_path, os.path.join(repo_path, paths))
+            file_filter = lambda file_path: glob.globmatch(file_path, os.path.join(repo_path, paths),
+                                                           flags=glob.GLOBSTAR)
         except re.error:
             raise ValueError("Invalid regular expression pattern")
     loader = GitLoader(
