@@ -31,8 +31,14 @@ import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
 import * as z from "zod";
 import { NavBar } from "./NavBar";
-import { DataTable } from "./app/data-table";
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import "./App.css";
 
 ("use client");
@@ -186,56 +192,6 @@ export function Projects() {
     updateProjects();
   }, []);
 
-  const projectsColumns: ColumnDef<Project>[] = [
-    {
-      accessorKey: "id",
-      header: "ID",
-    },
-    {
-      accessorKey: "name",
-      header: "Name",
-    },
-    {
-      accessorKey: "created_at",
-      header: "Created At",
-      cell: ({ row }) => {
-        const project = row.original;
-        const parsedDate = moment(project.created_at).format(
-          "YYYY-MM-DD mm:ss"
-        );
-
-        return parsedDate;
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const project = row.original;
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open Menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => {
-                deleteProject(project.id);
-                updateProjects();
-              }}>Delete</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <NavLink to={"/projects/" + project.id + "/resources/"}>Manage Resources</NavLink>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
 
   return (
     <>
@@ -316,8 +272,40 @@ export function Projects() {
         </Dialog>
       </div>
 
-      <div className="container mx-auto py-10">
-        <DataTable columns={projectsColumns} data={projects} />
+      <div className="flex flex-wrap justify-start gap-2 pt-10">
+        {projects.map((project) => (
+          <Card className="w-[380px]">
+            <CardHeader>
+              <div className="flex flex-row place-content-between">
+                <CardTitle> {project.name}</CardTitle>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open Menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => {
+                      deleteProject(project.id);
+                      updateProjects();
+                    }}>Delete</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <NavLink to={"/projects/" + project.id + "/resources/"}>Manage Resources</NavLink>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <CardDescription>Created {moment(project.created_at).fromNow()}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>{project.description}</p>
+            </CardContent>
+          </Card>
+        ))
+        }
       </div>
     </>
   );
@@ -356,6 +344,7 @@ export type Project = {
   user_id: string,
   resources: Resource[],
   created_at: string,
+  description: string,
 };
 
 export interface Result<T, E> {
