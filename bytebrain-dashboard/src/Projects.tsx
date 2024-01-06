@@ -63,13 +63,13 @@ export function Projects() {
   });
 
 
-  const [projects, setProject] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
 
 
   async function onSubmitForm(data: z.infer<typeof formSchema>) {
     const project = await createProject(data.name, data.description);
     if (project.value) {
-      setProject([...projects, project.value]);
+      setProjects([...projects, project.value]);
       setOpen(false);
       toast({
         description: "New project successfully created!",
@@ -172,7 +172,7 @@ export function Projects() {
     if (access_token) {
       getProjects(access_token).then((result) => {
         if (result.value) {
-          setProject(result.value);
+          setProjects(result.value);
         } else {
           toast({
             description: "There was an error fetching projects. Please try again!",
@@ -195,7 +195,7 @@ export function Projects() {
 
   return (
     <>
-      <NavBar />
+      <NavBar projects={projects}/>
       <div className="flex items-center justify-between pt-5">
         <h2 className="h-11 text-2xl font-medium leading-tight sm:text-4xl sm:leading-normal">
           Projects
