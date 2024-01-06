@@ -41,8 +41,8 @@ class ProjectService:
                 detail="Project not found!"
             )
 
-    def create_project(self, name: str, user_id: str) -> Project:
-        project = Project.create(name, user_id)
+    def create_project(self, name: str, user_id: str, description: str) -> Project:
+        project = Project.create(name, user_id, description)
         self.project_dao.create_project(project)
         return project
 

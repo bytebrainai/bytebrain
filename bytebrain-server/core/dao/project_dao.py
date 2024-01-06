@@ -17,9 +17,13 @@ class Project(BaseModel):
     description: str
 
     @classmethod
-    def create(cls, name: str, user_id: str):
+    def create(cls, name: str, user_id: str, description: str):
         # Use uuid4 to generate a random UUID
-        return cls(id=str(uuid.uuid4()), name=name, user_id=user_id, created_at=datetime.now().replace(microsecond=0))
+        return cls(id=str(uuid.uuid4()),
+                   name=name,
+                   user_id=user_id,
+                   created_at=datetime.now().replace(microsecond=0),
+                   description=description)
 
 
 class ProjectDao:

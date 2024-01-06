@@ -15,13 +15,18 @@ projects_router = router = APIRouter()
 
 class ProjectCreation(BaseModel):
     name: str
+    description: str
 
 
 @router.post("/projects/", response_model=Project, response_model_exclude_none=True, tags=["Projects"])
 async def create_project(project: ProjectCreation,
                          current_user: Annotated[User, Depends(get_current_active_user)],
                          project_service: Annotated[ProjectService, Depends(project_service)]):
-    return project_service.create_project(name=project.name, user_id=current_user.id)
+    return project_service.create_project(
+        name=project.name,
+        user_id=current_user.id,
+        description=project.description
+    )
 
 
 @router.delete("/projects/{project_id}", status_code=204, tags=["Projects"])
