@@ -1,0 +1,370 @@
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useToast } from "@/components/ui/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+import { Input } from "@/components/ui/input";
+
+import "./App.css";
+import { Resource, Result, Unauthorized } from "./Projects";
+
+("use client");
+
+import { Check, ChevronsUpDown } from "lucide-react";
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+import { cn } from "@/lib/utils";
+
+function GitHubForm({ project_id, updateProject, setOpen }: { project_id: string, updateProject: () => void, setOpen: (open: boolean) => void }) {
+  const { toast } = useToast();
+
+
+  const frameworks = [
+    {
+      value: "cpp",
+      label: "CPP",
+    },
+    {
+      value: "go",
+      label: "GO",
+    },
+    {
+      value: "java",
+      label: "JAVA",
+    },
+    {
+      value: "kotlin",
+      label: "KOTLIN",
+    },
+    {
+      value: "js",
+      label: "JS",
+    },
+    {
+      value: "ts",
+      label: "TS",
+    },
+    {
+      value: "php",
+      label: "PHP",
+    },
+    {
+      value: "proto",
+      label: "PROTO",
+    },
+    {
+      value: "python",
+      label: "PYTHON",
+    },
+    {
+      value: "rst",
+      label: "RST",
+    },
+    {
+      value: "ruby",
+      label: "RUBY",
+    },
+    {
+      value: "rust",
+      label: "RUST",
+    },
+    {
+      value: "scala",
+      label: "SCALA",
+    },
+    {
+      value: "swift",
+      label: "SWIFT",
+    },
+    {
+      value: "markdown",
+      label: "MARKDOWN",
+    },
+    {
+      value: "latex",
+      label: "LATEX",
+    },
+    {
+      value: "html",
+      label: "HTML",
+    },
+    {
+      value: "sol",
+      label: "SOL",
+    },
+    {
+      value: "csharp",
+      label: "CSHARP",
+    },
+  ];
+
+
+
+  const githubFormSchema = z.object({
+    name: z.string(),
+    language: z.string(),
+    clone_url: z.string().regex(new RegExp(/https:\/\/github.com\/.*\.git/), "Invalid Clone URL"),
+    paths: z.string(),
+    branch: z.string(),
+  });
+
+  const githubForm = useForm<z.infer<typeof githubFormSchema>>({
+    mode: "onSubmit",
+    resolver: zodResolver(githubFormSchema),
+    defaultValues: {
+      name: "",
+      language: "",
+      clone_url: "",
+      paths: "",
+      branch: "",
+    },
+  });
+
+
+  async function createGitHubResource(
+    access_token: string,
+    name: string,
+    language: string,
+    clone_url: string,
+    project_id: string,
+    paths: string,
+    branch: string): Promise<Result<Resource, Error>> {
+    try {
+      const response = await fetch(`http://localhost:8081/resources/github`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          language: language,
+          clone_url: clone_url,
+          project_id: project_id,
+          paths: paths,
+          branch: branch,
+        })
+      })
+      if (response.ok) {
+        const responseData = await response.json();
+        return { value: responseData, error: null };
+      } else {
+        if (response.status === 401) {
+          return { value: null, error: new Unauthorized() }
+        }
+        return { value: null, error: Error(response.statusText) };
+      }
+    } catch (error) {
+      return { value: null, error: Error(JSON.stringify(error)) };
+    }
+  }
+
+  async function onSubmitGitHubForm(values: z.infer<typeof githubFormSchema>) {
+    console.log(values)
+
+    const access_token = localStorage.getItem("accessToken");
+    if (access_token) {
+      const result = await createGitHubResource(
+        access_token,
+        values.name,
+        values.language,
+        values.clone_url,
+        project_id,
+        values.paths,
+        values.branch);
+      if (result.value) {
+        toast({
+          description: "Successfully created resource",
+        });
+        updateProject();
+        setOpen(false);
+      } else if (result.error && result.error instanceof Unauthorized) {
+        window.location.assign(
+          "http://localhost:5173/auth/login"
+        );
+      } else {
+        toast({
+          description: "There was an error creating resource. Please try again!",
+        });
+      }
+    } else {
+      window.location.assign(
+        "http://localhost:5173/auth/login"
+      );
+    }
+  }
+
+  return (
+    <Form {...githubForm}>
+      <form onSubmit={githubForm.handleSubmit(onSubmitGitHubForm)}>
+        <div className="grid w-full items-center gap-4 pt-5">
+          <div className="flex flex-col space-y-1.5">
+            <FormField
+              control={githubForm.control}
+              name="name"
+              render={({ field, formState }) => (
+                <FormItem>
+                  <FormLabel className="font-extrabold pb-2">Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Resource Name"
+                      autoCapitalize="none"
+                      autoComplete="true"
+                      autoCorrect="off"
+                      disabled={formState.isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={githubForm.control}
+              name="clone_url"
+              render={({ field, formState }) => (
+                <FormItem className="pt-4">
+                  <FormLabel className="font-extrabold pb-2">Clone URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="https://github.com/<namespace>/<project_name>.git"
+                      autoCapitalize="none"
+                      autoComplete="true"
+                      autoCorrect="off"
+                      disabled={formState.isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={githubForm.control}
+              name="branch"
+              render={({ field, formState }) => (
+                <FormItem className="pt-4 items-center flex flex-row">
+                  <FormLabel className="font-extrabold w-1/5">Branch</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="main"
+                      autoCapitalize="none"
+                      autoComplete="true"
+                      autoCorrect="off"
+                      disabled={formState.isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={githubForm.control}
+              name="paths"
+              render={({ field, formState }) => (
+                <FormItem className="pt-4 items-center flex flex-row">
+                  <FormLabel className="font-extrabold w-1/5">Path</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Glob Pattern, e.g. /docs/**/*.md"
+                      autoCapitalize="none"
+                      autoComplete="true"
+                      autoCorrect="off"
+                      disabled={formState.isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={githubForm.control}
+              name="language"
+              render={({ field }) => (
+                <FormItem className="pt-4 items-center flex flex-row">
+                  <FormLabel className="font-extrabold w-1/5">Language</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? frameworks.find(
+                              (language) => language.value === field.value
+                            )?.label
+                            : "Select language"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search language..." />
+                        <CommandEmpty>No framework found.</CommandEmpty>
+                        <CommandGroup className="h-52">
+                          {frameworks.map((framework) => (
+                            <CommandItem
+                              key={framework.value}
+                              value={framework.value}
+                              onSelect={() => {
+                                githubForm.setValue("language", framework.value);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  field.value === framework.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {framework.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex pt-3 pb-3">
+              <Button type="submit" className="justify-items-center">Create</Button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </Form>
+  )
+}
+
+
+export default GitHubForm;
