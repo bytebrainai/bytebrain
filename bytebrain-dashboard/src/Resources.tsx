@@ -9,19 +9,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, PlusCircleIcon } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import moment from "moment";
 import { useState } from "react";
 import { DataTable } from "./app/data-table";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useNavigate, useParams } from 'react-router-dom';
 
 import "./App.css";
@@ -32,13 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 ("use client");
 
 import * as React from "react";
-
-
-import GitHubForm from "./GitHubForm";
-import WebpageForm from "./WebpageForm";
-import WebsiteForm from "./WebsiteForm";
-import YoutubeForm from "./YoutubeForm";
-
+import NewDataSourceDialog from "./NewDataSourceDialog";
 
 export function Resources(props: any) {
   const navigate = useNavigate();
@@ -185,8 +171,6 @@ export function Resources(props: any) {
 
   }
 
-
-
   const resourcesColumns: ColumnDef<Resource>[] = [
     {
       accessorKey: "resource_name",
@@ -269,7 +253,6 @@ export function Resources(props: any) {
       <p className="text-sm text-muted-foreground pt-3 pb-3">{project.description}</p>
 
       <Tabs defaultValue="data-sources" className="pt-5 pb-5" onValueChange={(v) => {
-        console.log(v);
         navigate(`/projects/${project_id}/${v}`, { replace: false })
       }}>
         <TabsList>
@@ -280,47 +263,7 @@ export function Resources(props: any) {
         <TabsContent value="data-sources" className="pt-3">
           <div className="flex items-center justify-between pt-5">
             <h2 className="h-11 text-3xl font-medium leading-tight sm:text-3xl sm:leading-normal">Data Sources</h2>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger>
-                <Button className="">
-                  <PlusCircleIcon className="mr-2 h-4 w-4" />
-                  Add New Data Sources
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="text-2xl">
-                    Add New Data Source
-                  </DialogTitle>
-                  <DialogDescription>
-                    <Tabs defaultValue="website" className="w-[400px] pt-5 pb-5">
-                      <TabsList>
-                        <TabsTrigger value="website">Website</TabsTrigger>
-                        <TabsTrigger value="webpage">Webpage</TabsTrigger>
-                        <TabsTrigger value="github">GitHub</TabsTrigger>
-                        <TabsTrigger value="youtube">Youtube</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="website" className="pt-3">
-                        Crawl the entire website and ingest it.
-                        <WebsiteForm project_id={project.id} updateProject={updateProject} setOpen={setOpen} />
-                      </TabsContent>
-                      <TabsContent value="webpage" className="pt-3">
-                        Crawl a url and ingest it.
-                        <WebpageForm project_id={project.id} updateProject={updateProject} setOpen={setOpen} />
-                      </TabsContent>
-                      <TabsContent value="github" className="pt-3">
-                        Clone a public repository and ingest it.
-                        <GitHubForm project_id={project.id} updateProject={updateProject} setOpen={setOpen} />
-                      </TabsContent>
-                      <TabsContent value="youtube" className="pt-3">
-                        Fetch Youtube's subtitle and ingest it.
-                        <YoutubeForm project_id={project.id} updateProject={updateProject} setOpen={setOpen} />
-                      </TabsContent>
-                    </Tabs>
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
+            <NewDataSourceDialog open={open} setOpen={setOpen} project_id={project.id} updateProject={updateProject} />
           </div>
           <div className="container mx-auto py-10">
             <DataTable columns={resourcesColumns} data={project ? project.resources : []} />
