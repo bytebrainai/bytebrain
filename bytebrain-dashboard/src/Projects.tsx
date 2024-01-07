@@ -195,7 +195,7 @@ export function Projects() {
 
   return (
     <>
-      <NavBar projects={projects}/>
+      <NavBar projects={projects} currentProjectId="" />
       <div className="flex items-center justify-between pt-5">
         <h2 className="h-11 text-2xl font-medium leading-tight sm:text-4xl sm:leading-normal">
           Projects
