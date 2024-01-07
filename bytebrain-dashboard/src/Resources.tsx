@@ -34,7 +34,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 
 import "./App.css";
 import { NavBar } from "./NavBar";
@@ -190,6 +190,7 @@ export function ComboboxDemo() {
 }
 
 export function Resources(props: any) {
+  const navigate = useNavigate();
   const [rerender, setRerender] = React.useState(false);
   const [project, setProject] = React.useState<Project>({
     id: "",
@@ -704,7 +705,10 @@ export function Resources(props: any) {
       <h1 className="h-11 text-4xl font-medium leading-tight sm:text-4xl sm:leading-normal">{project.name}</h1>
       <p className="text-sm text-muted-foreground pt-3 pb-3">{project.description}</p>
 
-      <Tabs defaultValue="data-sources" className="pt-5 pb-5">
+      <Tabs defaultValue="data-sources" className="pt-5 pb-5" onValueChange={(v) => {
+        console.log(v);
+        navigate(`/projects/${project_id}/${v}`, { replace: false })
+      }}>
         <TabsList>
           <TabsTrigger value="data-sources">Data Sources</TabsTrigger>
           <TabsTrigger value="chatbot">ChatBot</TabsTrigger>

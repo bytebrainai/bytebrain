@@ -9,6 +9,7 @@ import { RootApp } from "./RootApp";
 import { Signup } from "./Signup";
 import { Toaster } from "./components/ui/toaster";
 
+import { useRoutes } from "react-router-dom";
 ("use client");
 
 function App() {
@@ -18,7 +19,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:project_id/resources" element={<Resources />}/>
+            <Route path="/projects/:project_id/resources" element={<Resources />} />
             <Route path="/auth/signup" element={<Signup />} />
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth" element={<LoginPage />} />
