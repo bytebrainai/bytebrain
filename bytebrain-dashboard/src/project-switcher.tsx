@@ -27,15 +27,15 @@ export function ProjectSwitcher({
     currentProjectId ? currentProjectId : ""
   )
 
-
   return (
     <>
       <Select defaultValue={selectedProject} onValueChange={(value) => {
+        selectedProject !== value && setSelectedProject(value)
+        localStorage.setItem("currentProjectId", value)
         window.location.assign(
           `http://localhost:5173/projects/${value}/resources`
         );
-      }
-      }>
+      }}>
         <SelectTrigger
           className={cn(
             "flex items-center gap-2 [&>span]:line-clamp-1 [&>span]:flex [&>span]:w-full [&>span]:items-center [&>span]:gap-1 [&>span]:truncate [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0"

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 
 import "./App.css";
-import { NavBar } from "./NavBar";
 import { Project, Result, Unauthorized } from "./Projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 
@@ -28,6 +27,7 @@ export function Resources(props: any) {
   });
   const [projects, setProjects] = useState<Project[]>([]);
   const { project_id } = useParams();
+  localStorage.setItem("currentProjectId", project_id || "")
 
   async function getProject(access_token: string): Promise<Result<Project, Error>> {
     try {
@@ -123,8 +123,6 @@ export function Resources(props: any) {
 
   return (
     <>
-      <NavBar projects={projects} currentProjectId={project_id} />
-
       <h1 className="h-11 text-4xl font-medium leading-tight sm:text-4xl sm:leading-normal">{project.name}</h1>
       <p className="text-sm text-muted-foreground pt-3 pb-3">{project.description}</p>
 
