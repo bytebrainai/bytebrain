@@ -1,7 +1,7 @@
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import "./App.css";
 import { Project, Result, Unauthorized } from "./Projects";
@@ -15,7 +15,6 @@ import DataSourceTable from "./DataSourceTable";
 import NewDataSourceDialog from "./NewDataSourceDialog";
 
 export function Resources(props: any) {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [rerender, setRerender] = React.useState(false);
 
@@ -145,7 +144,6 @@ export function Resources(props: any) {
             <h2 className="h-11 text-3xl font-medium leading-tight sm:text-3xl sm:leading-normal">
               Data Sources
             </h2>
-            <h2>{JSON.stringify(rerender)}</h2>
             <NewDataSourceDialog
               open={open}
               setOpen={setOpen}
