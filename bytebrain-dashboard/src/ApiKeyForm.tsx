@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import "./App.css";
 import { Resource, Result, Unauthorized } from "./Projects";
 import { cn } from "./lib/utils";
+import { Regex } from "lucide-react";
 
 ("use client");
 
@@ -38,7 +39,12 @@ function ApiKeyForm({
     name: z.string(),
     allowed_domains: z.array(
       z.object({
-        value: z.string().url({ message: "Please enter a valid URL." }),
+        value: z
+          .string()
+          .regex(
+            new RegExp("^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(.[A-Za-z]{2,})+$"),
+            { message: "Please enter a valid domain" }
+          ),
       })
     ),
   });

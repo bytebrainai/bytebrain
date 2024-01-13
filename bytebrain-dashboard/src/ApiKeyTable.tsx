@@ -44,7 +44,7 @@ function ApiKeyTable({
   ): Promise<Result<ApiKey[], Error>> {
     try {
       const response = await fetch(
-        `http://localhost:8081/projects/${project_id}/apikeys/`,
+        `http://localhost:8081/projects/${project_id}/apikeys`,
         {
           method: "GET",
           headers: {
