@@ -42,6 +42,12 @@ async def websocket_chat_endpoint(websocket: WebSocket, apikey: str,
     try:
         await websocket.accept()
 
+        domain = websocket.headers.get('host').split(':')[0]
+
+        if not project_service.is_allowed(domain, apikey):
+            await websocket.close()
+            raise WebSocketException("You cannot access this api from this domain!")
+
         project = project_service.get_project_by_apikey(apikey)
         if project is None:
             raise Exception("Project not found!")

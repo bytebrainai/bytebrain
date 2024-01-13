@@ -102,3 +102,10 @@ class ProjectService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User does not have permission to delete this apikey!"
             )
+
+    def is_allowed(self, domain, apikey) -> bool:
+        allowed_domains = self.apikey_dao.get_apikey(apikey).allowed_domains
+        if not allowed_domains:
+            return True
+        else:
+            return domain in allowed_domains
