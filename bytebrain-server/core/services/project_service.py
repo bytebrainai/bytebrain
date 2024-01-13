@@ -1,8 +1,10 @@
+import uuid
 from typing import Optional, List
 
 from fastapi import HTTPException
 from fastapi import status
 
+from core.dao.apikey_dao import ApiKeyDao, ApiKey
 from core.dao.project_dao import ProjectDao, Project
 from core.dao.resource_dao import Resource
 from core.services.resource_service import ResourceService
@@ -15,9 +17,10 @@ class ProjectNotFound(Exception):
 
 
 class ProjectService:
-    def __init__(self, project_dao: ProjectDao, resource_service: ResourceService):
+    def __init__(self, project_dao: ProjectDao, resource_service: ResourceService, apikey_dao: ApiKeyDao):
         self.project_dao = project_dao
         self.resource_service = resource_service
+        self.apikey_dao = apikey_dao
 
     def delete_projects_owned_by(self, user_id: str):
         projects_to_delete = self.project_dao.get_all_projects(user_id)
@@ -63,3 +66,39 @@ class ProjectService:
         project.resources = resources
 
         return project
+
+    def get_project_by_apikey(self, apikey) -> Optional[Project]:
+        apikey: Optional[ApiKey] = self.apikey_dao.get_apikey(apikey)
+        if apikey is None:
+            return None
+        project: Optional[Project] = self.project_dao.get_project_by_id(apikey.project_id)
+        if project is None:
+            return None
+        resources: List[Resource] = self.resource_service.get_resources_by_project_id(project.id)
+        project.resources = resources
+
+        return project
+
+    def generate_apikey(self, project_id, name: str, allowed_domains: List[str]) -> Optional[ApiKey]:
+        project: Optional[Project] = self.project_dao.get_project_by_id(project_id)
+        if project is None:
+            return None
+
+        apikey = ApiKey(
+            apikey=str(uuid.uuid4()),
+            name=name,
+            allowed_domains=allowed_domains,
+            project_id=project_id
+        )
+
+        return self.apikey_dao.add_apikey(apikey)
+
+    def delete_apikey(self, apikey: str, project_id: str, user_id: str):
+        project = self.project_dao.get_project_by_id(project_id)
+        if project.user_id == user_id:
+            self.apikey_dao.delete_apikey(apikey)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not have permission to delete this apikey!"
+            )

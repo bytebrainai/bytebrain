@@ -4,9 +4,9 @@ import time
 from typing import Any, List
 from typing import Dict
 
-from langchain.vectorstores import Weaviate
 from fastapi import APIRouter
 from fastapi import WebSocket
+from langchain.vectorstores import Weaviate
 from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
 from starlette.responses import Response
 from structlog import getLogger
@@ -35,15 +35,16 @@ class ProjectNotFoundException(WebSocketException):
 
 
 # WebSocket endpoint for chat
-@router.websocket("/chat/{project_id}")
-async def websocket_chat_endpoint(websocket: WebSocket, project_id: str,
+@router.websocket("/chat/{apikey}")
+async def websocket_chat_endpoint(websocket: WebSocket, apikey: str,
                                   project_service: Annotated[ProjectService, Depends(project_service)],
                                   weaviate: Annotated[Weaviate, Depends(weaviate)]):
     try:
         await websocket.accept()
 
-        if project_service.get_project_by_id(project_id) is None:
-            raise ProjectNotFoundException(message="Project not found!", project_id=project_id)
+        project = project_service.get_project_by_apikey(apikey)
+        if project is None:
+            raise Exception("Project not found!")
 
         start_time = time.time()
         request_counter.inc()
@@ -52,7 +53,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, project_id: str,
             websocket=websocket,
             vector_store=weaviate,
             prompt_template=config.webservice.prompt,
-            tenant=project_id
+            tenant=project.id
         )
 
         while True:
