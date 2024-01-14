@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import "./App.css";
 import { Resource, Result, Unauthorized } from "./Projects";
 import { cn } from "./lib/utils";
-import { Regex } from "lucide-react";
 
 ("use client");
 
@@ -179,7 +178,7 @@ function ApiKeyForm({
                 className="mt-2"
                 onClick={() => append({ value: "" })}
               >
-                Add Domain
+                Add Domain (Optional)
               </Button>
             </div>
             <div className="flex pt-3 pb-3">
