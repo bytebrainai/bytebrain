@@ -11,7 +11,7 @@ export const ChatAppDevelopment = {
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: "/chat",
-    projectId: "<project_id>"
+    apikey: "<apikey>"
   },
 };
 
@@ -20,6 +20,6 @@ export const ChatAppProduction = {
     websocketHost: "chat.zio.dev",
     websocketPort: "80",
     websocketEndpoint: "/chat",
-    projectId: "<project_id>"
+    apikey: "<apikey>"
   },
 };

@@ -17,7 +17,7 @@ export default {
     title: { name: "Title", control: { type: "text" } },
     defaultQuestion: { name: "Default Question", control: { type: "text" } },
     websocketEndpoint: { name: "Websocket Endpoint", control: { type: "text" } },
-    projectId: { name: "Project ID", control: { type: "text" } },
+    apikey: { name: "API Key", control: { type: "text" } },
   },
 };
 
@@ -28,7 +28,7 @@ export const ZIOChat = {
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: '/chat',
-    projectId: '<project_id>',
+    apikey: '<apikey>',
     welcomeMessages: welcome_messages,
     fullScreen: true,
   }
@@ -41,7 +41,7 @@ export const DummyZIOChat = {
     websocketHost: "localhost",
     websocketPort: "8081",
     websocketEndpoint: '/dummy_chat',
-    projectId: '',
+    apikey: '',
     welcomeMessages: welcome_messages,
     fullScreen: true,
   }
@@ -55,7 +55,7 @@ export const ZIOChatProduction = {
     websocketHost: "chat.zio.dev",
     websocketPort: "80",
     websocketEndpoint: '/chat',
-    projectId: '<project_id>',
+    apikey: '<apikey>',
     welcomeMessages: welcome_messages,
     fullScreen: true,
   }
