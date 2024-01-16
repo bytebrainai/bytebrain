@@ -13,8 +13,8 @@ from core.dao.user_dao import UserInDB, UserDao
 
 auth_router = router = APIRouter()
 
-GITHUB_CLIENT_ID = os.getenv("CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 
 USER_ID_NAMESPACE = uuid.UUID('9890c20b-f752-4807-a8ea-8b05fa466d6a')
 

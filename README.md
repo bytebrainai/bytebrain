@@ -48,11 +48,13 @@ Then define following env variables in .env file:
 
 ```shell
 OPENAI_API_KEY=<openai_api_key>
-ZIOCHAT_DOCS_DIR=<docs_dir>
 DISCORD_BOT_TOKEN=<discord_token>
 PROMETHEUS_REMOTE_WRITE_URL=<prometheus_url>
 PROMETHEUS_REMOTE_WRITE_USERNAME=<prometheus_username>
 PROMETHEUS_REMOTE_WRITE_PASSWORD=<prometheus_password>
+GOOGLE_API_KEY=<google_api_key>
+GITHUB_CLIENT_ID=<github_client_id>
+GITHUB_CLIENT_SECRET=<github_secret>
 ```
 
 After running these steps, we can run any task defined inside `pyproject.toml`, e.g.:
