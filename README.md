@@ -90,8 +90,7 @@ It will start a development server on http://localhost:5173
 
 ### ByteBrain UI
 
-The ByteBrain UI is a React component that can be embedded in any website. To install it, run the following steps on the
-root of your react project:
+The ByteBrain UI is a React component that can be embedded in any website. To install it, run the following steps on the root of your React project:
 
 ```shell
 npm i @bytebrain.ai/bytebrain-ui
