@@ -1,10 +1,19 @@
-# ZIO Chat
+# ByteBrain
 
-A Chatbot for ZIO Ecosystem
+A Chatbot For Your Documentations
+
+## Components
+
+ByteBrain consists of following components:
+
+- **ByteBrain Server**: A server that provides a REST API for chatbot and dashboard
+- **ByteBrain UI**: A UI component that can be embedded in any website
+- **ByteBrain Dashboard**: A dashboard for creating and managing chatbots
+
 
 ## Install Development Environment
 
-### ZIO Chat Server
+### ByteBrain Server
 
 Run the following steps:
 
@@ -17,32 +26,77 @@ pip install poetry
 poetry install
 ```
 
+Then define following env variables
+
+```shell
+export OPENAI_API_KEY=<openai_api_key>
+export ZIOCHAT_DOCS_DIR=<docs_dir>
+```
+
 After running these steps, we can run any task defined inside `pyproject.toml`, e.g.:
 
 ```shell
 poetry run webserver
 ```
 
-## Installation
+It will start a development server on http://localhost:8081
 
-1. Define following env variables
+### ByteBrain Dashboard
 
-```shell
-export OPENAI_API_KEY=<openai_api_key>
-export ZIOCHAT_DOCS_DIR=<docs_dir>
-export ZIOCHAT_CHROMA_DB_DIR=<chroma_db_dir>
-```
-
-3. Index docs:
+Run the following steps:
 
 ```shell
-poetry run index
+nix-shell shell.nix
+cd bytebrain-dashboard
+yarn install
+yarn run dev
 ```
 
-2. Run chart service:
+It will start a development server on http://localhost:5173
+
+### ByteBrain UI
+
+The ByteBrain UI is a React component that can be embedded in any website. To install it, run the following steps on the root of your React project:
 
 ```shell
-poetry run webserver
+npm i @bytebrain.ai/bytebrain-ui
 ```
 
-Then open the chatbot on http://localhost:8081
+Then you can import the `ChatApp` or `ChatPrompt` component from `@bytebrain.ai/bytebrain-ui` and use it in your project, e.g.:
+
+
+```jsx
+<ChatApp
+  websocketHost='localhost'
+  websocketPort='8081'
+  websocketEndpoint='/chat'
+/>
+```
+
+#### Development Notes
+
+1. To test ui components locally, you can run `yarn run storybook` in `bytebrain-ui` directory and then open http://localhost:6006 in your browser. It will show a list of all components that you can test.
+
+2. To build and publish the package, run following commands:
+
+```shell
+cd bytebrain-ui
+yarn version --patch
+yarn run build-lib
+yarn pack
+yarn publish
+```
+
+## ZIO Website Deployment (chat.zio.dev)
+
+The **ByteBrain Client** module is used to embed the ByteBrain UI in a website that is used to provide a chatbot for zio.dev documentation. You can find the deployed version [here](https://chat.zio.dev).
+
+To deploy client module, run following commands:
+
+```
+git clone https://github.com/zivergetech/bytebrain.git
+cd bytebrain
+docker-compose up -d
+cd letsencrypt
+./cli.sh up
+```
