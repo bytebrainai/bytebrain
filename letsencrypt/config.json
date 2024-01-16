@@ -1,0 +1,17 @@
+{
+  "domains": [
+    {
+      "domain": "chat.zio.dev",
+      "email": "milad.khajavi@ziverge.com",
+      "wwwSubdomain": false,
+      "testCert": false,
+      "rsaKeySize": 4096,
+      "requestHandler": "reverseProxy",
+      "upstream": "reverse-proxy:80",
+      "websockets": true,
+      "dnsResolver": "127.0.0.11"
+    }
+  ],
+  "dhparamsSize": 2048,
+  "gzip": true
+}
