@@ -26,8 +26,12 @@ cd bytebrain
 docker-compose up -d
 ```
 
-Note: The latest version of bytebrain that is deployed on chat.zio.dev is based on
+Notes:
+
+1. The latest version of bytebrain that is deployed on chat.zio.dev is based on
 this [commit](https://github.com/zivergetech/bytebrain/commit/fb4b0f9b8c1fc72d3ffc015ede7fd6bb2b1ae039).
+
+2. The monitoring dashboard is available on Grafana Cloud console [here](https://ziochat.grafana.net/d/a2d6a23e-5200-44f0-9e50-33d252917386/zio-chat)
 
 ## Install Development Environment
 
@@ -63,7 +67,7 @@ After running these steps, we can run any task defined inside `pyproject.toml`, 
 poetry run webserver
 ```
 
-It will start a development server on http://localhost:8081
+It will start a development server on http://localhost:8081 and the swagger documentation is available on http://localhost:8081/docs
 
 #### Development Notes
 
