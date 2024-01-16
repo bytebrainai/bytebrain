@@ -24,7 +24,7 @@ export default function ApiKeyPage({
 
   return (
     <>
-      <div className="flex items-center justify-between pt-5">
+      <div className="flex items-center justify-between pt-5 pl-8 pr-8">
         <h2 className="h-11 text-3xl font-medium leading-tight sm:text-3xl sm:leading-normal">
           Api Key
         </h2>

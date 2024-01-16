@@ -13,6 +13,7 @@ import * as React from "react";
 import ApiKeyPage from "./ApiKeyPage";
 import DataSourceTable from "./DataSourceTable";
 import NewDataSourceDialog from "./NewDataSourceDialog";
+import ChatModelPage from "./ChatModelPage";
 
 export function Resources(props: any) {
   const [open, setOpen] = useState(false);
@@ -137,10 +138,11 @@ export function Resources(props: any) {
         <TabsList>
           <TabsTrigger value="data-sources">Data Sources</TabsTrigger>
           <TabsTrigger value="api-key">API Key</TabsTrigger>
+          <TabsTrigger value="chat-model">Chat Model</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="data-sources" className="pt-3">
-          <div className="flex items-center justify-between pt-5">
+          <div className="flex items-center justify-between pt-5 pl-8 pr-8">
             <h2 className="h-11 text-3xl font-medium leading-tight sm:text-3xl sm:leading-normal">
               Data Sources
             </h2>
@@ -162,7 +164,10 @@ export function Resources(props: any) {
         <TabsContent value="api-key" className="pt-3">
           <ApiKeyPage open={open} setOpen={setOpen} project_id={project.id} />
         </TabsContent>
-        <TabsContent value="settings" className="pt-3">
+        <TabsContent value="chat-model" className="pt-3">
+          <ChatModelPage open={open} setOpen={setOpen} project_id={project.id} />
+        </TabsContent>
+        <TabsContent value="settings" className="pt-3  pl-8 pr-8">
           <h2 className="h-11 text-3xl font-medium leading-tight sm:text-3xl sm:leading-normal">
             Data Sources
           </h2>
