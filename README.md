@@ -13,6 +13,21 @@ ByteBrain consists of following components:
 - **ByteBrain UI**: A UI component that can be embedded in any website
 - **ByteBrain Dashboard**: A dashboard for creating and managing chatbots
 
+## Demo
+
+### Dashboard
+
+![ByteBrain Dashboard](https://github.com/bytebrainai/bytebrain/assets/235974/38253456-e1b9-4169-a51f-c50167c1788f)
+
+### WebUI Chat Component
+
+![ByteBrain UI](https://github-production-user-asset-6210df.s3.amazonaws.com/235974/303415209-bd763189-5554-4ebb-a48a-149fb8c824c4.gif?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20240208%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240208T183609Z&X-Amz-Expires=300&X-Amz-Signature=702184602f38c4afa176d6d2543a5dcdea5083912cc965b33a1101bb2c757598&X-Amz-SignedHeaders=host&actor_id=235974&key_id=0&repo_id=648111122)
+
+### Discord Chat Component
+
+![Discord ChatBot](https://github.com/bytebrainai/bytebrain/assets/235974/912f80ef-3acc-4805-a5b3-4dcdbbcbdc92)
+
+
 ## ZIO Website Deployment (chat.zio.dev)
 
 The `byteBrain-client` module is used to embed the ByteBrain UI in a website that is used to provide a chatbot for
@@ -91,6 +106,7 @@ yarn run dev
 ```
 
 It will start a development server on http://localhost:5173
+
 
 ### ByteBrain UI
 
