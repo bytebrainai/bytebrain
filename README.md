@@ -74,7 +74,10 @@ PROMETHEUS_REMOTE_WRITE_PASSWORD=<prometheus_password>
 GOOGLE_API_KEY=<google_api_key>
 GITHUB_CLIENT_ID=<github_client_id>
 GITHUB_CLIENT_SECRET=<github_secret>
+AUTH_SECRET_KEY=<auth_secret_key>
 ```
+
+To generate `AUTH_SECRET_KEY` please run the `openssl rand -hex 32` command.
 
 After running these steps, we can run any task defined inside `pyproject.toml`, e.g.:
 

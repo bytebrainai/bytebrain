@@ -16,7 +16,7 @@ app = FastAPI()
 
 # to get a string like this run:
 # openssl rand -hex 32
-SECRET_KEY = "4b24534c191ae165d8c55508f41083c21adbd9090064d8a9978284eb4f43e571"
+SECRET_KEY = os.environ['AUTH_SECRET_KEY']
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
