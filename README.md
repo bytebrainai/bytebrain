@@ -92,8 +92,8 @@ It will start a development server on http://localhost:8081 and the swagger docu
 1. The current implementation of ByteBrain Server depends on modified version of Langchain AI which enables us to have
    Multi-tenancy support. I've created a pull request for this
    change [here](https://github.com/langchain-ai/langchain/pull/14174).
-2. Currently, the some tables in this module are stored in a separate database, which is not ideal. We need to integrate
-   theses tables in one database.
+2. Currently, some tables in this module are stored in a separate database, which is not ideal. We need to integrate
+   these tables in one database.
 3.T  he customization of chatbot's prompt template not completed yet and needs
    more work.
 
@@ -147,3 +147,42 @@ yarn publish
 
 3. The current implementation of ByteBrain UI contains support for API Keys. But it is not published to npm registry
    yet.
+
+## Contribution Guide
+
+We're thrilled that you're interested in contributing to ByteBrain project. This guide will help you understand how you can get involved and the contribution process. 
+
+If you want to fix a bug or add a new feature, please follow the following steps:
+
+1. **Fork the Repository**: Start by forking the ByteBrain repository to your GitHub account. This will create a copy of the repository under your account.
+
+2. **Clone the Repository**: Clone the forked repository to your local machine using the following command:
+
+```bash
+git clone https://github.com/your-username/bytebrain.git
+```
+
+3. **Install Dependencies**: Follow the installation instructions in the project's README file to set up the development environment.
+
+4. **Branching Strategy**: Create a new branch for your contribution. It's recommended to name your branch descriptively, indicating the feature or fix you're working on:
+
+```shell
+git checkout -b new-feature
+```
+
+5. **Code and Document**: Implement your changes or additions to the project. Update documentation, including README files, comments within the code, or any other relevant documentation affected by your changes.
+
+6. **Commit**: Once you've made your changes, commit them to your branch:
+
+```shell
+git add .
+git commit -m "Brief description of your changes"
+```
+
+7. **Push**: Push your changes to your forked repository:
+
+```shell
+git push origin new-feature
+```
+
+8. **Pull Request**: Go to the original ByteBrain repository on GitHub and create a Pull Request (PR) from your forked branch. Provide a descriptive title and detailed description of your changes in the PR.
