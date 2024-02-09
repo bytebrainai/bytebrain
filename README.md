@@ -1,5 +1,5 @@
+# ByteBrain
 <div align="center" style="display: flex; align-items: center; justify-content: center;">
-  <span style="margin-right: 20px"><h1>ByteBrain</h1></span>
   <img src="logo.svg" alt="ByteBrain Logo" width="20%" height="20%">
 </div>
 
