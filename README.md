@@ -78,8 +78,7 @@ It will start a development server on http://localhost:8081 and the swagger docu
    change [here](https://github.com/langchain-ai/langchain/pull/14174).
 2. Currently, some tables in this module are stored in a separate database, which is not ideal. We need to integrate
    these tables in one database.
-3.T  he customization of chatbot's prompt template not completed yet and needs
-   more work.
+3. The customization of chatbot's prompt template not completed yet and needs more work.
 
 ### ByteBrain Dashboard
 
