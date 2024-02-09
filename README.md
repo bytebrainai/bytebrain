@@ -1,6 +1,6 @@
 # ByteBrain
 
-A Chatbot For Your Documentations
+Bytebrain is an AI-powered Chatbot that is used to onboard and support developers to new frameworks, languages, and libraries.
 
 ## Components
 
