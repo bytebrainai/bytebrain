@@ -3,7 +3,23 @@
   <img src="logo.svg" alt="ByteBrain Logo" width="20%" height="20%">
 </div>
 
-ByteBrain is an AI-powered Chatbot that is used to onboard and support developers to new frameworks, languages, and libraries.
+ByteBrain is an AI-powered chatbot used to onboard and support developers with new frameworks, languages, and libraries.
+
+## Features
+
+ByteBrain offers a range of powerful features:
+
+1. **AI-Powered Chatbot:** Utilizes advanced artificial intelligence algorithms to provide assistance to users.
+
+2. **Framework, Language, and Library Support:** Assists developers in getting acquainted with new frameworks, languages, and libraries. It supports a wide range of programming languages.
+
+3. **Multiple Chat Interfaces:** Provides flexibility with two chat interfaces:
+    - Web Interface: Integrates seamlessly into websites via a customizable widget.
+    - Discord: Interacts directly within Discord channels for easy communication.
+
+4. **Document Indexing:** Supports indexing documents from various sources including websites, webpages, GitHub repositories, and YouTube videos.
+
+5. **Customizable Via Prompt Templates:** Allows customization of conversation prompts to align with specific needs and preferences.
 
 ## Components
 
