@@ -148,7 +148,7 @@ class ResourceService:
                                         doc_source_type=ResourceType.Website.value,
                                         url=url)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs, project_id)
+        self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
@@ -159,7 +159,7 @@ class ResourceService:
                                            doc_source_id=resource_id,
                                            doc_source_type=ResourceType.Webpage.value)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs, project_id)
+        self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
@@ -169,7 +169,7 @@ class ResourceService:
                                       doc_source_id=resource_id,
                                       doc_source_type=ResourceType.Youtube.value)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs, project_id)
+        self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
@@ -183,7 +183,7 @@ class ResourceService:
                                                   branch=branch,
                                                   paths=paths)
         self.resource_dao.set_state(resource_id, ResourceState.Indexing)
-        self.vectorstore_service.index_docs(ids, docs, project_id)
+        self.vectorstore_service.index_docs(ids, docs)
         self.metadata_service.save_docs_metadata(docs)
         self.resource_dao.set_state(resource_id, ResourceState.Finished)
 
@@ -215,7 +215,7 @@ class ResourceService:
         resource = self.resource_dao.get_by_id(resource_id)
         ids = self.metadata_service.get_docs_ids_by_source_id(resource_id)
         if resource:
-            self.vectorstore_service.delete_docs(ids, resource.project_id)
+            self.vectorstore_service.delete_docs(ids)
         self.metadata_service.delete_docs_by_resource_id(resource_id)
         self.resource_dao.delete_resource(resource_id)
 

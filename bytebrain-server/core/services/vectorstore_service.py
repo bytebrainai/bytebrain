@@ -31,14 +31,14 @@ class VectorStoreService:
         self.index_name = index_name
         self.text_key = text_key
 
-    def delete_docs(self, ids: List[UUID], tenant: Optional[str]):
+    def delete_docs(self, ids: List[UUID]):
         # TODO: use batch operations like delete_objects if possible!
         # self.weaviate_client.batch.delete_objects('Zio', where=???)
         for id in ids:
-            if self.weaviate_client.data_object.exists(id, class_name=self.index_name, tenant=tenant):
-                self.weaviate_client.data_object.delete(id, class_name=self.index_name, tenant=tenant)
+            if self.weaviate_client.data_object.exists(id, class_name=self.index_name):
+                self.weaviate_client.data_object.delete(id, class_name=self.index_name)
 
-    def index_docs(self, uuids: List[UUID], docs: List[Document], tenant: Optional[str] = None):
+    def index_docs(self, uuids: List[UUID], docs: List[Document]):
         # self.weaviate_client.schema.add_class_tenants(class_name=self.index_name, tenants=[Tenant(tenant)])
         self.weaviate.from_documents(
             documents=docs,
@@ -46,7 +46,6 @@ class VectorStoreService:
             index_name=self.index_name,
             text_key=self.text_key,
             uuids=uuids,
-            tenant=tenant
         )
 
     @staticmethod
@@ -57,8 +56,7 @@ class VectorStoreService:
     def map_metadata_to_hashes(metadata: List[Dict[any, any]]) -> List[str]:
         return [d['doc_hash'] for d in metadata]
 
-    def upsert_docs(self, ids: List[UUID], docs: List[Document], old_metadata_list: List[Dict[any, any]],
-                    tenant: Optional[str] = None):
+    def upsert_docs(self, ids: List[UUID], docs: List[Document], old_metadata_list: List[Dict[any, any]]):
         assert (len(ids) == len(docs))
 
         doc_source_type = docs[0].metadata['doc_source_type']
@@ -104,7 +102,7 @@ class VectorStoreService:
                     )
 
         if len(removed_docs_ids) != 0:
-            self.delete_docs(removed_docs_ids, tenant)
+            self.delete_docs(removed_docs_ids)
 
         assert (len(changed_docs) == len(changed_docs))
 

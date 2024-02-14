@@ -73,12 +73,9 @@ It will start a development server on http://localhost:8081 and the swagger docu
 
 #### Development Notes
 
-1. The current implementation of ByteBrain Server depends on modified version of Langchain AI which enables us to have
-   Multi-tenancy support. I've created a pull request for this
-   change [here](https://github.com/langchain-ai/langchain/pull/14174).
-2. Currently, some tables in this module are stored in a separate database, which is not ideal. We need to integrate
+1. Currently, some tables in this module are stored in a separate database, which is not ideal. We need to integrate
    these tables in one database.
-3. The customization of chatbot's prompt template not completed yet and needs more work.
+2. The customization of chatbot's prompt template not completed yet and needs more work.
 
 ### ByteBrain Dashboard
 

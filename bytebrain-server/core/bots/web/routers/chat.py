@@ -72,8 +72,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, apikey: str,
         qa = make_question_answering_chain(
             websocket=websocket,
             vector_store=weaviate,
-            prompt_template=config.webservice.prompt,
-            tenant=project.id
+            prompt_template=config.webservice.prompt
         )
 
         while True:

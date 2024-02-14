@@ -96,6 +96,18 @@ class ProjectDao:
                             created_at=datetime.strptime(result[3], '%Y-%m-%d %H:%M:%S'),
                             description=result[4]) for result in results]
 
+    def get_all_projects_count(self) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT COUNT(*) FROM projects
+            ''')
+            result = cursor.fetchone()
+            if result:
+                return result[0]
+            else:
+                return 0
+
     def update_project(self, project: Project):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

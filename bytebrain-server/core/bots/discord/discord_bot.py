@@ -196,8 +196,7 @@ async def on_message(message):
             qa = make_question_answering_chain(
                 websocket=None,
                 vector_store=weaviate,
-                prompt_template=config.discord.prompt,
-                tenant = None
+                prompt_template=config.discord.prompt
             )
 
             chat_history = ["FULL CHAT HISTORY:"] + annotate_history_with_turns_v2(

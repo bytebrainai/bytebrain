@@ -59,6 +59,11 @@ class ProjectService:
             )
 
     def create_project(self, name: str, user_id: str, description: str) -> Project:
+        if self.project_dao.get_all_projects_count() >= 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="ByteBrain doesn't support multi-project yet!"
+            )
         project = Project.create(name, user_id, description)
         self.project_dao.create_project(project)
         return project
