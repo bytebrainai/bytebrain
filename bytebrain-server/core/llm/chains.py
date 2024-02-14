@@ -95,14 +95,11 @@ def make_doc_search(persistent_dir: str):
 def make_question_answering_chain(
         websocket: Optional[WebSocket],
         vector_store: VectorStore,
-        prompt_template: str,
-        tenant: str = None):
+        prompt_template: str):
     search_kwargs = {
         'k': 10,
         'fetch_k': 30
     }
-    if tenant:
-        search_kwargs['tenant'] = tenant
 
     # TODO: Find the best options for retrieving docs
     # search_type="similarity_score_threshold",

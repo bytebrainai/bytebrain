@@ -21,6 +21,7 @@ from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+import os
 
 from core.dao.user_dao import UserInDB, UserDao, User
 
