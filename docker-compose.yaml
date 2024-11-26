@@ -21,6 +21,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./db/app:/app/db
+      - ./workspace:/workspace
     depends_on:
       - weaviate
     env_file: .env
