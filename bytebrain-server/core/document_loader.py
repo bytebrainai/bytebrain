@@ -2,6 +2,7 @@ import os
 import uuid
 from typing import Optional, List, Dict
 from uuid import UUID
+import re
 
 import yaml
 from langchain.document_loaders import GitLoader
