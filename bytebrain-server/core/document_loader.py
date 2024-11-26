@@ -121,40 +121,62 @@ def extract_first_heading(content: str) -> str:
 def load_zionomicon_docs(directory: str) -> (List[UUID], List[Document]):
     documents: list[Document] = []
 
+    # Debug: Print the directory being searched
+    print(f"Searching for markdown files in: {directory}")
+
+    if not os.path.exists(directory):
+        print(f"Error: Directory {directory} does not exist")
+        return [], []
+
     for root, dirs, files in os.walk(directory):
+        # Debug: Print current directory being processed
+        print(f"Processing directory: {root}")
+        print(f"Found files: {files}")
+
         for file_name in files:
             if file_name.endswith('.md'):
                 md_path = os.path.join(root, file_name)
+                print(f"Processing markdown file: {md_path}")
 
-                # Read the file content first to extract the title
-                with open(md_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    title = extract_first_heading(content)
+                try:
+                    # Read the file content first to extract the title
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        title = extract_first_heading(content)
+                        print(f"Extracted title: {title}")
 
-                docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
-                docs = MarkdownTextSplitter().split_documents(docs)
+                    docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+                    docs = MarkdownTextSplitter().split_documents(docs)
+                    print(f"Split into {len(docs)} documents")
 
-                for index, doc in enumerate(docs):
-                    doc.metadata.setdefault("doc_source_id", "zionomicon")
-                    doc.metadata.setdefault("doc_source_type", "documentation")
-                    doc.metadata.setdefault("doc_path", doc.metadata.pop('source').split("/zionomicon/docs/")[1])
-                    doc.metadata.setdefault("doc_chapter", title)  # Using extracted title instead of chapters map
-                    doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
-                    doc.metadata.setdefault(
-                        "doc_uuid",
-                        str(
-                            generate_uuid(
-                                NAMESPACE_DOCUMENT,
-                                doc.metadata['doc_source_type'],
-                                doc.metadata['doc_source_id'],
-                                doc.metadata['doc_path'],
-                                doc.metadata['doc_hash']
+                    for index, doc in enumerate(docs):
+                        doc.metadata.setdefault("doc_source_id", "zionomicon")
+                        doc.metadata.setdefault("doc_source_type", "documentation")
+                        doc.metadata.setdefault("doc_path", doc.metadata.pop('source').split("/zionomicon/docs/")[1])
+                        doc.metadata.setdefault("doc_chapter", title)
+                        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+                        doc.metadata.setdefault(
+                            "doc_uuid",
+                            str(
+                                generate_uuid(
+                                    NAMESPACE_DOCUMENT,
+                                    doc.metadata['doc_source_type'],
+                                    doc.metadata['doc_source_id'],
+                                    doc.metadata['doc_path'],
+                                    doc.metadata['doc_hash']
+                                )
                             )
                         )
-                    )
-                documents.extend(docs)
+                    documents.extend(docs)
+                except Exception as e:
+                    print(f"Error processing file {md_path}: {str(e)}")
+                    continue
 
     ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in documents]
+
+    # Debug: Print final counts
+    print(f"Total documents processed: {len(documents)}")
+    print(f"Total IDs generated: {len(ids)}")
 
     assert (len(ids) == len(documents))
     return ids, documents
