@@ -1,8 +1,22 @@
+# Copyright 2023-2024 ByteBrain AI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Optional
 
 import langchain
 
-from core.callbacks import StreamingLLMCallbackHandler
+from core.llm.callbacks import StreamingLLMCallbackHandler
 
 langchain.verbose = True
 # langchain.debug=True
@@ -20,7 +34,7 @@ from langchain.vectorstores import FAISS
 from langchain.schema import BaseRetriever
 
 from fastapi import WebSocket
-from core.upgrade_sqlite import upgrade_sqlite_version
+from core.utils.upgrade_sqlite import upgrade_sqlite_version
 
 upgrade_sqlite_version()
 embeddings: OpenAIEmbeddings = OpenAIEmbeddings()

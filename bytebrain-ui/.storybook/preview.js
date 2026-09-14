@@ -23,3 +23,17 @@ const preview = {
 };
 
 export default preview;
+
+import React from "react";
+import { useDarkMode } from "storybook-dark-mode";
+
+export const decorators = [
+  (Story) => {
+    const mode = useDarkMode() ? "dark" : "light";
+    return (
+      <div data-theme={mode}>
+        <Story />
+      </div>
+    );
+  },
+];

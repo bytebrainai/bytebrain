@@ -1,0 +1,5 @@
+./cache
+./embeddings-cache
+./db
+./backups
+**/.venv*

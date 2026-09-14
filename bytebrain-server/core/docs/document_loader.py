@@ -1,0 +1,472 @@
+# Copyright 2023-2024 ByteBrain AI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+import re
+import sys
+import tempfile
+import uuid
+from datetime import datetime
+from typing import List, Dict, Callable
+from typing import Optional
+from uuid import UUID
+
+import yaml
+from discord.ext.commands import Bot
+from langchain.document_loaders import GitLoader
+from langchain.document_loaders import UnstructuredMarkdownLoader
+from langchain.document_loaders import YoutubeLoader, UnstructuredURLLoader
+from langchain.document_loaders.recursive_url_loader import RecursiveUrlLoader
+from langchain.document_transformers.html2text import Html2TextTransformer
+from langchain.schema import Document
+from langchain.text_splitter import Language
+from langchain.text_splitter import MarkdownTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from wcmatch import glob
+
+from core.docs.discord_loader import dump_channel_history
+from core.models.discord.ChannelHistory import ChannelHistory
+from core.models.discord.DiscordMessage import DiscordMessage
+from core.utils.utils import calculate_md5_checksum
+
+NAMESPACE_DOCUMENT = UUID('f924e0a9-69a7-11ee-aa84-6c02e09469ba')
+NAMESPACE_WEBSITE = UUID('c88b857e-be16-4d80-9f45-b5c41fdd4a11')
+NAMESPACE_WEBPAGE = UUID('e48c5a31-a290-4b79-b47e-2b2999f18d3d')
+NAMESPACE_YOUTUBE = UUID('1572e8de-29bf-464e-9253-656bd7c78938')
+NAMESPACE_SOURCECODE = UUID('86adfa90-25d6-45bc-894c-8e1bb5c8ce76')
+NAMESPACE_DISCORD: UUID = UUID('e66dbce0-e817-4d27-bca5-72f1c4442b4a')
+
+
+def generate_uuid(namespace: UUID, doc_source_type, doc_source_id, doc_path, doc_hash) -> UUID:
+    return uuid.uuid5(namespace, f"{doc_source_type}:{doc_source_id}:{doc_path}:{doc_hash}")
+
+
+def load_zio_website_docs(directory: str) -> (List[UUID], List[Document]):
+    def extract_metadata(md_file_path: str) -> Dict[str, str]:
+        with open(md_file_path, 'r') as file:
+            content = file.read()
+
+        # Parse YAML front matter
+        try:
+            _, yaml_content, _ = content.split('---', 2)
+            meta_data = yaml.safe_load(yaml_content)
+            return {"id": meta_data.get('id'), "title": meta_data.get("title")}
+        except ValueError:
+            file_name = os.path.basename(md_file_path)
+            return {"id": file_name, "title": file_name}
+
+    documents: list[Document] = []
+    for root, dirs, files in os.walk(directory):
+        for filename in files:
+            if filename.endswith('.md'):
+                md_path = os.path.join(root, filename)
+                docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+                docs = MarkdownTextSplitter().split_documents(docs)
+                metadata: dict[str, str] = extract_metadata(md_path)
+                for index, doc in enumerate(docs):
+                    doc_id = root.split("/zio/website/docs/")[1] + '/' + metadata["id"]
+                    doc.metadata["doc_path"] = doc.metadata["source"].split("/zio/website/docs/")[1]
+                    doc.metadata["source"] = doc_id
+                    doc.metadata.setdefault("doc_source_type", "documentation")
+                    doc.metadata.setdefault("doc_source_id", "zio.dev")
+                    doc.metadata.setdefault("doc_id", doc_id)
+                    doc.metadata.setdefault("doc_title", metadata["title"])
+                    doc.metadata.setdefault("doc_url", f"https://zio.dev/{doc.metadata['doc_id']}")
+                    doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+                    doc.metadata.setdefault("doc_uuid",
+                                            str(generate_uuid(
+                                                NAMESPACE_DOCUMENT,
+                                                doc.metadata['doc_source_type'],
+                                                doc.metadata['doc_source_id'],
+                                                doc.metadata['doc_path'],
+                                                doc.metadata['doc_hash']
+                                            )))
+                documents.extend(docs)
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in documents]
+
+    assert (len(ids) == len(documents))
+    return ids, documents
+
+
+def load_sourcecode_from_git_repo(
+        clone_url: str,
+        doc_source_id: str,
+        doc_source_type: str,
+        language: str,
+        branch: Optional[str],
+        paths: Optional[str] = None
+) -> (List[UUID], List[Document]):
+    repo_path = tempfile.mkdtemp()
+    file_filter: Optional[Callable[[str], bool]] = None
+    if paths:
+        try:
+            file_filter = lambda file_path: glob.globmatch(file_path, os.path.join(repo_path, paths),
+                                                           flags=glob.GLOBSTAR)
+        except re.error:
+            raise ValueError("Invalid regular expression pattern")
+    loader = GitLoader(
+        repo_path=repo_path,
+        clone_url=clone_url,
+        branch=branch,
+        file_filter=file_filter
+    )
+    docs = loader.load()
+
+    splitter = RecursiveCharacterTextSplitter.from_language(language=Language(language))
+    docs = splitter.transform_documents(docs)
+
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_path", doc.metadata.pop('file_path'))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_SOURCECODE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_path'],
+                                                  doc.metadata['doc_hash'])))
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
+
+    assert (len(ids) == len(docs))
+    return ids, docs
+
+
+def load_source_code(
+        repo_path: str,
+        branch: Optional[str],
+        source_id: str
+) -> (List[UUID], List[Document]):
+    loader = GitLoader(
+        repo_path=repo_path,
+        branch=branch,
+        file_filter=lambda file_path: file_path.endswith(".scala")
+    )
+    docs = loader.load()
+    splitter = RecursiveCharacterTextSplitter.from_language(language=Language.SCALA)
+    docs = splitter.transform_documents(docs)
+
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_type", "source_code")
+        doc.metadata.setdefault("doc_source_id", source_id)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_path", doc.metadata.pop('file_path'))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_SOURCECODE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_path'],
+                                                  doc.metadata['doc_hash'])))
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
+
+    assert (len(ids) == len(docs))
+    return ids, docs
+
+
+def extract_first_heading(content: str) -> str:
+    # Look for ATX-style headers (# Title) or Setext-style (Title\n===)
+    atx_match = re.search(r'^#\s+(.+?)$', content, re.MULTILINE)
+    if atx_match:
+        return atx_match.group(1).strip()
+
+    setext_match = re.search(r'^(.+?)\n[=]+\s*$', content, re.MULTILINE)
+    if setext_match:
+        return setext_match.group(1).strip()
+
+    return "Untitled"  # Fallback if no heading found
+
+def load_zionomicon_docs(directory: str) -> (List[UUID], List[Document]):
+    documents: list[Document] = []
+
+    # Debug: Print the directory being searched
+    print(f"Searching for markdown files in: {directory}")
+
+    if not os.path.exists(directory):
+        print(f"Error: Directory {directory} does not exist")
+        return [], []
+
+    for root, dirs, files in os.walk(directory):
+        # Debug: Print current directory being processed
+        print(f"Processing directory: {root}")
+        print(f"Found files: {files}")
+
+        for file_name in files:
+            if file_name.endswith('.md'):
+                md_path = os.path.join(root, file_name)
+                print(f"Processing markdown file: {md_path}")
+
+                try:
+                    # Read the file content first to extract the title
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        title = extract_first_heading(content)
+                        print(f"Extracted title: {title}")
+
+                    docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+                    docs = MarkdownTextSplitter().split_documents(docs)
+                    print(f"Split into {len(docs)} documents")
+
+                    for index, doc in enumerate(docs):
+                        doc.metadata.setdefault("doc_source_id", "zionomicon")
+                        doc.metadata.setdefault("doc_source_type", "documentation")
+                        doc.metadata.setdefault("doc_path", doc.metadata.pop('source').split("/zionomicon/docs/")[1])
+                        doc.metadata.setdefault("doc_chapter", title)
+                        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+                        doc.metadata.setdefault(
+                            "doc_uuid",
+                            str(
+                                generate_uuid(
+                                    NAMESPACE_DOCUMENT,
+                                    doc.metadata['doc_source_type'],
+                                    doc.metadata['doc_source_id'],
+                                    doc.metadata['doc_path'],
+                                    doc.metadata['doc_hash']
+                                )
+                            )
+                        )
+                    documents.extend(docs)
+                except Exception as e:
+                    print(f"Error processing file {md_path}: {str(e)}")
+                    continue
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in documents]
+
+    # Debug: Print final counts
+    print(f"Total documents processed: {len(documents)}")
+    print(f"Total IDs generated: {len(ids)}")
+
+    assert (len(ids) == len(documents))
+    return ids, documents
+
+
+def load_youtube_docs_from_video_id(video_id: str) -> (List[UUID], List[Document]):
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    return load_youtube_docs(video_url, doc_source_id="youtube.com", doc_source_type="youtube")
+
+
+def load_youtube_docs(url: str, doc_source_id: str, doc_source_type: str) -> (List[UUID], List[Document]):
+    loader = YoutubeLoader.from_youtube_url(url, add_video_info=True)
+    docs: list[Document] = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+    docs = text_splitter.split_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_url", url)
+        doc.metadata.setdefault("doc_title", doc.metadata.pop('title'))
+        doc.metadata.setdefault("doc_view_count", doc.metadata.pop('view_count'))
+        doc.metadata.setdefault("doc_thumbnail_url", doc.metadata.pop('thumbnail_url'))
+        doc.metadata.setdefault("doc_publish_date", doc.metadata.pop("publish_date"))
+        doc.metadata.setdefault("doc_length", doc.metadata.pop("length"))
+        doc.metadata.setdefault("doc_author", doc.metadata.pop("author"))
+        doc.metadata.setdefault("doc_uuid", str(uuid.uuid5(NAMESPACE_YOUTUBE, url + doc.page_content)))
+    ids = [UUID(c.metadata['doc_uuid']) for c in docs]
+    assert (len(ids) == len(docs))
+    return ids, docs
+
+
+def load_docs_from_webpage(url: str,
+                           doc_source_id: str,
+                           doc_source_type: str) -> (List[UUID], List[Document]):
+    loader = UnstructuredURLLoader(urls=[url])
+    docs = loader.load()
+    docs = Html2TextTransformer(ignore_images=True).transform_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_url", doc.metadata["source"])
+        if title := doc.metadata.pop('title', None):
+            doc.metadata.setdefault("doc_title", title)
+        if description := doc.metadata.pop('description', None):
+            doc.metadata.setdefault("doc_description", description)
+        if language := doc.metadata.pop('language', None):
+            doc.metadata.setdefault("doc_language", language)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_WEBPAGE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_url'],
+                                                  doc.metadata['doc_hash'])))
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
+    assert (len(ids) == len(docs))
+    return ids, docs
+
+
+def load_docs_from_site(doc_source_id: str, doc_source_type: str, **kwargs) -> (List[UUID], List[Document]):
+    # Set default values
+    default_loader_params = {
+        "max_depth": sys.maxsize,
+        "use_async": True,
+        "extractor": None,
+        "exclude_dirs": None,
+        "timeout": None,
+        "prevent_outside": True
+    }
+
+    # Update default values with user-specified values
+    loader_params = {**default_loader_params, **kwargs}
+
+    loader = RecursiveUrlLoader(**loader_params)
+    docs = loader.load()
+
+    docs = Html2TextTransformer(ignore_images=True).transform_documents(docs)
+    docs = MarkdownTextSplitter().transform_documents(docs)
+    for index, doc in enumerate(docs):
+        doc.metadata.setdefault("doc_source_id", doc_source_id)
+        doc.metadata.setdefault("doc_source_type", doc_source_type)
+        doc.metadata.setdefault("doc_url", doc.metadata["source"])
+        if title := doc.metadata.pop('title', None):
+            doc.metadata.setdefault("doc_title", title)
+        if description := doc.metadata.pop('description', None):
+            doc.metadata.setdefault("doc_description", description)
+        if language := doc.metadata.pop('language', None):
+            doc.metadata.setdefault("doc_language", language)
+        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+        doc.metadata.setdefault("doc_uuid",
+                                str(generate_uuid(NAMESPACE_WEBSITE,
+                                                  doc.metadata['doc_source_type'],
+                                                  doc.metadata['doc_source_id'],
+                                                  doc.metadata['doc_url'],
+                                                  doc.metadata['doc_hash'])))
+
+    ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in docs]
+
+    assert (len(ids) == len(docs))
+    return ids, docs
+
+
+async def load_discord_channel_messages(
+        channel_id: int,
+        after_date: Optional[str],
+        from_msg: Optional[DiscordMessage],
+        window_size: Optional[int],
+        common_length: Optional[int],
+        discord_cache_dir: str,
+        bot: Bot):
+    created_at = from_msg.created_at if from_msg is not None else None
+    after = created_at if after_date is None else datetime.strptime(after_date, "%Y-%m-%d")
+    channel_history: ChannelHistory = await dump_channel_history(channel_id, after, bot, discord_cache_dir)
+    if from_msg is not None:
+        # Add the first message of last indexed page
+        channel_history.history.insert(0, from_msg)
+
+    channel_id = channel_history.channel_id
+    channel_name = channel_history.channel_name
+    guild_id = channel_history.guild_id
+    guild_name = channel_history.guild_name
+    batched_messages = sliding_window_with_common_length(channel_history.history, window_size, common_length)
+    pages = [(x[0], add_header(channel_name=channel_name, chat_history=x[1])) for x in
+             [generate_chat_transcript(i) for i in batched_messages]]
+    documents = [
+        Document(
+            page_content=page[1],
+            metadata={
+                "doc_source_id": "discord.com",
+                "doc_source_type": "chat",
+                "doc_id": f"discord.com/channels/{guild_id}/{channel_id}/{page[0]}",
+                "source": f"discord.com/channels/{guild_id}/{channel_id}/{page[0]}",
+                "doc_first_message_id": f"{page[0]}",
+                "doc_channel_id": str(channel_id),
+                "doc_channel_name": channel_name,
+                "doc_guild_id": str(guild_id),
+                "doc_guild_name": guild_name,
+                "doc_hash": calculate_md5_checksum(page[1]),
+                "doc_uuid":
+                    str(
+                        generate_uuid(
+                            namespace=NAMESPACE_DISCORD,
+                            doc_source_type="chat",
+                            doc_source_id="discord.com",
+                            doc_path=f"discord.com/channels/{guild_id}/{channel_id}/{page[0]}",
+                            doc_hash=calculate_md5_checksum(page[1])
+                        )
+                    )
+            }) for page in pages]
+
+    ids = [doc.metadata['doc_uuid'] for doc in documents]
+    assert (len(ids) == len(documents))
+    return ids, documents
+
+
+def sliding_window_with_common_length(my_list, window_size, common_length):
+    """
+    Generate a list of sliding windows over the input list with a common overlap.
+
+    Args:
+        my_list (list): The input list to create sliding windows from.
+        window_size (int): The size of each sliding window.
+        common_length (int): The common length of overlap between adjacent windows.
+
+    Returns:
+        list: A list of sliding windows (lists) with the specified window size and overlap.
+
+    Example:
+        >>> input_list = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> window_size = 3
+        >>> common_length = 1
+        >>> sliding_window_with_common_length(input_list, window_size, common_length)
+        [[1, 2, 3], [3, 4, 5], [5, 6, 7], [7, 8, 9]]
+    """
+    result = []
+    i = 0
+
+    while True:
+        window = my_list[i:i + window_size]
+
+        result.append(window)
+        i += window_size - common_length
+
+        if i + window_size > len(my_list):
+            break
+
+    return result
+
+
+def add_header(channel_name: str, chat_history: str) -> str:
+    return f"# Chat History for {channel_name}\n\n{chat_history}"
+
+
+def generate_chat_transcript(messages: List[DiscordMessage]) -> (id, str):
+    """
+    Convert a list of Discord messages into a transcript with timestamps and user information.
+
+    This function takes a list of Discord messages and creates a human-readable transcript.
+    Each message is formatted with a timestamp, the user who sent it, and the message content.
+    The resulting transcript is a string.
+
+    Args:
+        messages (List[DiscordMessage]): A list of DiscordMessage objects representing chat messages.
+
+    Returns:
+        Tuple[id, str]: A tuple containing the ID of the first message in the list and the transcript string.
+
+    Example:
+        >>> from core.models.discord.DiscordMessage import DiscordMessage
+        >>> messages = [
+        ...     DiscordMessage(1,"User1", datetime(2023, 9, 11, 10, 0, 0), "Hello!"),
+        ...     DiscordMessage(2,"User2", datetime(2023, 9, 11, 10, 5, 0), "Hi there!"),
+        ... ]
+        >>> generate_chat_transcript(messages)
+        (1, '2023-09-11 10:00:00 - User1 said: Hello!\n\n2023-09-11 10:05:00 - User2 said: Hi there!\n\n')
+    """
+    transcript = ""
+    for m in messages:
+        transcript = transcript + f"{m.created_at.strftime('%Y-%m-%d %H:%M:%S')} - {m.user} said: {m.content}\n\n"
+
+    return messages[0].id, transcript

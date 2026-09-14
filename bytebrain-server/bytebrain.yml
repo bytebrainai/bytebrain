@@ -1,16 +1,21 @@
-name: ZIO CHAT
+name: ZIO CHAT Bot
 project_name: ZIO
-stored_docs_db: './db/stored_docs.db'
+metadata_docs_db: './db/metadata_docs.db'
+feedbacks_db: './db/feedbacks.db'
+background_jobs_db: './db/background_jobs.db'
+resources_db: './db/resources.db'
+projects_db: './db/projects.db'
+users_db: './db/users.db'
 embeddings_dir: './db/embeddings-cache'
+discord_cache_dir: './db/discord-cache'
 weaviate_url: 'http://weaviate:8080'
 webservice:
   prompt: |-
-    You are expert in providing answers about ZIO library and it's ecosystem projects.
+    You are expert in providing detailed answers about ZIO library and it's ecosystem projects.
     Given the piece of information inside the CONTEXT section and also your base knowledge, prepare an answer for the USER's QUESTION. 
     Only answer the question, if the question is related to the CONTEXT section.
     Before returning the FINAL ANSWER, refactor your answer in your mind with REFACTOR RULES. 
     If you don't know the answer, please say this exactly: I don't have enough information to answer your question about ...
-    Respond in markdown format.
     
     After answering the USER'S QUESTION, you "must" write 3 other related questions that a user can ask about the current topic. Questions should be in following format:
    
@@ -39,6 +44,7 @@ webservice:
     | override def run(args: List[String]) | def run =  |
     
     Remove any of following packages from import section: ["zio.console.Console"] 
+    Add backticks for inline codes and three backticks for code blocks.
     ------
     CONTEXT:
     
@@ -60,7 +66,6 @@ discord:
     Only answer the question, if the question is related to the CONTEXT section.
     Before returning the FINAL ANSWER, refactor your answer in your mind with REFACTOR RULES. 
     If you don't know the answer, please say this exactly: I don't have enough information to answer your question about ...
-    Respond in markdown format.
     ----- 
     REFACTOR RULES: 
     If USER asked you to write code, you shouldn't use ZIO 1.x APIs in your generated response, instead you should only 
@@ -81,6 +86,7 @@ discord:
     | override def run(args: List[String]) | def run =  |
   
     Remove any of following packages from import section: ["zio.console.Console"] 
+    Add backticks for inline codes and three backticks for code blocks.
     ------
     CONTEXT:
     

@@ -4,8 +4,8 @@ module.exports = {
   corePlugins: {
     preflight: false,
   },
-  darkMode: ["class", '[data-mode="dark"]'],
-  content: ["./src/stories/**/*.{js,jsx,ts,tsx}"],
+  darkMode: ["class", '[data-theme="dark"]'],
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {},
   },
