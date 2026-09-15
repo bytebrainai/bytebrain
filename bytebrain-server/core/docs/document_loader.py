@@ -177,90 +177,77 @@ def load_source_code(
     return ids, docs
 
 
+def extract_first_heading(content: str) -> str:
+    # Look for ATX-style headers (# Title) or Setext-style (Title\n===)
+    atx_match = re.search(r'^#\s+(.+?)$', content, re.MULTILINE)
+    if atx_match:
+        return atx_match.group(1).strip()
+
+    setext_match = re.search(r'^(.+?)\n[=]+\s*$', content, re.MULTILINE)
+    if setext_match:
+        return setext_match.group(1).strip()
+
+    return "Untitled"  # Fallback if no heading found
+
 def load_zionomicon_docs(directory: str) -> (List[UUID], List[Document]):
     documents: list[Document] = []
 
-    chapters = {
-        "05-integrating-with-zio.md": "Essentials: Integrating With ZIO",
-        "22-advanced-stm.md": "Software Transactional Memory: Advanced STM",
-        "34-assertions.md": "Testing: Assertions",
-        "21-stm-data-structures.md": "Software Transaction Memory: STM Data Structures",
-        "07-concurrency-operators.md": "Parallelism And Concurrency: Concurrency Operators",
-        "24-debugging.md": "Advanced Error Management: Debugging",
-        "33-basic-testing.md": "Testing: Basic Testing",
-        "40-reporting.md": "Testing: Reporting",
-        "02-first-steps-with-zio.md": "Essentials: First Steps With ZIO",
-        "48-applications-spark.md": "Applications: Spark",
-        "13-hub-broadcasting.md": "Concurrent Structures: Hub - Broadcasting",
-        "49-appendix-a-the-scala-type-system.md": "Appendix: The Scala Type System",
-        "30-combining-streams.md": "Streaming: Combining Streams",
-        "03-testing-zio-programs.md": "Essentials: Testing ZIO Programs",
-        "29-transforming-streams.md": "Streaming: Transforming Streams",
-        "26-first-steps-with-zstream.md": "Streaming: First Steps With ZStream",
-        "39-test-annotations.md": "Testing: Test Annotations",
-        "38-property-based-testing.md": "Testing: Property Based Testing",
-        "32-sinks.md": "Streaming: Sinks",
-        "10-references-functional-descriptions-of-mutable-state.md": "Concurrent Structures: Ref - Shared State",
-        "11-promise-work-synchronization.md": "Concurrent Structures: Promise - Work Synchronization",
-        "41-applications-parallel-web-crawler.md": "Applications: Parallel Web Crawler",
-        "08-fiber-supervision-in-depth.md": "Parallelism And Concurrency: Fiber Supervision In Depth",
-        "06-the-fiber-model.md": "Parallelism And Concurrency: The Fiber Model",
-        "25-best-practices.md": "Advanced Error Management: Best Practices",
-        "47-applications-graphql-api.md": "Applications: GraphQL API",
-        "14-semaphore-work-limiting.md": "Concurrent Structures: Semaphore - Work Limiting",
-        "31-pipelines.md": "Streaming: Pipelines",
-        "45-applications-grpc-microservices.md": "Applications: gRPC Microservices",
-        "44-applications-kafka-stream-processor.md": "Applications: Kafka Stream Processor",
-        "28-channels.md": "Channels: Unifying Streams, Sinks, and Pipelines",
-        "20-stm-composing-atomicity.md": "Software Transactional Memory: Composing Atomicity",
-        "36-test-aspects.md": "Testing: Test Aspects",
-        "16-scope-composable-resources.md": "Resource Handling: Scope - Composable Resources",
-        "42-applications-file-processing.md": "Applications: File Processing",
-        "46-applications-rest-api.md": "Applications: REST API",
-        "43-applications-command-line-interface.md": "Applications: Command Line Interface",
-        "27-next-steps-with-zstream.md": "Streaming: Next Steps With ZStream",
-        "01-foreword.md": "Foreword by John A. De Goes",
-        "50-appendix-b-mastering-variance.md": "Appendix: Mastering Variance",
-        "15-acquire-release-safe-resource-handling-for-asynchronous-code.md": "Resource Handling: Acquire Release - Safe Resource Handling",
-        "23-retries.md": "Advanced Error Management: Retries",
-        "12-queue-work-distribution.md": "Concurrent Structures: Queue - Work Distribution",
-        "35-the-test-environment.md": "Testing: The Test Environment",
-        "04-the-zio-error-model.md": "Essentials: The ZIO Error Model",
-        "09-interruption-in-depth.md": "Parallelism And Concurrency: Interruption In Depth",
-        "19-advanced-dependency-injection.md": "Dependency Injection: Advanced Dependency Injection",
-        "18-dependency-injection-essentials.md": "Dependency Injection: Essentials",
-        "37-using-resources-in-tests.md": "Testing: Using Resources In Tests",
-        "17-advanced-scopes.md": "Resource Handling: Advanced Scopes",
-    }
+    # Debug: Print the directory being searched
+    print(f"Searching for markdown files in: {directory}")
+
+    if not os.path.exists(directory):
+        print(f"Error: Directory {directory} does not exist")
+        return [], []
 
     for root, dirs, files in os.walk(directory):
+        # Debug: Print current directory being processed
+        print(f"Processing directory: {root}")
+        print(f"Found files: {files}")
+
         for file_name in files:
             if file_name.endswith('.md'):
                 md_path = os.path.join(root, file_name)
-                docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
-                docs = MarkdownTextSplitter().split_documents(docs)
-                for index, doc in enumerate(docs):
-                    doc.metadata.setdefault("doc_source_id", "zionomicon")
-                    doc.metadata.setdefault("doc_source_type", "documentation")
-                    doc.metadata.setdefault("doc_path", doc.metadata.pop('source').split("/zionomicon/docs/")[1])
-                    doc.metadata.setdefault("doc_chapter", chapters[file_name])
-                    doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
-                    doc.metadata.setdefault(
-                        "doc_uuid",
-                        str(
-                            generate_uuid(
-                                NAMESPACE_DOCUMENT,
-                                doc.metadata['doc_source_type'],
-                                doc.metadata['doc_source_id'],
-                                doc.metadata['doc_path'],
-                                doc.metadata['doc_hash']
+                print(f"Processing markdown file: {md_path}")
+
+                try:
+                    # Read the file content first to extract the title
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        title = extract_first_heading(content)
+                        print(f"Extracted title: {title}")
+
+                    docs: list[Document] = UnstructuredMarkdownLoader(md_path).load()
+                    docs = MarkdownTextSplitter().split_documents(docs)
+                    print(f"Split into {len(docs)} documents")
+
+                    for index, doc in enumerate(docs):
+                        doc.metadata.setdefault("doc_source_id", "zionomicon")
+                        doc.metadata.setdefault("doc_source_type", "documentation")
+                        doc.metadata.setdefault("doc_path", doc.metadata.pop('source').split("/zionomicon/docs/")[1])
+                        doc.metadata.setdefault("doc_chapter", title)
+                        doc.metadata.setdefault("doc_hash", calculate_md5_checksum(doc.page_content))
+                        doc.metadata.setdefault(
+                            "doc_uuid",
+                            str(
+                                generate_uuid(
+                                    NAMESPACE_DOCUMENT,
+                                    doc.metadata['doc_source_type'],
+                                    doc.metadata['doc_source_id'],
+                                    doc.metadata['doc_path'],
+                                    doc.metadata['doc_hash']
+                                )
                             )
                         )
-                    )
-
-                documents.extend(docs)
+                    documents.extend(docs)
+                except Exception as e:
+                    print(f"Error processing file {md_path}: {str(e)}")
+                    continue
 
     ids: List[UUID] = [UUID(doc.metadata['doc_uuid']) for doc in documents]
+
+    # Debug: Print final counts
+    print(f"Total documents processed: {len(documents)}")
+    print(f"Total IDs generated: {len(ids)}")
 
     assert (len(ids) == len(documents))
     return ids, documents
